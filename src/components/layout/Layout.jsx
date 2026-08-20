@@ -1,4 +1,4 @@
-// Main App Layout Shell
+// Main App Layout Shell with Role-based Context rendering
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +8,7 @@ import Toast from '../ui/Toast';
 import Modal from '../ui/Modal';
 import EventForm from '../forms/EventForm';
 import useUIStore from '../../store/useUIStore';
+import useAuthStore from '../../store/useAuthStore';
 import './Layout.css';
 
 const MOBILE_NAV = [
@@ -51,19 +52,26 @@ const MOBILE_NAV = [
 
 const Layout = ({ children }) => {
   const { sidebarCollapsed } = useUIStore();
+  const { user } = useAuthStore();
   const [formOpen, setFormOpen] = useState(false);
   const location = useLocation();
 
+  const isParticipant = user?.role === 'participant';
+
   return (
     <div className="app-layout">
-      {/* Desktop Sidebar */}
-      <Sidebar />
+      {/* Desktop Sidebar (Only render for non-participants / Admin roles) */}
+      {!isParticipant && <Sidebar />}
 
       {/* Top Header */}
       <TopBar onAddEvent={() => setFormOpen(true)} />
 
       {/* Main Page Area */}
-      <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <main
+        className={`main-content ${
+          isParticipant ? 'participant-layout' : sidebarCollapsed ? 'sidebar-collapsed' : ''
+        }`}
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
@@ -77,41 +85,43 @@ const Layout = ({ children }) => {
         </AnimatePresence>
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="mobile-bottom-nav" aria-label="Mobile Navigation">
-        {MOBILE_NAV.map((item) => {
-          const isActive =
-            item.path === '/'
-              ? location.pathname === '/'
-              : location.pathname.startsWith(item.path);
+      {/* Mobile Bottom Navigation (Only render for non-participants / Admin roles) */}
+      {!isParticipant && (
+        <nav className="mobile-bottom-nav" aria-label="Mobile Navigation">
+          {MOBILE_NAV.map((item) => {
+            const isActive =
+              item.path === '/'
+                ? location.pathname === '/'
+                : location.pathname.startsWith(item.path);
 
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={`mobile-nav-btn ${isActive ? 'mobile-nav-btn-active' : ''}`}
-            >
-              <span className="mobile-nav-icon">{item.icon}</span>
-              <span className="mobile-nav-label">{item.label}</span>
-            </NavLink>
-          );
-        })}
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={`mobile-nav-btn ${isActive ? 'mobile-nav-btn-active' : ''}`}
+              >
+                <span className="mobile-nav-icon">{item.icon}</span>
+                <span className="mobile-nav-label">{item.label}</span>
+              </NavLink>
+            );
+          })}
 
-        <button
-          className="mobile-nav-btn mobile-nav-add"
-          onClick={() => setFormOpen(true)}
-          aria-label="Create Event"
-          type="button"
-        >
-          <span className="mobile-add-circle">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-          </span>
-          <span className="mobile-nav-label">New Event</span>
-        </button>
-      </nav>
+          <button
+            className="mobile-nav-btn mobile-nav-add"
+            onClick={() => setFormOpen(true)}
+            aria-label="Create Event"
+            type="button"
+          >
+            <span className="mobile-add-circle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </span>
+            <span className="mobile-nav-label">New Event</span>
+          </button>
+        </nav>
+      )}
 
       {/* Global Add Event Dialog */}
       <Modal

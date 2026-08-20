@@ -88,11 +88,39 @@
   border: 1px solid var(--border-subtle);
 }
 
+.convener-pill-interactive {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 3px 8px 3px 6px;
+  border-radius: var(--radius-full);
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all var(--dur-fast);
+}
+
+.convener-pill-interactive:hover {
+  background: var(--surface-card-hover);
+  border-color: var(--border-default);
+}
+
+.dropdown-chevron {
+  color: var(--text-muted);
+  transition: transform var(--dur-fast);
+}
+
+.chevron-rotated {
+  transform: rotate(180deg);
+}
+
 .convener-info {
   display: flex;
   flex-direction: column;
-  padding-right: 6px;
+  padding-right: 2px;
   line-height: 1.15;
+  text-align: left;
 }
 
 .convener-name {
@@ -106,15 +134,85 @@
   color: var(--text-muted);
 }
 
+/* Profile Dropdown Panel */
+.profile-dropdown-container {
+  position: relative;
+}
+
+.profile-dropdown-panel {
+  position: absolute;
+  top: calc(100% + var(--sp-2));
+  right: 0;
+  width: 200px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-popup), var(--shadow-inset-top);
+  border-radius: var(--radius-md);
+  padding: var(--sp-3) 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 210;
+}
+
+.dropdown-user-details {
+  padding: 0 var(--sp-3) var(--sp-2);
+}
+
+.dropdown-username {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dropdown-email {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: var(--sp-1) 0;
+}
+
+.dropdown-action-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: 6px var(--sp-3);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: left;
+  transition: background var(--dur-fast);
+}
+
+.dropdown-action-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Participant Portal Topbar Fullwidth Reset */
+.craft-topbar.topbar-participant {
+  left: 0 !important;
+}
+
 @media (max-width: 768px) {
   .craft-topbar {
     left: 0 !important;
     padding: 0 var(--sp-4);
   }
-  .convener-pill {
+  .convener-pill,
+  .convener-pill-interactive {
     display: none;
   }
   .telemetry-pill {
     display: none;
   }
 }
+

@@ -1,0 +1,321 @@
+.portal-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+}
+
+.portal-banner {
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-sm), var(--shadow-inset-top);
+  border-radius: var(--radius-xl);
+  padding: var(--sp-6) var(--sp-8);
+}
+
+.portal-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+}
+
+.portal-welcome-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+.portal-greeting {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.portal-banner-sub {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.portal-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: var(--sp-6);
+}
+
+.portal-main-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+}
+
+.passes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-4);
+}
+
+.pass-ticket-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  background: var(--surface-panel);
+}
+
+.ticket-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.ticket-id {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.ticket-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.ticket-logistics {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ticket-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.no-passes-placeholder {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-10);
+  background: var(--surface-panel);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-xl);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.no-passes-placeholder span {
+  font-size: 2rem;
+}
+
+/* Recommended */
+.recommended-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.rec-event-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.rec-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.rec-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.rec-desc {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.rec-logistics {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.rec-footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.rec-btn-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rec-capacity-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.no-more-tracks {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+/* Profile card */
+.profile-details-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  background: var(--surface-panel);
+  position: sticky;
+  top: 84px;
+}
+
+.profile-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--sp-2);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.profile-student-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.profile-student-dept {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.profile-metadata-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+.meta-lbl {
+  color: var(--text-muted);
+}
+
+.meta-val {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Modal details inspect */
+.portal-ticket-inspect {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.ticket-brand {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent-iris);
+  text-align: center;
+}
+
+.ticket-inspect-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.ticket-inspect-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  background: var(--surface-inset);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+}
+
+.tig-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+.tig-lbl {
+  color: var(--text-muted);
+}
+
+.tig-val {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.barcode-mock-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ticket-inspect-actions {
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+@media (max-width: 1024px) {
+  .portal-grid {
+    grid-template-columns: 1fr;
+  }
+  .profile-details-card {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .passes-grid {
+    grid-template-columns: 1fr;
+  }
+  .portal-banner {
+    padding: var(--sp-4) var(--sp-5);
+  }
+  .portal-banner-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-3);
+  }
+}

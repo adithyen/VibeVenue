@@ -61,3 +61,9 @@
     display: flex;
   }
 }
+
+/* Participant Portal Layout Extension */
+.main-content.participant-layout {
+  margin-left: 0 !important;
+}
+
