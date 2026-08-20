@@ -1,17 +1,12 @@
-// RegistrationsPage — cross-event participant management
+// Registrations & Pass Operations (Craft Standard v2.0)
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
 import useEventStore from '../store/useEventStore';
-import SearchBar from '../components/ui/SearchBar';
-import Badge from '../components/ui/Badge';
-import Button from '../components/ui/Button';
-import Avatar from '../components/ui/Avatar';
-import Modal from '../components/ui/Modal';
-import EmptyState from '../components/ui/EmptyState';
-import Pagination from '../components/ui/Pagination';
-import { formatTimeAgo, formatDate } from '../utils/dateUtils';
-import { getCategoryById } from '../data/mockData';
 import useUIStore from '../store/useUIStore';
+import ParticipantTable from '../components/participants/ParticipantTable';
+import SearchBar from '../components/ui/SearchBar';
+import Button from '../components/ui/Button';
+import Pagination from '../components/ui/Pagination';
+import EmptyState from '../components/ui/EmptyState';
 import './RegistrationsPage.css';
 
 const PER_PAGE = 15;
@@ -24,14 +19,11 @@ const RegistrationsPage = () => {
   const [filterEvent, setFilterEvent] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState(null);
-  const [confirmRemove, setConfirmRemove] = useState(null);
-  const [removing, setRemoving] = useState(null);
 
-  // All participants across all events (flat)
-  const allParticipants = useMemo(() => {
-    return store.events.flatMap(evt =>
-      evt.participants.map(p => ({
+  // Flatten attendees across all events
+  const allAttendees = useMemo(() => {
+    return store.events.flatMap((evt) =>
+      evt.participants.map((p) => ({
         ...p,
         eventName: evt.name,
         eventId: evt.id,
@@ -42,302 +34,224 @@ const RegistrationsPage = () => {
     );
   }, [store.events]);
 
-  // Filter
+  // Multi-facet filtering
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return allParticipants.filter(p => {
-      const matchSearch = !q ||
+    const q = search.toLowerCase().trim();
+    return allAttendees.filter((p) => {
+      const matchSearch =
+        !q ||
         p.name.toLowerCase().includes(q) ||
         p.email.toLowerCase().includes(q) ||
         p.studentId.toLowerCase().includes(q) ||
+        p.ticketId?.toLowerCase().includes(q) ||
         p.department.toLowerCase().includes(q) ||
         p.eventName.toLowerCase().includes(q);
-      const matchEvent  = !filterEvent  || p.eventId === filterEvent;
+
+      const matchEvent = !filterEvent || p.eventId === filterEvent;
       const matchStatus = !filterStatus || p.status === filterStatus;
+
       return matchSearch && matchEvent && matchStatus;
     });
-  }, [allParticipants, search, filterEvent, filterStatus]);
+  }, [allAttendees, search, filterEvent, filterStatus]);
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const pageData = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const pageAttendees = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
-  const handleRemove = async (p) => {
-    setRemoving(p.id);
-    await new Promise(r => setTimeout(r, 600));
-    store.removeParticipant(p.eventId, p.id);
+  // Metrics
+  const totalCount = allAttendees.length;
+  const confirmedCount = allAttendees.filter((p) => p.status === 'confirmed').length;
+  const pendingCount = allAttendees.filter((p) => p.status === 'pending').length;
+  const cancelledCount = allAttendees.filter((p) => p.status === 'cancelled').length;
+
+  // Real CSV Export Feature
+  const handleExportCSV = () => {
+    const headers = [
+      'Ticket ID',
+      'Student Name',
+      'Roll Number',
+      'Email',
+      'Department',
+      'Year',
+      'Event Name',
+      'Registration Status',
+      'Check-in Status',
+      'Registered At',
+    ];
+
+    const rows = filtered.map((p) => [
+      p.ticketId || '',
+      `"${p.name}"`,
+      p.studentId,
+      p.email,
+      `"${p.department}"`,
+      `"${p.year}"`,
+      `"${p.eventName}"`,
+      p.status,
+      p.checkInStatus || 'Not Checked In',
+      p.registeredAt,
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `campuscore_attendees_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
     addToast({
       type: 'success',
-      title: 'Registration Cancelled',
-      message: `${p.name}'s registration for "${p.eventName}" has been removed.`,
+      title: 'CSV Manifest Exported',
+      message: `Downloaded attendee records (${filtered.length} entries).`,
     });
-    setRemoving(null);
-    setConfirmRemove(null);
-    setSelected(null);
   };
 
-  // Summary stats
-  const confirmed = allParticipants.filter(p => p.status === 'confirmed').length;
-  const pending   = allParticipants.filter(p => p.status === 'pending').length;
-  const cancelled = allParticipants.filter(p => p.status === 'cancelled').length;
-
   return (
-    <div className="regs-page">
-      {/* Summary bar */}
-      <div className="regs-summary">
-        {[
-          { label: 'Total',     value: allParticipants.length, color: '#00D4FF' },
-          { label: 'Confirmed', value: confirmed,               color: '#00E676' },
-          { label: 'Pending',   value: pending,                 color: '#FFB300' },
-          { label: 'Cancelled', value: cancelled,               color: '#FF4757' },
-        ].map((s, i) => (
-          <motion.div
-            key={s.label}
-            className="regs-summary-item"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
-          >
-            <span
-              className="regs-summary-value font-mono"
-              style={{ color: s.color }}
-            >
-              {s.value.toLocaleString()}
-            </span>
-            <span className="regs-summary-label">{s.label}</span>
-          </motion.div>
-        ))}
+    <div className="registrations-view">
+      {/* Top Header */}
+      <div className="page-header">
+        <div className="page-title-group">
+          <h2 className="page-title">Attendee Registrations & Passes</h2>
+          <p className="page-subtitle">
+            Search delegate credentials, inspect passes, and export attendance rosters
+          </p>
+        </div>
+
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handleExportCSV}
+          icon={
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          }
+        >
+          Export CSV ({filtered.length})
+        </Button>
       </div>
 
-      {/* Filters */}
-      <div className="regs-filters">
+      {/* Summary Telemetry Strip */}
+      <div className="attendee-summary-strip">
+        <div className="summary-pill-item">
+          <span className="summary-pill-lbl">Total Passes</span>
+          <span className="summary-pill-val font-mono">{totalCount.toLocaleString()}</span>
+        </div>
+        <div className="summary-pill-item">
+          <span className="summary-pill-lbl">Confirmed</span>
+          <span className="summary-pill-val font-mono text-emerald">{confirmedCount.toLocaleString()}</span>
+        </div>
+        <div className="summary-pill-item">
+          <span className="summary-pill-lbl">Pending</span>
+          <span className="summary-pill-val font-mono text-amber">{pendingCount.toLocaleString()}</span>
+        </div>
+        <div className="summary-pill-item">
+          <span className="summary-pill-lbl">Revoked</span>
+          <span className="summary-pill-val font-mono text-rose">{cancelledCount.toLocaleString()}</span>
+        </div>
+      </div>
+
+      {/* Filter Row */}
+      <div className="registrations-filter-row">
         <SearchBar
-          id="regs-search"
+          id="registrations-search-input"
           value={search}
-          onChange={(v) => { setSearch(v); setPage(1); }}
-          placeholder="Search name, email, ID, event..."
-          className="regs-search"
+          onChange={(v) => {
+            setSearch(v);
+            setPage(1);
+          }}
+          placeholder="Filter by attendee name, roll number, ticket ID, or event..."
+          className="regs-search-field"
         />
 
         <select
-          id="regs-filter-event"
-          className="regs-select"
+          id="registrations-event-select"
+          className="craft-select"
           value={filterEvent}
-          onChange={e => { setFilterEvent(e.target.value); setPage(1); }}
+          onChange={(e) => {
+            setFilterEvent(e.target.value);
+            setPage(1);
+          }}
         >
-          <option value="">All Events</option>
-          {store.events.map(evt => (
-            <option key={evt.id} value={evt.id}>{evt.name}</option>
+          <option value="">All Events ({store.events.length})</option>
+          {store.events.map((evt) => (
+            <option key={evt.id} value={evt.id}>
+              {evt.name}
+            </option>
           ))}
         </select>
 
         <select
-          id="regs-filter-status"
-          className="regs-select"
+          id="registrations-status-select"
+          className="craft-select"
           value={filterStatus}
-          onChange={e => { setFilterStatus(e.target.value); setPage(1); }}
+          onChange={(e) => {
+            setFilterStatus(e.target.value);
+            setPage(1);
+          }}
         >
-          <option value="">All Status</option>
+          <option value="">All Statuses</option>
           <option value="confirmed">Confirmed</option>
           <option value="pending">Pending</option>
           <option value="cancelled">Cancelled</option>
         </select>
       </div>
 
-      {/* Result count */}
+      {/* Filter Active Notice */}
       {(search || filterEvent || filterStatus) && (
-        <div className="regs-results-info">
+        <div className="registrations-active-filter-strip">
           <span>
-            Showing <strong className="text-cyan">{filtered.length}</strong> of {allParticipants.length} registrations
+            Filtering: <strong className="font-mono text-primary">{filtered.length}</strong> of{' '}
+            {totalCount} passes
           </span>
-          <Button
-            variant="ghost"
-            size="xs"
-            onClick={() => { setSearch(''); setFilterEvent(''); setFilterStatus(''); setPage(1); }}
+          <button
+            className="filter-clear-btn font-mono"
+            onClick={() => {
+              setSearch('');
+              setFilterEvent('');
+              setFilterStatus('');
+              setPage(1);
+            }}
+            type="button"
           >
-            Clear Filters
-          </Button>
+            Reset Filters
+          </button>
         </div>
       )}
 
-      {/* Table */}
-      {pageData.length === 0 ? (
+      {/* Attendee Table */}
+      {pageAttendees.length === 0 ? (
         <EmptyState preset="noParticipants" />
       ) : (
         <>
-          <div className="regs-table-wrapper">
-            <table className="regs-table" role="table">
-              <thead>
-                <tr>
-                  <th>Participant</th>
-                  <th>Student ID</th>
-                  <th>Event</th>
-                  <th>Department</th>
-                  <th>Registered</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pageData.map((p, i) => {
-                  const cat = getCategoryById(p.eventCategory);
-                  return (
-                    <motion.tr
-                      key={p.id}
-                      className="regs-row"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: Math.min(i * 0.015, 0.3) }}
-                    >
-                      <td>
-                        <button
-                          className="regs-name-cell"
-                          onClick={() => setSelected(p)}
-                          type="button"
-                        >
-                          <Avatar name={p.name} initials={p.initials} size="sm" />
-                          <div>
-                            <p className="rn-name">{p.name}</p>
-                            <p className="rn-email">{p.email}</p>
-                          </div>
-                        </button>
-                      </td>
-                      <td>
-                        <span className="font-mono rn-id">{p.studentId}</span>
-                      </td>
-                      <td>
-                        <div className="rn-event">
-                          <span
-                            className="rn-cat-icon"
-                            title={cat.label}
-                          >
-                            {cat.icon}
-                          </span>
-                          <span className="rn-event-name">{p.eventName}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="rn-dept">{p.department}</span>
-                      </td>
-                      <td>
-                        <span className="rn-time font-mono">{formatTimeAgo(p.registeredAt)}</span>
-                      </td>
-                      <td>
-                        <Badge status={p.status} dot size="xs">
-                          {p.status.charAt(0).toUpperCase() + p.status.slice(1)}
-                        </Badge>
-                      </td>
-                      <td>
-                        <div className="rn-actions">
-                          <Button
-                            variant="ghost"
-                            size="xs"
-                            onClick={() => setSelected(p)}
-                            id={`regs-view-${p.id}`}
-                          >
-                            View
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="xs"
-                            onClick={() => setConfirmRemove(p)}
-                            loading={removing === p.id}
-                            id={`regs-remove-${p.id}`}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <ParticipantTable
+            participants={pageAttendees}
+            showEvent={true}
+          />
 
-          <div className="regs-pagination">
-            <p className="regs-pag-info font-mono">
-              {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, filtered.length)} of {filtered.length}
-            </p>
-            <Pagination
-              currentPage={page}
-              totalPages={totalPages}
-              onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            />
-          </div>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="registrations-pagination-bar">
+              <span className="pagination-info font-mono">
+                Showing {(page - 1) * PER_PAGE + 1}–
+                {Math.min(page * PER_PAGE, filtered.length)} of {filtered.length} passes
+              </span>
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={(p) => {
+                  setPage(p);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              />
+            </div>
+          )}
         </>
       )}
-
-      {/* Participant detail */}
-      <Modal open={!!selected} onClose={() => setSelected(null)} title="Registration Details" size="sm">
-        {selected && (
-          <div className="reg-detail">
-            <div className="rd-header">
-              <Avatar name={selected.name} initials={selected.initials} size="xl" />
-              <div>
-                <h3 className="rd-name">{selected.name}</h3>
-                <p className="rd-email">{selected.email}</p>
-              </div>
-            </div>
-            <div className="rd-fields">
-              {[
-                { label: 'Student ID',  value: selected.studentId },
-                { label: 'Department',  value: selected.department },
-                { label: 'Year',        value: selected.year },
-                { label: 'Phone',       value: selected.phone },
-                { label: 'Event',       value: selected.eventName },
-                { label: 'Event Date',  value: formatDate(selected.eventDate) },
-                { label: 'Registered',  value: formatTimeAgo(selected.registeredAt) },
-              ].map(f => (
-                <div key={f.label} className="rd-field">
-                  <span className="rd-label">{f.label}</span>
-                  <span className="rd-value">{f.value}</span>
-                </div>
-              ))}
-            </div>
-            <div className="rd-status-row">
-              <span className="rd-label">Status</span>
-              <Badge status={selected.status} dot size="sm">
-                {selected.status.charAt(0).toUpperCase() + selected.status.slice(1)}
-              </Badge>
-            </div>
-            <Button
-              variant="danger"
-              fullWidth
-              onClick={() => { setSelected(null); setConfirmRemove(selected); }}
-              id={`detail-remove-${selected?.id}`}
-            >
-              Cancel Registration
-            </Button>
-          </div>
-        )}
-      </Modal>
-
-      {/* Confirm remove */}
-      <Modal open={!!confirmRemove} onClose={() => setConfirmRemove(null)} title="Confirm Removal" size="sm">
-        {confirmRemove && (
-          <div className="confirm-remove-r">
-            <div className="cr-icon">⚠️</div>
-            <p className="cr-text">
-              Remove <strong>{confirmRemove.name}</strong>'s registration for{' '}
-              <strong>"{confirmRemove.eventName}"</strong>?
-              This cannot be undone.
-            </p>
-            <div className="cr-actions">
-              <Button variant="ghost" onClick={() => setConfirmRemove(null)} id="cr-cancel">
-                Keep
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => handleRemove(confirmRemove)}
-                loading={!!removing}
-                id="cr-confirm"
-              >
-                Remove
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 };

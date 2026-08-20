@@ -1,103 +1,102 @@
-// EventCard — individual event listing card
+// High-Craft Event Card Component
 import React from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { getCategoryById } from '../../data/mockData';
 import Badge from '../ui/Badge';
 import ProgressBar from '../ui/ProgressBar';
 import { formatDate } from '../../utils/dateUtils';
 import './EventCard.css';
 
-const CalendarIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-    <rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" strokeWidth="1.8"/>
-    <path d="M3 9h18M8 2v3M16 2v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-  </svg>
-);
-const LocationIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="currentColor" strokeWidth="1.8"/>
-    <circle cx="12" cy="9" r="2.5" stroke="currentColor" strokeWidth="1.8"/>
-  </svg>
-);
-const UsersIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-    <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.8"/>
-    <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-  </svg>
-);
-
 const EventCard = ({ event, delay = 0 }) => {
   const navigate = useNavigate();
   const cat = getCategoryById(event.category);
-  const pct = Math.round((event.registrationCount / event.maxParticipants) * 100);
+  const occupancyPct = Math.round(
+    (event.registrationCount / event.maxParticipants) * 100
+  );
 
   return (
     <motion.article
-      className="event-card"
-      initial={{ opacity: 0, y: 20 }}
+      className="craft-card craft-card-interactive craft-event-card"
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(delay * 0.05, 0.4), type: 'spring', stiffness: 280, damping: 26 }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      transition={{
+        delay: Math.min(delay, 0.3),
+        type: 'spring',
+        stiffness: 380,
+        damping: 28,
+      }}
       whileTap={{ scale: 0.98 }}
       onClick={() => navigate(`/events/${event.id}`)}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/events/${event.id}`); }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          navigate(`/events/${event.id}`);
+        }
+      }}
       aria-label={`View details for ${event.name}`}
     >
-      {/* Category stripe */}
-      <div
-        className="event-card-stripe"
-        style={{ background: `linear-gradient(90deg, ${cat.color}44, transparent)` }}
-      />
-
-      {/* Header */}
-      <div className="event-card-header">
-        <div
-          className="event-card-cat-icon"
-          style={{ background: `${cat.color}18`, color: cat.color }}
-        >
-          {cat.icon}
-        </div>
-        <div className="event-card-badges">
-          <Badge category={event.category} size="xs">{cat.label}</Badge>
+      {/* Top Meta: Domain Tag & Status */}
+      <div className="event-card-top">
+        <Badge category={event.category} size="xs" icon={cat.icon}>
+          {cat.label}
+        </Badge>
+        
+        <div className="event-card-status-box">
           <Badge status={event.status} dot size="xs">
             {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
           </Badge>
         </div>
       </div>
 
-      {/* Title */}
-      <h3 className="event-card-title">{event.name}</h3>
-      {event.shortDescription && (
-        <p className="event-card-desc">{event.shortDescription}</p>
-      )}
+      {/* Main Info */}
+      <div className="event-card-main">
+        <h3 className="event-card-title">{event.name}</h3>
+        <p className="event-card-desc">
+          {event.shortDescription || event.description}
+        </p>
+      </div>
 
-      {/* Meta info */}
-      <div className="event-card-meta">
-        <div className="event-meta-item">
-          <CalendarIcon />
+      {/* Logistics Pills */}
+      <div className="event-logistics">
+        <div className="logistic-item" title="Event Schedule">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
           <span>{formatDate(event.date)} · {event.time}</span>
         </div>
-        <div className="event-meta-item">
-          <LocationIcon />
-          <span>{event.venue}</span>
-        </div>
-        <div className="event-meta-item">
-          <UsersIcon />
-          <span>{event.registrationCount} registered</span>
+
+        <div className="logistic-item" title="Venue Location">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+          <span className="logistic-venue">{event.venue}</span>
         </div>
       </div>
 
-      {/* Capacity bar */}
+      {/* Capacity Meter */}
       <div className="event-card-capacity">
         <ProgressBar
           current={event.registrationCount}
           total={event.maxParticipants}
-          height={5}
+          height={4}
         />
+      </div>
+
+      {/* Card Footer Action */}
+      <div className="event-card-footer">
+        <span className="event-fee font-mono">
+          {event.fee || 'Free Entry'}
+        </span>
+        <span className="event-arrow font-mono">
+          Inspect Specs →
+        </span>
       </div>
     </motion.article>
   );

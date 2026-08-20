@@ -1,37 +1,36 @@
-// Badge component — glowing status/category badges
+// Micro-Badge Component (Craft & Taste Standards)
 import React from 'react';
 import './Badge.css';
 
 const VARIANT_MAP = {
-  cyan:    { bg: 'rgba(0,212,255,0.12)', color: '#00D4FF', border: 'rgba(0,212,255,0.3)' },
-  emerald: { bg: 'rgba(0,230,118,0.12)', color: '#00E676', border: 'rgba(0,230,118,0.3)' },
-  amber:   { bg: 'rgba(255,179,0,0.12)',  color: '#FFB300', border: 'rgba(255,179,0,0.3)' },
-  crimson: { bg: 'rgba(255,71,87,0.12)',  color: '#FF4757', border: 'rgba(255,71,87,0.3)' },
-  purple:  { bg: 'rgba(168,85,247,0.12)', color: '#A855F7', border: 'rgba(168,85,247,0.3)' },
-  pink:    { bg: 'rgba(247,37,133,0.12)', color: '#F72585', border: 'rgba(247,37,133,0.3)' },
-  orange:  { bg: 'rgba(255,107,43,0.12)', color: '#FF6B2B', border: 'rgba(255,107,43,0.3)' },
-  teal:    { bg: 'rgba(78,205,196,0.12)', color: '#4ECDC4', border: 'rgba(78,205,196,0.3)' },
-  muted:   { bg: 'rgba(136,153,187,0.12)', color: '#8899BB', border: 'rgba(136,153,187,0.2)' },
+  iris:    { bg: 'rgba(99, 102, 241, 0.10)', color: '#818CF8', border: 'rgba(99, 102, 241, 0.22)', dot: '#6366F1' },
+  emerald: { bg: 'rgba(16, 185, 129, 0.10)', color: '#34D399', border: 'rgba(16, 185, 129, 0.22)', dot: '#10B981' },
+  amber:   { bg: 'rgba(245, 158, 11, 0.10)',  color: '#FBBF24', border: 'rgba(245, 158, 11, 0.22)',  dot: '#F59E0B' },
+  rose:    { bg: 'rgba(244, 63, 94, 0.10)',  color: '#FB7185', border: 'rgba(244, 63, 94, 0.22)',  dot: '#F43F5E' },
+  cyan:    { bg: 'rgba(6, 182, 212, 0.10)',   color: '#38BDF8', border: 'rgba(6, 182, 212, 0.22)',   dot: '#06B6D4' },
+  violet:  { bg: 'rgba(139, 92, 246, 0.10)', color: '#A78BFA', border: 'rgba(139, 92, 246, 0.22)', dot: '#8B5CF6' },
+  zinc:    { bg: 'rgba(255, 255, 255, 0.05)',color: '#D1D5DB', border: 'rgba(255, 255, 255, 0.10)',dot: '#9CA3AF' },
 };
 
 const STATUS_VARIANT = {
-  upcoming:  'cyan',
+  upcoming:  'iris',
   ongoing:   'emerald',
-  completed: 'muted',
-  cancelled: 'crimson',
+  completed: 'zinc',
+  cancelled: 'rose',
   confirmed: 'emerald',
   pending:   'amber',
+  waitlist:  'cyan',
 };
 
 const CATEGORY_VARIANT = {
-  'ai-ml':         'purple',
-  'web-dev':       'cyan',
-  'cybersecurity': 'crimson',
+  'ai-ml':         'violet',
+  'web-dev':       'iris',
+  'cybersecurity': 'rose',
   'robotics':      'amber',
-  'design':        'pink',
+  'design':        'cyan',
   'hackathon':     'emerald',
-  'workshop':      'orange',
-  'cultural':      'teal',
+  'workshop':      'amber',
+  'cultural':      'iris',
 };
 
 const Badge = ({
@@ -48,27 +47,28 @@ const Badge = ({
     variant ||
     (status ? STATUS_VARIANT[status] : null) ||
     (category ? CATEGORY_VARIANT[category] : null) ||
-    'muted';
+    'zinc';
 
-  const style = VARIANT_MAP[resolvedVariant] || VARIANT_MAP.muted;
+  const style = VARIANT_MAP[resolvedVariant] || VARIANT_MAP.zinc;
 
   return (
     <span
-      className={`badge badge-${size} ${className}`}
+      className={`craft-badge craft-badge-${size} ${className}`}
       style={{
-        background: style.bg,
+        backgroundColor: style.bg,
         color: style.color,
-        border: `1px solid ${style.border}`,
+        borderColor: style.border,
       }}
     >
       {dot && (
         <span
-          className="badge-dot"
-          style={{ background: style.color, boxShadow: `0 0 6px ${style.color}` }}
+          className="craft-badge-dot"
+          style={{ backgroundColor: style.dot }}
+          aria-hidden="true"
         />
       )}
-      {icon && <span className="badge-icon">{icon}</span>}
-      {children}
+      {icon && <span className="craft-badge-icon">{icon}</span>}
+      <span className="craft-badge-text">{children}</span>
     </span>
   );
 };

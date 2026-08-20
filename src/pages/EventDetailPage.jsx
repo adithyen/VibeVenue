@@ -1,18 +1,9 @@
-// EventDetailPage — rich event details with organizer, schedule, stats, participants
+// Event Specification & Detailed Telemetry Page (Craft v2.0)
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import {
-  RadialBarChart,
-  RadialBar,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-} from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import useEventStore from '../store/useEventStore';
-import useUIStore from '../store/useUIStore';
 import { getCategoryById } from '../data/mockData';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -21,35 +12,35 @@ import ProgressBar from '../components/ui/ProgressBar';
 import Modal from '../components/ui/Modal';
 import EventForm from '../components/forms/EventForm';
 import ParticipantTable from '../components/participants/ParticipantTable';
-import SearchBar from '../components/ui/SearchBar';
 import EmptyState from '../components/ui/EmptyState';
-import { formatDate, formatTimeAgo, getDaysUntil } from '../utils/dateUtils';
+import { formatDate, getDaysUntil } from '../utils/dateUtils';
 import './EventDetailPage.css';
 
-const TABS = ['Overview', 'Schedule', 'Participants'];
+const TABS = [
+  { id: 'overview',     label: 'Overview & Telemetry' },
+  { id: 'schedule',     label: 'Session Timeline' },
+  { id: 'participants', label: 'Enrolled Attendees' },
+];
 
 const EventDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const store = useEventStore();
-  const { addToast } = useUIStore();
 
   const event = store.getEventById(id);
-  const [tab, setTab] = useState('Overview');
+  const [activeTab, setActiveTab] = useState('overview');
   const [editOpen, setEditOpen] = useState(false);
-  const [participantSearch, setParticipantSearch] = useState('');
-  const [participantStatus, setParticipantStatus] = useState('');
 
   if (!event) {
     return (
-      <div className="event-not-found">
+      <div className="event-not-found-wrapper">
         <EmptyState
-          icon="🔍"
-          title="Event Not Found"
-          description="The event you're looking for doesn't exist or has been removed."
+          preset="noEvents"
+          title="Event Record Not Found"
+          description="The event specification you requested does not exist or has been removed from the registry."
           action={
             <Button variant="primary" onClick={() => navigate('/events')}>
-              Back to Events
+              Back to Events Directory
             </Button>
           }
         />
@@ -60,227 +51,245 @@ const EventDetailPage = () => {
   const cat = getCategoryById(event.category);
   const organizer = store.getOrganizerById(event.organizerId);
   const daysUntil = getDaysUntil(event.date);
-  const pct = Math.round((event.registrationCount / event.maxParticipants) * 100);
+  const occupancyPct = Math.round(
+    (event.registrationCount / event.maxParticipants) * 100
+  );
 
-  // Participant filter
-  const filteredParticipants = event.participants.filter(p => {
-    const q = participantSearch.toLowerCase();
-    const matchSearch = !q ||
-      p.name.toLowerCase().includes(q) ||
-      p.email.toLowerCase().includes(q) ||
-      p.studentId.toLowerCase().includes(q) ||
-      p.department.toLowerCase().includes(q);
-    const matchStatus = !participantStatus || p.status === participantStatus;
-    return matchSearch && matchStatus;
-  });
+  // Telemetry breakdown data for charts
+  const confirmedCount = event.participants.filter((p) => p.status === 'confirmed').length;
+  const pendingCount = event.participants.filter((p) => p.status === 'pending').length;
+  const availableSeats = Math.max(0, event.maxParticipants - event.registrationCount);
 
-  // Pie chart data
-  const pieData = [
-    { name: 'Registered', value: event.registrationCount, color: '#00D4FF' },
-    { name: 'Available', value: Math.max(0, event.maxParticipants - event.registrationCount), color: '#1A2436' },
-  ];
-
-  const statusBreakdown = [
-    { label: 'Confirmed', count: event.participants.filter(p => p.status === 'confirmed').length, color: '#00E676' },
-    { label: 'Pending',   count: event.participants.filter(p => p.status === 'pending').length,   color: '#FFB300' },
-    { label: 'Cancelled', count: event.participants.filter(p => p.status === 'cancelled').length, color: '#FF4757' },
+  const chartData = [
+    { name: 'Confirmed Attendees', value: confirmedCount, color: '#10B981' },
+    { name: 'Pending Approvals',  value: pendingCount,   color: '#F59E0B' },
+    { name: 'Available Slots',    value: availableSeats, color: '#26282E' },
   ];
 
   return (
-    <div className="event-detail-page">
-      {/* Back button */}
-      <button className="back-btn" onClick={() => navigate('/events')}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        Back to Events
+    <div className="event-detail-view">
+      {/* Back Button */}
+      <button
+        className="craft-back-link font-mono"
+        onClick={() => navigate('/events')}
+        type="button"
+      >
+        ← Back to Events Directory
       </button>
 
-      {/* Hero */}
-      <motion.div
-        className="event-hero"
-        style={{ '--cat-color': cat.color }}
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-      >
-        <div className="event-hero-bg" style={{ background: `radial-gradient(ellipse at top right, ${cat.color}18, transparent 60%)` }} />
-
-        <div className="event-hero-content">
-          <div className="event-hero-meta">
-            <div
-              className="event-cat-icon-lg"
-              style={{ background: `${cat.color}18`, color: cat.color }}
-            >
-              {cat.icon}
-            </div>
-            <div className="hero-badges">
-              <Badge category={event.category} size="md">{cat.label}</Badge>
-              <Badge status={event.status} dot size="md">
-                {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
-              </Badge>
-              {event.status === 'upcoming' && daysUntil !== null && (
-                <Badge variant="amber" size="md">
-                  {daysUntil > 0 ? `in ${daysUntil} days` : daysUntil === 0 ? 'Today!' : 'Past'}
-                </Badge>
-              )}
-            </div>
+      {/* Hero Specification Header */}
+      <div className="craft-card detail-hero-card">
+        <div className="detail-hero-top">
+          <div className="detail-hero-badges">
+            <Badge category={event.category} size="sm" icon={cat.icon}>
+              {cat.label}
+            </Badge>
+            <Badge status={event.status} dot size="sm">
+              {event.status.toUpperCase()}
+            </Badge>
+            {event.status === 'upcoming' && daysUntil !== null && (
+              <span className="days-chip font-mono">
+                {daysUntil > 0 ? `T-${daysUntil} Days` : daysUntil === 0 ? 'Today' : 'Past'}
+              </span>
+            )}
           </div>
 
-          <h1 className="event-hero-title">{event.name}</h1>
-          <p className="event-hero-desc">{event.description}</p>
+          <Button
+            id="detail-edit-btn"
+            variant="secondary"
+            size="sm"
+            icon={
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            }
+            onClick={() => setEditOpen(true)}
+          >
+            Edit Specification
+          </Button>
+        </div>
 
-          <div className="event-hero-chips">
-            <div className="hero-chip">
-              <span>📅</span>
-              <span>{formatDate(event.date)} · {event.time}
-                {event.endTime ? ` – ${event.endTime}` : ''}</span>
-            </div>
-            <div className="hero-chip">
-              <span>📍</span>
-              <span>{event.venue}</span>
-            </div>
-            <div className="hero-chip">
-              <span>👥</span>
-              <span>{event.registrationCount} / {event.maxParticipants} registered</span>
-            </div>
+        <h1 className="detail-hero-title">{event.name}</h1>
+        <p className="detail-hero-desc">{event.description}</p>
+
+        {/* Quick Logistics Strip */}
+        <div className="detail-hero-logistics">
+          <div className="detail-log-chip">
+            <span className="log-chip-icon">📅</span>
+            <span className="font-mono">
+              {formatDate(event.date)} · {event.time}
+              {event.endTime ? ` – ${event.endTime}` : ''}
+            </span>
           </div>
 
-          <div className="event-hero-actions">
-            <Button
-              variant="primary"
-              onClick={() => setEditOpen(true)}
-              id={`edit-event-${event.id}`}
-              icon={
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              }
-            >
-              Edit Event
-            </Button>
+          <div className="detail-log-chip">
+            <span className="log-chip-icon">📍</span>
+            <span>{event.venue}</span>
+          </div>
+
+          <div className="detail-log-chip">
+            <span className="log-chip-icon">🎟️</span>
+            <span className="font-mono">{event.fee || 'Free'}</span>
+          </div>
+
+          <div className="detail-log-chip">
+            <span className="log-chip-icon">👥</span>
+            <span className="font-mono">
+              {event.registrationCount} / {event.maxParticipants} Registered ({occupancyPct}%)
+            </span>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Tab navigation */}
-      <div className="detail-tabs">
-        {TABS.map(t => (
+      {/* Tab Navigation */}
+      <div className="segmented-control detail-tabs-bar" role="tablist">
+        {TABS.map((t) => (
           <button
-            key={t}
-            id={`tab-${t.toLowerCase()}`}
-            className={`detail-tab ${tab === t ? 'detail-tab-active' : ''}`}
-            onClick={() => setTab(t)}
+            key={t.id}
+            id={`tab-${t.id}`}
+            className={`segmented-option ${activeTab === t.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(t.id)}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === t.id}
           >
-            {t}
-            {t === 'Participants' && (
-              <span className="tab-count">{event.registrationCount}</span>
+            <span>{t.label}</span>
+            {t.id === 'participants' && (
+              <span className="tab-pill-count font-mono">
+                {event.registrationCount}
+              </span>
             )}
           </button>
         ))}
       </div>
 
-      {/* Tab content */}
+      {/* Tab Content Panels */}
       <motion.div
-        key={tab}
-        initial={{ opacity: 0, y: 8 }}
+        key={activeTab}
+        initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
+        transition={{ duration: 0.18 }}
       >
-        {tab === 'Overview' && (
-          <div className="detail-overview">
-            {/* Registration stats */}
-            <div className="detail-grid-2">
-              <div className="detail-card">
-                <h3 className="detail-card-title">Registration Stats</h3>
-                <div className="reg-stats-layout">
-                  <div className="reg-pie-chart">
-                    <PieChart width={160} height={160}>
+        {activeTab === 'overview' && (
+          <div className="detail-overview-grid">
+            {/* Left: Capacity Telemetry */}
+            <div className="craft-card capacity-card">
+              <h3 className="card-section-title">Capacity & Occupancy Matrix</h3>
+              
+              <div className="capacity-telemetry-layout">
+                <div className="capacity-donut-wrapper">
+                  <ResponsiveContainer width={150} height={150}>
+                    <PieChart>
                       <Pie
-                        data={pieData}
-                        cx={75}
-                        cy={75}
-                        innerRadius={48}
-                        outerRadius={68}
+                        data={chartData}
+                        cx={70}
+                        cy={70}
+                        innerRadius={46}
+                        outerRadius={64}
                         dataKey="value"
                         strokeWidth={0}
                       >
-                        {pieData.map((entry, index) => (
-                          <Cell key={index} fill={entry.color} />
+                        {chartData.map((entry, idx) => (
+                          <Cell key={idx} fill={entry.color} />
                         ))}
                       </Pie>
                       <Tooltip
                         contentStyle={{
-                          background: '#0E1520', border: '1px solid rgba(0,212,255,0.1)',
-                          borderRadius: 8, fontSize: 12
+                          backgroundColor: '#14161C',
+                          borderColor: 'rgba(255,255,255,0.1)',
+                          borderRadius: '8px',
+                          fontSize: '12px',
                         }}
                       />
                     </PieChart>
-                    <div className="pie-center">
-                      <span className="pie-pct" style={{ color: cat.color }}>{pct}%</span>
-                      <span className="pie-label">Full</span>
-                    </div>
+                  </ResponsiveContainer>
+                  <div className="donut-center-readout">
+                    <span className="donut-pct font-mono">{occupancyPct}%</span>
+                    <span className="donut-label">Occupancy</span>
                   </div>
-                  <div className="reg-stats-right">
-                    {statusBreakdown.map(s => (
-                      <div key={s.label} className="stat-row">
-                        <div className="stat-row-label">
-                          <span className="stat-dot" style={{ background: s.color }} />
-                          {s.label}
-                        </div>
-                        <span className="stat-row-count font-mono" style={{ color: s.color }}>
-                          {s.count}
-                        </span>
-                      </div>
-                    ))}
-                    <div className="divider" />
+                </div>
+
+                <div className="capacity-breakdown">
+                  <div className="breakdown-item">
+                    <div className="breakdown-name-row">
+                      <span className="breakdown-pip" style={{ backgroundColor: '#10B981' }} />
+                      <span className="breakdown-label">Confirmed Attendees</span>
+                    </div>
+                    <span className="breakdown-val font-mono">{confirmedCount}</span>
+                  </div>
+
+                  <div className="breakdown-item">
+                    <div className="breakdown-name-row">
+                      <span className="breakdown-pip" style={{ backgroundColor: '#F59E0B' }} />
+                      <span className="breakdown-label">Pending Approvals</span>
+                    </div>
+                    <span className="breakdown-val font-mono">{pendingCount}</span>
+                  </div>
+
+                  <div className="breakdown-item">
+                    <div className="breakdown-name-row">
+                      <span className="breakdown-pip" style={{ backgroundColor: '#4B5563' }} />
+                      <span className="breakdown-label">Available Slots</span>
+                    </div>
+                    <span className="breakdown-val font-mono">{availableSeats}</span>
+                  </div>
+
+                  <div className="capacity-bar-container">
                     <ProgressBar
                       current={event.registrationCount}
                       total={event.maxParticipants}
-                      height={8}
+                      height={6}
                     />
                   </div>
                 </div>
               </div>
-
-              {/* Organizer info */}
-              {organizer && (
-                <div className="detail-card">
-                  <h3 className="detail-card-title">Organizer</h3>
-                  <div className="organizer-card">
-                    <div className="organizer-header">
-                      <Avatar name={organizer.name} initials={organizer.initials} size="lg" />
-                      <div>
-                        <p className="organizer-name">{organizer.name}</p>
-                        <p className="organizer-role">{organizer.role}</p>
-                        <p className="organizer-dept">{organizer.department}</p>
-                      </div>
-                    </div>
-                    <div className="organizer-contacts">
-                      <a
-                        href={`mailto:${organizer.email}`}
-                        className="organizer-contact"
-                        id={`email-organizer-${organizer.id}`}
-                      >
-                        <span>✉️</span> {organizer.email}
-                      </a>
-                      <div className="organizer-contact">
-                        <span>📞</span> {organizer.phone}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* Tags */}
+            {/* Right: Faculty Convener & Coordinator */}
+            {organizer && (
+              <div className="craft-card organizer-card">
+                <h3 className="card-section-title">Faculty Convener & In-charge</h3>
+                
+                <div className="organizer-profile">
+                  <Avatar name={organizer.name} initials={organizer.initials} size="lg" />
+                  <div className="organizer-details">
+                    <h4 className="organizer-name">{organizer.name}</h4>
+                    <p className="organizer-role">{organizer.role}</p>
+                    <p className="organizer-dept">{organizer.department}</p>
+                  </div>
+                </div>
+
+                <div className="organizer-contact-list">
+                  <div className="org-contact-row">
+                    <span className="org-contact-label">Email:</span>
+                    <a href={`mailto:${organizer.email}`} className="org-contact-val font-mono">
+                      {organizer.email}
+                    </a>
+                  </div>
+                  <div className="org-contact-row">
+                    <span className="org-contact-label">Phone:</span>
+                    <span className="org-contact-val font-mono">{organizer.phone}</span>
+                  </div>
+                  {organizer.office && (
+                    <div className="org-contact-row">
+                      <span className="org-contact-label">Office:</span>
+                      <span className="org-contact-val">{organizer.office}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Tags Strip */}
             {event.tags?.length > 0 && (
-              <div className="detail-card">
-                <h3 className="detail-card-title">Tags</h3>
-                <div className="event-tags">
-                  {event.tags.map(tag => (
-                    <span key={tag} className="event-tag">#{tag}</span>
+              <div className="craft-card tags-card">
+                <h3 className="card-section-title">Subject Tags & Topics</h3>
+                <div className="tags-flex">
+                  {event.tags.map((t) => (
+                    <span key={t} className="craft-subject-tag font-mono">
+                      #{t}
+                    </span>
                   ))}
                 </div>
               </div>
@@ -288,91 +297,85 @@ const EventDetailPage = () => {
           </div>
         )}
 
-        {tab === 'Schedule' && (
-          <div className="detail-card">
-            <h3 className="detail-card-title">Event Schedule</h3>
+        {activeTab === 'schedule' && (
+          <div className="craft-card schedule-card">
+            <div className="schedule-header">
+              <h3 className="card-section-title">Program Session Timeline</h3>
+              <span className="schedule-time-badge font-mono">
+                {formatDate(event.date)}
+              </span>
+            </div>
+
             {event.schedule && event.schedule.length > 0 ? (
-              <div className="schedule-timeline">
-                {event.schedule.map((item, i) => (
-                  <motion.div
-                    key={i}
-                    className="schedule-item"
-                    initial={{ opacity: 0, x: -12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.06 }}
-                  >
-                    <div className="schedule-time">
-                      <span className="font-mono">{item.time}</span>
+              <div className="session-timeline">
+                {event.schedule.map((item, idx) => (
+                  <div key={idx} className="timeline-session-item">
+                    <div className="timeline-time-col font-mono">
+                      {item.time}
                     </div>
-                    <div className="schedule-dot-line">
-                      <div
-                        className="schedule-dot"
-                        style={{ background: cat.color, boxShadow: `0 0 8px ${cat.color}66` }}
-                      />
-                      {i < event.schedule.length - 1 && <div className="schedule-line" />}
+
+                    <div className="timeline-line-col">
+                      <div className="timeline-node" />
+                      {idx < event.schedule.length - 1 && (
+                        <div className="timeline-connector" />
+                      )}
                     </div>
-                    <div className="schedule-content">
-                      <p className="schedule-title">{item.title}</p>
-                      {item.speaker && <p className="schedule-speaker">🎤 {item.speaker}</p>}
-                      <div className="schedule-meta">
-                        {item.room && <span>📍 {item.room}</span>}
-                        {item.duration && <span>⏱ {item.duration}</span>}
+
+                    <div className="timeline-content-col">
+                      <h4 className="session-title">{item.title}</h4>
+                      {item.speaker && (
+                        <p className="session-speaker">
+                          Presenter / Lead: <strong>{item.speaker}</strong>
+                        </p>
+                      )}
+                      <div className="session-meta-row">
+                        {item.room && (
+                          <span className="session-pill font-mono">📍 {item.room}</span>
+                        )}
+                        {item.duration && (
+                          <span className="session-pill font-mono">⏱ {item.duration}</span>
+                        )}
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             ) : (
               <EmptyState
-                icon="📅"
-                title="Schedule Coming Soon"
-                description="The detailed schedule for this event will be published soon."
+                preset="noEvents"
+                title="Detailed Schedule Pending"
+                description="The session timetable for this event will be finalized by the organizing committee."
                 compact
               />
             )}
           </div>
         )}
 
-        {tab === 'Participants' && (
-          <div className="detail-card">
-            <div className="participants-header">
-              <h3 className="detail-card-title">
-                Participants
-                <span className="detail-count">{filteredParticipants.length}</span>
-              </h3>
-              <div className="participants-controls">
-                <SearchBar
-                  id="participants-search"
-                  value={participantSearch}
-                  onChange={setParticipantSearch}
-                  placeholder="Search participants..."
-                />
-                <select
-                  id="participants-filter-status"
-                  className="pf-status-select"
-                  value={participantStatus}
-                  onChange={e => setParticipantStatus(e.target.value)}
-                >
-                  <option value="">All Status</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="pending">Pending</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+        {activeTab === 'participants' && (
+          <div className="craft-card participants-tab-card">
+            <div className="tab-card-header">
+              <div className="tab-title-group">
+                <h3 className="card-section-title">Registered Student Manifest</h3>
+                <p className="card-section-sub">
+                  Inspect enrolled attendees, confirm check-in status, or cancel passes
+                </p>
               </div>
             </div>
+
             <ParticipantTable
-              participants={filteredParticipants}
+              participants={event.participants}
               eventId={event.id}
             />
           </div>
         )}
       </motion.div>
 
-      {/* Edit Event Modal */}
+      {/* Edit Form Modal */}
       <Modal
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        title="Edit Event"
+        title="Edit Event Specification"
+        subtitle={`Updating specification parameters for "${event.name}"`}
         size="lg"
       >
         <EventForm event={event} onClose={() => setEditOpen(false)} />

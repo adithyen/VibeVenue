@@ -1,68 +1,86 @@
-// TopBar — fixed header with search, title, and actions
-import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+// Precision TopBar with Breadcrumbs and Quick Triggers
+import React, { useEffect } from 'react';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import useUIStore from '../../store/useUIStore';
 import Button from '../ui/Button';
+import Avatar from '../ui/Avatar';
 import './TopBar.css';
 
-const PAGE_META = {
-  '/':              { title: 'Dashboard',        subtitle: 'Welcome back, Admin 👋' },
-  '/events':        { title: 'Events',           subtitle: 'Browse and manage all events' },
-  '/registrations': { title: 'Registrations',    subtitle: 'View and manage participant registrations' },
-};
-
-const getPageMeta = (pathname) => {
-  if (pathname.startsWith('/events/')) return { title: 'Event Details', subtitle: 'Detailed event information' };
-  return PAGE_META[pathname] || { title: 'EventFlow', subtitle: '' };
+const BREADCRUMB_MAP = {
+  '/':              { section: 'Symposium Operations', current: 'Overview' },
+  '/events':        { section: 'Operations',          current: 'Events Directory' },
+  '/registrations': { section: 'Attendee Management', current: 'Registrations & Passes' },
 };
 
 const TopBar = ({ onAddEvent }) => {
   const { sidebarCollapsed } = useUIStore();
   const location = useLocation();
   const navigate = useNavigate();
-  const meta = getPageMeta(location.pathname);
+
+  const isDetail = location.pathname.startsWith('/events/') && location.pathname !== '/events';
+  const breadcrumb = isDetail
+    ? { section: 'Events Directory', current: 'Event Specification' }
+    : BREADCRUMB_MAP[location.pathname] || { section: 'Operations', current: 'Dashboard' };
+
+  // Hotkey 'N' for New Event modal if not focused in an input
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (
+        e.key.toLowerCase() === 'n' &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)
+      ) {
+        e.preventDefault();
+        onAddEvent?.();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onAddEvent]);
 
   return (
-    <header
-      className={`topbar ${sidebarCollapsed ? 'topbar-collapsed' : ''}`}
-    >
-      <div className="topbar-left">
-        <div>
-          <h1 className="topbar-title">{meta.title}</h1>
-          <p className="topbar-subtitle">{meta.subtitle}</p>
-        </div>
+    <header className={`craft-topbar ${sidebarCollapsed ? 'craft-topbar-collapsed' : ''}`}>
+      {/* Left: Breadcrumbs */}
+      <div className="topbar-breadcrumbs">
+        <span className="breadcrumb-section">{breadcrumb.section}</span>
+        <span className="breadcrumb-slash">/</span>
+        <span className="breadcrumb-current">{breadcrumb.current}</span>
       </div>
 
-      <div className="topbar-right">
-        {/* Quick Add Event */}
+      {/* Right: Quick Telemetry & Actions */}
+      <div className="topbar-actions">
+        {/* Live Pulse Indicator */}
+        <div className="telemetry-pill" title="Real-time event sync active">
+          <span className="telemetry-dot" />
+          <span className="telemetry-label font-mono">LIVE SYMPOSIUM</span>
+        </div>
+
+        {/* New Event CTA */}
         <Button
-          id="topbar-add-event"
+          id="topbar-add-event-btn"
           variant="primary"
           size="sm"
+          kbd="N"
           icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
           }
-          onClick={() => onAddEvent?.()}
+          onClick={onAddEvent}
         >
-          Add Event
+          New Event
         </Button>
 
-        {/* Notifications bell */}
-        <button className="topbar-icon-btn" aria-label="Notifications" id="topbar-notifications">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="1.8"/>
-            <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-          </svg>
-          <span className="topbar-notif-dot" />
-        </button>
-
-        {/* Profile avatar */}
-        <button className="topbar-avatar" id="topbar-profile" aria-label="Profile menu">
-          <span className="topbar-avatar-initials">AD</span>
-        </button>
+        {/* Convener Profile */}
+        <div className="convener-pill" title="Dr. Priya Sharma (CSE Dept Convener)">
+          <Avatar name="Dr. Priya Sharma" size="sm" />
+          <div className="convener-info">
+            <span className="convener-name">Dr. Priya Sharma</span>
+            <span className="convener-role">Faculty Convener</span>
+          </div>
+        </div>
       </div>
     </header>
   );

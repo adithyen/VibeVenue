@@ -1,36 +1,36 @@
-.not-found {
+.not-found-view {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 60vh;
-  text-align: center;
+  min-height: 55vh;
 }
 
-.nf-content {
+.not-found-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-4);
+  text-align: center;
+  max-width: 420px;
+  gap: var(--sp-3);
+  padding: var(--sp-10) var(--sp-6);
 }
 
-.nf-code {
-  font-family: var(--font-mono);
-  font-size: 6rem;
+.not-found-code {
+  font-size: 3.5rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #00D4FF, #A855F7);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--accent-iris);
   line-height: 1;
 }
 
-.nf-title {
-  font-size: 1.5rem;
+.not-found-title {
+  font-size: 1.25rem;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
-.nf-desc {
-  font-size: 0.9rem;
+.not-found-desc {
+  font-size: 0.8125rem;
   color: var(--text-muted);
-  max-width: 340px;
+  line-height: 1.5;
+  margin-bottom: var(--sp-2);
 }

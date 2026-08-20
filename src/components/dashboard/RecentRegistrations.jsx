@@ -1,5 +1,6 @@
-// RecentRegistrations — live feed table of recent registrations
+// Live Attendee Activity Feed
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { formatTimeAgo } from '../../utils/dateUtils';
 import { getCategoryById } from '../../data/mockData';
@@ -8,41 +9,55 @@ import Badge from '../ui/Badge';
 import './RecentRegistrations.css';
 
 const RecentRegistrations = ({ registrations }) => {
+  const navigate = useNavigate();
+
   return (
-    <div className="recent-regs">
-      <div className="recent-regs-header">
-        <h3 className="recent-regs-title">Recent Registrations</h3>
-        <Badge dot variant="emerald" size="xs">Live</Badge>
+    <div className="craft-card activity-card">
+      <div className="activity-header">
+        <div className="activity-title-group">
+          <h3 className="activity-title">Live Attendee Feed</h3>
+          <p className="activity-sub">Latest student enrollments</p>
+        </div>
+        <button
+          className="activity-view-all font-mono"
+          onClick={() => navigate('/registrations')}
+          type="button"
+        >
+          View All →
+        </button>
       </div>
 
-      <div className="recent-regs-list">
-        {registrations.map((reg, i) => {
+      <div className="activity-list">
+        {registrations.map((reg, idx) => {
           const cat = getCategoryById(reg.eventCategory);
           return (
             <motion.div
               key={reg.id}
-              className="recent-reg-item"
-              initial={{ opacity: 0, x: -12 }}
+              className="activity-item"
+              initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.04, duration: 0.25 }}
+              transition={{ delay: idx * 0.03, duration: 0.2 }}
             >
               <Avatar name={reg.name} initials={reg.initials} size="sm" />
-              <div className="recent-reg-info">
-                <p className="recent-reg-name">{reg.name}</p>
-                <p className="recent-reg-event" title={reg.eventName}>
+              
+              <div className="activity-info">
+                <div className="activity-name-row">
+                  <span className="activity-name">{reg.name}</span>
+                  <span className="activity-roll font-mono">{reg.studentId}</span>
+                </div>
+                <span className="activity-event-name" title={reg.eventName}>
                   {reg.eventName}
-                </p>
-              </div>
-              <div className="recent-reg-meta">
-                <span
-                  className="recent-reg-cat"
-                  style={{ color: cat.color, background: `${cat.color}18` }}
-                >
-                  {cat.icon} {cat.label}
                 </span>
-                <span className="recent-reg-time">{formatTimeAgo(reg.registeredAt)}</span>
               </div>
-              <Badge status={reg.status} size="xs" dot />
+
+              <div className="activity-meta">
+                <Badge status={reg.status} dot size="xs">
+                  {reg.status === 'confirmed' ? 'Confirmed' : 'Pending'}
+                </Badge>
+                <span className="activity-time font-mono">
+                  {formatTimeAgo(reg.registeredAt)}
+                </span>
+              </div>
             </motion.div>
           );
         })}

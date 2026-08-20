@@ -1,11 +1,12 @@
-// StatCard — animated metric card with neon glow
+// High-Craft Metric Card (Linear / Vercel style)
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import './StatCard.css';
 
-const useCountUp = (target, duration = 1200) => {
+const useCountUp = (target, duration = 900) => {
   const [count, setCount] = useState(0);
   useEffect(() => {
+    if (typeof target !== 'number') return;
     const start = Date.now();
     const timer = setInterval(() => {
       const progress = Math.min(1, (Date.now() - start) / duration);
@@ -18,38 +19,64 @@ const useCountUp = (target, duration = 1200) => {
   return count;
 };
 
-const StatCard = ({ title, value, icon, trend, trendLabel, color = '#00D4FF', delay = 0, id }) => {
+const StatCard = ({
+  title,
+  value,
+  subvalue,
+  icon,
+  badgeText,
+  badgeType = 'neutral',
+  indicatorPct,
+  indicatorColor = 'var(--accent-iris)',
+  delay = 0,
+  id,
+}) => {
   const animatedValue = useCountUp(typeof value === 'number' ? value : 0);
-  const displayValue = typeof value === 'number' ? animatedValue.toLocaleString() : value;
+  const displayValue =
+    typeof value === 'number' ? animatedValue.toLocaleString() : value;
 
   return (
     <motion.div
       id={id}
-      className="stat-card"
-      style={{ '--accent': color, '--accent-dim': `${color}18` }}
-      initial={{ opacity: 0, y: 20 }}
+      className="craft-metric-card"
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, type: 'spring', stiffness: 300, damping: 28 }}
-      whileHover={{ y: -3, transition: { duration: 0.2 } }}
+      transition={{
+        delay,
+        type: 'spring',
+        stiffness: 350,
+        damping: 30,
+      }}
     >
-      <div className="stat-card-header">
-        <p className="stat-card-title">{title}</p>
-        <div className="stat-card-icon" style={{ background: `${color}18`, color }}>
-          {icon}
-        </div>
+      <div className="metric-header">
+        <span className="metric-title">{title}</span>
+        {icon && <div className="metric-icon-box">{icon}</div>}
       </div>
 
-      <p className="stat-card-value font-mono" style={{ color }}>
-        {displayValue}
-      </p>
+      <div className="metric-body">
+        <div className="metric-value font-mono">{displayValue}</div>
+        {subvalue && <span className="metric-subvalue font-mono">{subvalue}</span>}
+      </div>
 
-      {trend !== undefined && (
-        <div className={`stat-card-trend ${trend >= 0 ? 'trend-up' : 'trend-down'}`}>
-          <span className="trend-arrow">{trend >= 0 ? '↑' : '↓'}</span>
-          <span className="trend-value">{Math.abs(trend)}%</span>
-          {trendLabel && <span className="trend-label">{trendLabel}</span>}
-        </div>
-      )}
+      <div className="metric-footer">
+        {badgeText && (
+          <span className={`metric-badge metric-badge-${badgeType} font-mono`}>
+            {badgeText}
+          </span>
+        )}
+
+        {indicatorPct !== undefined && (
+          <div className="metric-mini-bar" title={`Occupancy: ${indicatorPct}%`}>
+            <div
+              className="metric-mini-fill"
+              style={{
+                width: `${Math.min(100, indicatorPct)}%`,
+                backgroundColor: indicatorColor,
+              }}
+            />
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 };

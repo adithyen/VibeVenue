@@ -1,25 +1,25 @@
-// Layout — main app shell with sidebar + topbar + mobile nav
+// Main App Layout Shell
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import Toast from '../ui/Toast';
-import EventForm from '../forms/EventForm';
 import Modal from '../ui/Modal';
+import EventForm from '../forms/EventForm';
 import useUIStore from '../../store/useUIStore';
 import './Layout.css';
 
 const MOBILE_NAV = [
   {
     path: '/',
-    label: 'Dashboard',
+    label: 'Overview',
     icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8"/>
-        <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8"/>
-        <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8"/>
-        <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8"/>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5"/>
       </svg>
     ),
   },
@@ -27,9 +27,11 @@ const MOBILE_NAV = [
     path: '/events',
     label: 'Events',
     icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" strokeWidth="1.8"/>
-        <path d="M3 9h18M8 2v3M16 2v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
       </svg>
     ),
   },
@@ -37,10 +39,11 @@ const MOBILE_NAV = [
     path: '/registrations',
     label: 'Registrations',
     icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-        <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.8"/>
-        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
       </svg>
     ),
   },
@@ -53,74 +56,75 @@ const Layout = ({ children }) => {
 
   return (
     <div className="app-layout">
-      <div className="bg-orbs" />
-
-      {/* Sidebar (desktop) */}
+      {/* Desktop Sidebar */}
       <Sidebar />
 
-      {/* Top Bar */}
+      {/* Top Header */}
       <TopBar onAddEvent={() => setFormOpen(true)} />
 
-      {/* Main content */}
-      <main
-        className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}
-      >
+      {/* Main Page Area */}
+      <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div className="page-wrapper">{children}</div>
+            <div className="page-container">{children}</div>
           </motion.div>
         </AnimatePresence>
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="bottom-nav" aria-label="Mobile navigation">
+      <nav className="mobile-bottom-nav" aria-label="Mobile Navigation">
         {MOBILE_NAV.map((item) => {
-          const isActive = item.path === '/'
-            ? location.pathname === '/'
-            : location.pathname.startsWith(item.path);
+          const isActive =
+            item.path === '/'
+              ? location.pathname === '/'
+              : location.pathname.startsWith(item.path);
+
           return (
             <NavLink
               key={item.path}
               to={item.path}
-              className={`bottom-nav-item ${isActive ? 'bottom-nav-active' : ''}`}
+              className={`mobile-nav-btn ${isActive ? 'mobile-nav-btn-active' : ''}`}
             >
-              <span className="bottom-nav-icon">{item.icon}</span>
-              <span className="bottom-nav-label">{item.label}</span>
+              <span className="mobile-nav-icon">{item.icon}</span>
+              <span className="mobile-nav-label">{item.label}</span>
             </NavLink>
           );
         })}
+
         <button
-          className="bottom-nav-item"
+          className="mobile-nav-btn mobile-nav-add"
           onClick={() => setFormOpen(true)}
-          id="mobile-add-event"
-          aria-label="Add event"
+          aria-label="Create Event"
+          type="button"
         >
-          <span className="bottom-nav-add">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+          <span className="mobile-add-circle">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
           </span>
-          <span className="bottom-nav-label">Add Event</span>
+          <span className="mobile-nav-label">New Event</span>
         </button>
       </nav>
 
-      {/* Add Event Modal */}
+      {/* Global Add Event Dialog */}
       <Modal
         open={formOpen}
         onClose={() => setFormOpen(false)}
-        title="Add New Event"
+        title="Schedule New Event"
+        subtitle="Configure event metadata, capacity limits, and session schedules"
         size="lg"
       >
         <EventForm onClose={() => setFormOpen(false)} />
       </Modal>
 
-      {/* Toast Notifications */}
+      {/* Toast Notification Container */}
       <Toast />
     </div>
   );

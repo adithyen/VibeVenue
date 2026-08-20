@@ -1,23 +1,7 @@
-// Button component — tactile spring buttons
+// Tactile Spring Button (Emil Motion + Craftsmanship)
 import React from 'react';
 import { motion } from 'framer-motion';
 import './Button.css';
-
-const VARIANTS = {
-  primary:   'btn-primary',
-  secondary: 'btn-secondary',
-  ghost:     'btn-ghost',
-  danger:    'btn-danger',
-  success:   'btn-success',
-  outline:   'btn-outline',
-};
-
-const SIZES = {
-  xs:  'btn-xs',
-  sm:  'btn-sm',
-  md:  'btn-md',
-  lg:  'btn-lg',
-};
 
 const Button = ({
   children,
@@ -25,6 +9,7 @@ const Button = ({
   size = 'md',
   icon,
   iconRight,
+  kbd,
   loading = false,
   disabled = false,
   fullWidth = false,
@@ -40,21 +25,29 @@ const Button = ({
     <motion.button
       id={id}
       type={type}
-      className={`btn ${VARIANTS[variant] || 'btn-primary'} ${SIZES[size] || 'btn-md'} ${fullWidth ? 'btn-full' : ''} ${className}`}
+      className={`craft-btn craft-btn-${variant} craft-btn-${size} ${fullWidth ? 'craft-btn-full' : ''} ${className}`}
       onClick={isDisabled ? undefined : onClick}
       disabled={isDisabled}
-      whileTap={isDisabled ? {} : { scale: 0.96 }}
-      whileHover={isDisabled ? {} : { scale: 1.02 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      whileTap={isDisabled ? {} : { scale: 0.97 }}
+      whileHover={isDisabled ? {} : { scale: 1.01 }}
+      transition={{ type: 'spring', stiffness: 450, damping: 28 }}
       {...rest}
     >
       {loading ? (
-        <span className="btn-spinner" />
+        <span className="craft-btn-spinner" aria-hidden="true" />
       ) : icon ? (
-        <span className="btn-icon btn-icon-left">{icon}</span>
+        <span className="craft-btn-icon">{icon}</span>
       ) : null}
-      {children && <span className="btn-label">{children}</span>}
-      {iconRight && !loading && <span className="btn-icon btn-icon-right">{iconRight}</span>}
+      
+      {children && <span className="craft-btn-label">{children}</span>}
+      
+      {iconRight && !loading && (
+        <span className="craft-btn-icon-right">{iconRight}</span>
+      )}
+
+      {kbd && !loading && (
+        <span className="craft-btn-kbd font-mono">{kbd}</span>
+      )}
     </motion.button>
   );
 };

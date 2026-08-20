@@ -1,43 +1,56 @@
-// Avatar component
+// Clean Tactile Avatar
 import React from 'react';
 import './Avatar.css';
 
-const COLORS = [
-  '#00D4FF', '#00E676', '#A855F7', '#FF4757',
-  '#FFB300', '#F72585', '#FF6B2B', '#4ECDC4',
+const TONES = [
+  { bg: 'rgba(99, 102, 241, 0.15)', text: '#818CF8', border: 'rgba(99, 102, 241, 0.3)' },
+  { bg: 'rgba(16, 185, 129, 0.15)', text: '#34D399', border: 'rgba(16, 185, 129, 0.3)' },
+  { bg: 'rgba(245, 158, 11, 0.15)', text: '#FBBF24', border: 'rgba(245, 158, 11, 0.3)' },
+  { bg: 'rgba(244, 63, 94, 0.15)', text: '#FB7185', border: 'rgba(244, 63, 94, 0.3)' },
+  { bg: 'rgba(6, 182, 212, 0.15)', text: '#38BDF8', border: 'rgba(6, 182, 212, 0.3)' },
+  { bg: 'rgba(139, 92, 246, 0.15)', text: '#A78BFA', border: 'rgba(139, 92, 246, 0.3)' },
 ];
 
-const getColor = (str) => {
-  if (!str) return COLORS[0];
+const getTone = (str) => {
+  if (!str) return TONES[0];
   let hash = 0;
-  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  return COLORS[Math.abs(hash) % COLORS.length];
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return TONES[Math.abs(hash) % TONES.length];
 };
 
 const Avatar = ({ name, initials, size = 'md', src, className = '' }) => {
-  const color = getColor(name || initials);
-  const display = initials || (name ? name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?');
-
-  const sizeMap = { xs: 28, sm: 36, md: 44, lg: 56, xl: 72 };
-  const px = sizeMap[size] || 44;
+  const tone = getTone(name || initials);
+  const display =
+    initials ||
+    (name
+      ? name
+          .split(' ')
+          .map((w) => w[0])
+          .join('')
+          .slice(0, 2)
+          .toUpperCase()
+      : '?');
 
   return (
     <div
-      className={`avatar avatar-${size} ${className}`}
-      style={{
-        width: px,
-        height: px,
-        background: src ? undefined : `${color}22`,
-        border: `2px solid ${color}44`,
-        fontSize: px * 0.36,
-        color,
-      }}
+      className={`craft-avatar craft-avatar-${size} ${className}`}
+      style={
+        src
+          ? undefined
+          : {
+              backgroundColor: tone.bg,
+              color: tone.text,
+              borderColor: tone.border,
+            }
+      }
       title={name}
     >
       {src ? (
-        <img src={src} alt={name} className="avatar-img" />
+        <img src={src} alt={name || 'Avatar'} className="craft-avatar-img" />
       ) : (
-        <span className="avatar-initials">{display}</span>
+        <span className="craft-avatar-initials font-mono">{display}</span>
       )}
     </div>
   );

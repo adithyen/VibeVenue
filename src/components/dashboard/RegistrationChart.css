@@ -1,63 +1,111 @@
-.reg-chart-wrapper {
-  background: var(--color-surface-1);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-xl);
-  padding: var(--space-6);
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
 }
 
-.reg-chart-header {
+.chart-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: var(--space-5);
+  gap: var(--sp-4);
+  flex-wrap: wrap;
 }
 
-.reg-chart-title {
-  font-family: var(--font-display);
+.chart-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chart-title {
   font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
-.reg-chart-sub {
+.chart-sub {
   font-size: 0.75rem;
   color: var(--text-muted);
-  margin-top: 2px;
 }
 
-.reg-chart-legend {
+.chart-container {
+  width: 100%;
+  margin-top: var(--sp-2);
+}
+
+.chart-footer-legend {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  font-family: var(--font-body);
+  gap: var(--sp-4);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--border-subtle);
 }
 
-.legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.chart-tooltip {
-  background: var(--color-surface-2);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
-  box-shadow: var(--shadow-md);
+.legend-pip {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
 }
 
-.chart-tooltip-label {
+.legend-txt {
   font-size: 0.75rem;
   color: var(--text-muted);
-  margin-bottom: 4px;
-  font-family: var(--font-mono);
 }
 
-.chart-tooltip-value {
-  font-size: 0.875rem;
+/* Tooltip */
+.craft-chart-tooltip {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-popup), var(--shadow-inset-top);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tooltip-date {
+  font-size: 0.6875rem;
   font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 4px;
+}
+
+.tooltip-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+}
+
+.tooltip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tooltip-name {
+  color: var(--text-secondary);
+}
+
+.tooltip-val {
   color: var(--text-primary);
-  font-family: var(--font-display);
+  font-weight: 600;
+  margin-left: auto;
 }

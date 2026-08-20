@@ -1,48 +1,54 @@
-.pagination {
-  display: flex;
+.craft-pag {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
+  gap: var(--sp-1);
+  user-select: none;
 }
 
-.pag-btn {
+.craft-pag-numbers {
   display: flex;
   align-items: center;
+  gap: 3px;
+}
+
+.craft-pag-btn {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  min-width: 36px;
-  height: 36px;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--glass-border);
-  background: var(--color-surface-2);
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  font-family: var(--font-display);
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 0.8125rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all var(--dur-fast) var(--ease-smooth);
+  transition: all var(--dur-fast);
 }
 
-.pag-btn:hover:not(:disabled) {
-  background: var(--color-surface-3);
+.craft-pag-btn:hover:not(:disabled) {
+  background: var(--surface-card);
+  border-color: var(--border-default);
   color: var(--text-primary);
-  border-color: var(--glass-border-hover);
 }
 
-.pag-btn:disabled {
-  opacity: 0.35;
+.craft-pag-btn:disabled {
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
-.pag-active {
-  background: var(--color-cyan-dim) !important;
-  color: var(--color-cyan) !important;
-  border-color: rgba(0,212,255,0.3) !important;
-  box-shadow: 0 0 12px rgba(0,212,255,0.15);
+.craft-pag-active {
+  background: var(--surface-elevated) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--text-primary) !important;
+  font-weight: 700 !important;
+  box-shadow: var(--shadow-sm), var(--shadow-inset-top);
 }
 
-.pag-ellipsis {
+.craft-pag-ellipsis {
   color: var(--text-muted);
-  font-size: 0.875rem;
-  padding: 0 var(--space-1);
+  font-size: 0.8125rem;
+  padding: 0 4px;
 }

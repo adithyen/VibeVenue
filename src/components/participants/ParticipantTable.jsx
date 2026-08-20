@@ -1,123 +1,149 @@
-// ParticipantTable — sortable, searchable participant table with remove action
+// Tactile Attendee Manifest Data Table
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Avatar from '../ui/Avatar';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import Modal from '../ui/Modal';
-import { formatTimeAgo } from '../../utils/dateUtils';
+import { formatTimeAgo, formatDate } from '../../utils/dateUtils';
 import useEventStore from '../../store/useEventStore';
 import useUIStore from '../../store/useUIStore';
 import './ParticipantTable.css';
 
 const ParticipantTable = ({ participants, eventId, showEvent = false }) => {
-  const [selected, setSelected] = useState(null);
+  const [inspectAttendee, setInspectAttendee] = useState(null);
   const [confirmRemove, setConfirmRemove] = useState(null);
-  const [removing, setRemoving] = useState(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+
   const { removeParticipant } = useEventStore();
   const { addToast } = useUIStore();
 
-  const handleRemove = async (participant) => {
-    setRemoving(participant.id);
-    await new Promise(r => setTimeout(r, 600));
-    removeParticipant(eventId || participant.eventId, participant.id);
+  const handleCancelPass = async (attendee) => {
+    setIsRemoving(true);
+    // Simulate brief network delay
+    await new Promise((r) => setTimeout(r, 450));
+    
+    removeParticipant(eventId || attendee.eventId, attendee.id);
     addToast({
       type: 'success',
       title: 'Registration Cancelled',
-      message: `${participant.name}'s registration has been removed.`,
+      message: `Pass for ${attendee.name} (${attendee.studentId}) was revoked.`,
     });
-    setRemoving(null);
+
+    setIsRemoving(false);
     setConfirmRemove(null);
+    setInspectAttendee(null);
   };
 
   if (!participants || participants.length === 0) {
     return (
-      <div className="no-participants">
-        <span>👥</span>
-        <p>No participants found</p>
+      <div className="empty-table-state">
+        <span className="empty-table-icon">👥</span>
+        <p className="empty-table-text">No registered attendees match the current criteria.</p>
       </div>
     );
   }
 
   return (
-    <div className="participant-table-wrapper">
-      <div className="participant-table-scroll">
-        <table className="participant-table" role="table">
+    <div className="attendee-table-container">
+      <div className="attendee-table-scroll">
+        <table className="craft-data-table" role="table">
           <thead>
             <tr>
-              <th scope="col">Participant</th>
-              <th scope="col">Student ID</th>
-              <th scope="col">Department</th>
-              {showEvent && <th scope="col">Event</th>}
+              <th scope="col">Attendee & Roll No</th>
+              <th scope="col">Ticket ID</th>
+              <th scope="col">Engineering Dept</th>
+              {showEvent && <th scope="col">Event Program</th>}
               <th scope="col">Registered</th>
+              <th scope="col">Check-in Status</th>
               <th scope="col">Status</th>
-              <th scope="col">Actions</th>
+              <th scope="col" style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             <AnimatePresence>
-              {participants.map((p, i) => (
+              {participants.map((attendee) => (
                 <motion.tr
-                  key={p.id}
-                  className="participant-row"
+                  key={attendee.id}
+                  className="craft-table-row"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ delay: Math.min(i * 0.02, 0.3) }}
+                  exit={{ opacity: 0, x: -16 }}
+                  transition={{ duration: 0.15 }}
                   layout
                 >
+                  {/* Attendee */}
                   <td>
                     <button
-                      className="participant-cell-name"
-                      onClick={() => setSelected(p)}
+                      className="attendee-name-btn"
+                      onClick={() => setInspectAttendee(attendee)}
                       type="button"
                     >
-                      <Avatar name={p.name} initials={p.initials} size="sm" />
-                      <div>
-                        <p className="p-name">{p.name}</p>
-                        <p className="p-email">{p.email}</p>
+                      <Avatar name={attendee.name} initials={attendee.initials} size="sm" />
+                      <div className="attendee-text-col">
+                        <span className="attendee-full-name">{attendee.name}</span>
+                        <span className="attendee-roll font-mono">{attendee.studentId}</span>
                       </div>
                     </button>
                   </td>
+
+                  {/* Ticket ID */}
                   <td>
-                    <span className="font-mono text-sm p-id">{p.studentId}</span>
+                    <span className="ticket-id-pill font-mono">{attendee.ticketId}</span>
                   </td>
+
+                  {/* Department */}
                   <td>
-                    <span className="p-dept">{p.department}</span>
+                    <span className="attendee-dept-txt">{attendee.department}</span>
                   </td>
+
+                  {/* Event Program if in multi-event list */}
                   {showEvent && (
                     <td>
-                      <span className="p-event">{p.eventName || '—'}</span>
+                      <span className="attendee-event-txt">{attendee.eventName}</span>
                     </td>
                   )}
+
+                  {/* Registered Timestamp */}
                   <td>
-                    <span className="p-time">{formatTimeAgo(p.registeredAt)}</span>
+                    <span className="attendee-time-txt font-mono">
+                      {formatTimeAgo(attendee.registeredAt)}
+                    </span>
                   </td>
+
+                  {/* Check-in */}
                   <td>
-                    <Badge status={p.status} dot size="xs">
-                      {p.status.charAt(0).toUpperCase() + p.status.slice(1)}
+                    <span className={`checkin-status font-mono ${attendee.checkInStatus === 'Checked In' ? 'checkin-yes' : 'checkin-no'}`}>
+                      {attendee.checkInStatus || 'Not Checked'}
+                    </span>
+                  </td>
+
+                  {/* Registration Status */}
+                  <td>
+                    <Badge status={attendee.status} dot size="xs">
+                      {attendee.status.toUpperCase()}
                     </Badge>
                   </td>
-                  <td>
-                    <div className="p-actions">
+
+                  {/* Actions */}
+                  <td style={{ textAlign: 'right' }}>
+                    <div className="table-actions-flex">
                       <Button
                         variant="ghost"
                         size="xs"
-                        onClick={() => setSelected(p)}
-                        id={`view-p-${p.id}`}
-                        title="View details"
+                        onClick={() => setInspectAttendee(attendee)}
+                        id={`inspect-pass-${attendee.id}`}
                       >
-                        View
+                        Inspect
                       </Button>
+
                       <Button
                         variant="danger"
                         size="xs"
-                        onClick={() => setConfirmRemove(p)}
-                        loading={removing === p.id}
-                        id={`remove-p-${p.id}`}
-                        title="Cancel registration"
+                        onClick={() => setConfirmRemove(attendee)}
+                        id={`cancel-pass-${attendee.id}`}
                       >
-                        Remove
+                        Cancel
                       </Button>
                     </div>
                   </td>
@@ -128,82 +154,117 @@ const ParticipantTable = ({ participants, eventId, showEvent = false }) => {
         </table>
       </div>
 
-      {/* Participant Detail Modal */}
+      {/* Attendee Ticket Pass Inspection Modal */}
       <Modal
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        title="Participant Details"
-        size="sm"
+        open={!!inspectAttendee}
+        onClose={() => setInspectAttendee(null)}
+        title="Student Registration Pass"
+        subtitle="Official symposium entry credential & verification pass"
+        size="md"
       >
-        {selected && (
-          <div className="participant-detail">
-            <div className="pd-header">
-              <Avatar name={selected.name} initials={selected.initials} size="xl" />
-              <div>
-                <h3 className="pd-name">{selected.name}</h3>
-                <p className="pd-email">{selected.email}</p>
-                <Badge status={selected.status} dot size="sm" className="pd-status">
-                  {selected.status.charAt(0).toUpperCase() + selected.status.slice(1)}
-                </Badge>
+        {inspectAttendee && (
+          <div className="ticket-pass-card">
+            {/* Ticket Header Strip */}
+            <div className="pass-header">
+              <div className="pass-brand-row">
+                <span className="pass-fest font-mono">CAMPUSCORE '26</span>
+                <span className="pass-id-badge font-mono">{inspectAttendee.ticketId}</span>
+              </div>
+              <h3 className="pass-event-title">{inspectAttendee.eventName || 'Symposium Track'}</h3>
+            </div>
+
+            {/* Pass Body */}
+            <div className="pass-body">
+              <div className="pass-student-info">
+                <Avatar name={inspectAttendee.name} initials={inspectAttendee.initials} size="lg" />
+                <div className="pass-name-col">
+                  <h4 className="pass-student-name">{inspectAttendee.name}</h4>
+                  <p className="pass-email font-mono">{inspectAttendee.email}</p>
+                </div>
+              </div>
+
+              <div className="pass-grid">
+                <div className="pass-grid-item">
+                  <span className="pass-lbl">Student Roll ID</span>
+                  <span className="pass-val font-mono">{inspectAttendee.studentId}</span>
+                </div>
+                <div className="pass-grid-item">
+                  <span className="pass-lbl">Engineering Dept</span>
+                  <span className="pass-val">{inspectAttendee.department}</span>
+                </div>
+                <div className="pass-grid-item">
+                  <span className="pass-lbl">Academic Year</span>
+                  <span className="pass-val">{inspectAttendee.year}</span>
+                </div>
+                <div className="pass-grid-item">
+                  <span className="pass-lbl">Contact Phone</span>
+                  <span className="pass-val font-mono">{inspectAttendee.phone}</span>
+                </div>
+                <div className="pass-grid-item">
+                  <span className="pass-lbl">Pass Status</span>
+                  <Badge status={inspectAttendee.status} dot size="sm">
+                    {inspectAttendee.status.toUpperCase()}
+                  </Badge>
+                </div>
+                <div className="pass-grid-item">
+                  <span className="pass-lbl">Gate Check-in</span>
+                  <span className="pass-val font-mono">{inspectAttendee.checkInStatus || 'Not Checked'}</span>
+                </div>
+              </div>
+
+              {/* Barcode Mock */}
+              <div className="pass-barcode-box">
+                <div className="barcode-lines" />
+                <span className="barcode-code font-mono">{inspectAttendee.ticketId}-SYMP-2026</span>
               </div>
             </div>
-            <div className="pd-fields">
-              {[
-                { label: 'Student ID', value: selected.studentId },
-                { label: 'Department', value: selected.department },
-                { label: 'Year', value: selected.year },
-                { label: 'Phone', value: selected.phone },
-                { label: 'Registered', value: formatTimeAgo(selected.registeredAt) },
-              ].map(f => (
-                <div key={f.label} className="pd-field">
-                  <span className="pd-field-label">{f.label}</span>
-                  <span className="pd-field-value">{f.value}</span>
-                </div>
-              ))}
-            </div>
-            <div className="pd-actions">
+
+            {/* Pass Actions */}
+            <div className="pass-actions">
               <Button
                 variant="danger"
-                onClick={() => { setSelected(null); setConfirmRemove(selected); }}
+                size="sm"
                 fullWidth
-                id={`pd-remove-${selected.id}`}
+                onClick={() => {
+                  setInspectAttendee(null);
+                  setConfirmRemove(inspectAttendee);
+                }}
               >
-                Cancel Registration
+                Revoke / Cancel Registration
               </Button>
             </div>
           </div>
         )}
       </Modal>
 
-      {/* Confirm Remove Modal */}
+      {/* Revocation Confirmation Dialog */}
       <Modal
         open={!!confirmRemove}
         onClose={() => setConfirmRemove(null)}
-        title="Confirm Removal"
+        title="Revoke Registration Pass?"
+        subtitle="This action will release the seat back into the available pool"
         size="sm"
       >
         {confirmRemove && (
-          <div className="confirm-remove">
-            <div className="confirm-icon">⚠️</div>
-            <p className="confirm-text">
-              Are you sure you want to cancel <strong>{confirmRemove.name}</strong>'s registration?
-              This action cannot be undone.
+          <div className="revoke-confirm-body">
+            <p className="revoke-warn-txt">
+              Are you sure you want to cancel the registration for{' '}
+              <strong>{confirmRemove.name}</strong> ({confirmRemove.studentId})?
             </p>
-            <div className="confirm-actions">
+
+            <div className="revoke-actions">
               <Button
-                variant="ghost"
+                variant="secondary"
                 onClick={() => setConfirmRemove(null)}
-                id="confirm-cancel"
               >
-                Keep Registration
+                Keep Pass
               </Button>
               <Button
                 variant="danger"
-                onClick={() => handleRemove(confirmRemove)}
-                loading={!!removing}
-                id="confirm-remove"
+                loading={isRemoving}
+                onClick={() => handleCancelPass(confirmRemove)}
               >
-                Yes, Remove
+                Confirm Revocation
               </Button>
             </div>
           </div>

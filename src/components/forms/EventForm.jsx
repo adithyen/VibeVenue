@@ -1,4 +1,4 @@
-// EventForm — multi-step add/edit event form
+// Precision Multi-Step Event Form Component (Craft Standard v2.0)
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CATEGORIES, ORGANIZERS } from '../../data/mockData';
@@ -9,388 +9,435 @@ import Button from '../ui/Button';
 import './EventForm.css';
 
 const STEPS = [
-  { id: 0, label: 'Basic Info', icon: '📋' },
-  { id: 1, label: 'Schedule',   icon: '📅' },
-  { id: 2, label: 'Settings',   icon: '⚙️' },
+  { id: 0, label: '1. Specification', icon: '📋' },
+  { id: 1, label: '2. Logistics',     icon: '📍' },
+  { id: 2, label: '3. Capacity',      icon: '👥' },
 ];
 
 const initialData = {
   name: '',
   description: '',
+  shortDescription: '',
+  category: '',
   date: '',
   time: '',
   endTime: '',
   venue: '',
-  category: '',
-  maxParticipants: '',
-  organizerId: '',
+  fee: 'Free',
+  maxParticipants: '100',
+  organizerId: 'org-1',
   tags: '',
-  shortDescription: '',
 };
 
 const EventForm = ({ event = null, onClose }) => {
   const isEdit = !!event;
   const [step, setStep] = useState(0);
-  const [data, setData] = useState(
+  const [formData, setFormData] = useState(
     isEdit
-      ? { ...event, tags: (event.tags || []).join(', ') }
+      ? {
+          ...event,
+          tags: (event.tags || []).join(', '),
+          maxParticipants: String(event.maxParticipants),
+        }
       : { ...initialData }
   );
+
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDone, setIsDone] = useState(false);
 
   const { addEvent, updateEvent } = useEventStore();
   const { addToast } = useUIStore();
 
-  const set = (key, val) => {
-    setData(prev => ({ ...prev, [key]: val }));
-    if (errors[key]) setErrors(prev => { const e = { ...prev }; delete e[key]; return e; });
+  const updateField = (key, val) => {
+    setFormData((prev) => ({ ...prev, [key]: val }));
+    if (errors[key]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
   };
 
-  const validateStep = () => {
+  const validateCurrentStep = () => {
+    const errs = {};
+
     if (step === 0) {
-      const errs = {};
-      if (!data.name?.trim()) errs.name = 'Event name is required.';
-      else if (data.name.trim().length < 3) errs.name = 'At least 3 characters.';
-      if (!data.description?.trim()) errs.description = 'Description is required.';
-      else if (data.description.trim().length < 20) errs.description = 'At least 20 characters.';
-      if (!data.category) errs.category = 'Please select a category.';
-      setErrors(errs);
-      return Object.keys(errs).length === 0;
+      if (!formData.name?.trim()) errs.name = 'Event title is required.';
+      else if (formData.name.trim().length < 3) errs.name = 'Must be at least 3 characters.';
+      if (!formData.description?.trim()) errs.description = 'Description is required.';
+      else if (formData.description.trim().length < 20) errs.description = 'Must be at least 20 characters.';
+      if (!formData.category) errs.category = 'Please select an engineering domain.';
+    } else if (step === 1) {
+      if (!formData.date) errs.date = 'Event date is required.';
+      if (!formData.time) errs.time = 'Start time is required.';
+      if (!formData.venue?.trim()) errs.venue = 'Venue or laboratory hall is required.';
     }
-    if (step === 1) {
-      const errs = {};
-      if (!data.date) errs.date = 'Date is required.';
-      if (!data.time) errs.time = 'Start time is required.';
-      if (!data.venue?.trim()) errs.venue = 'Venue is required.';
-      setErrors(errs);
-      return Object.keys(errs).length === 0;
-    }
-    return true;
+
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
-  const nextStep = () => {
-    if (validateStep()) setStep(s => Math.min(s + 1, STEPS.length - 1));
+  const handleNext = () => {
+    if (validateCurrentStep()) {
+      setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    }
   };
 
-  const prevStep = () => setStep(s => Math.max(s - 1, 0));
+  const handleBack = () => {
+    setStep((s) => Math.max(s - 1, 0));
+  };
 
-  const handleSubmit = async () => {
-    // Validate all fields
-    const allErrors = validateEventForm(data);
+  const handleSubmit = async (e) => {
+    e?.preventDefault();
+    const allErrors = validateEventForm(formData);
     if (hasErrors(allErrors)) {
       setErrors(allErrors);
-      // Go to first step with errors
       if (allErrors.name || allErrors.description || allErrors.category) setStep(0);
       else if (allErrors.date || allErrors.time || allErrors.venue) setStep(1);
       return;
     }
 
-    setLoading(true);
-    // Simulate API delay
-    await new Promise(r => setTimeout(r, 800));
+    setIsSubmitting(true);
+    // Simulate brief network save
+    await new Promise((r) => setTimeout(r, 600));
 
     const payload = {
-      ...data,
-      tags: data.tags ? data.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-      maxParticipants: parseInt(data.maxParticipants, 10),
+      ...formData,
+      maxParticipants: parseInt(formData.maxParticipants, 10),
+      tags: formData.tags
+        ? formData.tags.split(',').map((t) => t.trim()).filter(Boolean)
+        : [],
     };
 
     if (isEdit) {
       updateEvent(event.id, payload);
-      addToast({ type: 'success', title: 'Event Updated', message: `"${data.name}" has been updated.` });
+      addToast({
+        type: 'success',
+        title: 'Event Specification Saved',
+        message: `Updated parameters for "${formData.name}".`,
+      });
     } else {
       addEvent(payload);
-      addToast({ type: 'success', title: 'Event Created', message: `"${data.name}" has been added.` });
+      addToast({
+        type: 'success',
+        title: 'New Event Scheduled',
+        message: `"${formData.name}" added to symposium schedule.`,
+      });
     }
 
-    setLoading(false);
-    setSuccess(true);
+    setIsSubmitting(false);
+    setIsDone(true);
     setTimeout(() => {
-      setSuccess(false);
       onClose?.();
-    }, 1500);
+    }, 900);
   };
 
-  if (success) {
+  if (isDone) {
     return (
-      <motion.div
-        className="form-success"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      >
-        <div className="form-success-icon">✅</div>
-        <h3>{isEdit ? 'Event Updated!' : 'Event Created!'}</h3>
-        <p>Redirecting...</p>
-      </motion.div>
+      <div className="craft-form-done-state">
+        <span className="done-icon-box">✓</span>
+        <h3 className="done-title">{isEdit ? 'Specification Updated' : 'Event Successfully Scheduled'}</h3>
+        <p className="done-sub">Syncing symposium manifest & attendee routes...</p>
+      </div>
     );
   }
 
   return (
-    <div className="event-form">
-      {/* Step indicator */}
-      <div className="form-steps">
-        {STEPS.map((s, i) => (
-          <React.Fragment key={s.id}>
-            <button
-              className={`form-step-item ${step === i ? 'step-active' : ''} ${step > i ? 'step-done' : ''}`}
-              onClick={() => { if (i < step) setStep(i); }}
-              disabled={i > step}
-              type="button"
-            >
-              <span className="step-num">{step > i ? '✓' : i + 1}</span>
-              <span className="step-label">{s.label}</span>
-            </button>
-            {i < STEPS.length - 1 && (
-              <div className={`step-line ${step > i ? 'step-line-done' : ''}`} />
-            )}
-          </React.Fragment>
+    <form className="craft-event-form" onSubmit={handleSubmit} noValidate>
+      {/* Form Step Indicator Bar */}
+      <div className="form-steps-indicator" role="tablist">
+        {STEPS.map((s, idx) => (
+          <button
+            key={s.id}
+            type="button"
+            className={`step-tab ${step === idx ? 'step-tab-active' : ''} ${step > idx ? 'step-tab-done' : ''}`}
+            onClick={() => {
+              if (idx < step) setStep(idx);
+            }}
+            disabled={idx > step}
+          >
+            <span className="step-tab-pill font-mono">{idx + 1}</span>
+            <span className="step-tab-label">{s.label.split('. ')[1]}</span>
+          </button>
         ))}
       </div>
 
-      {/* Step content */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.2 }}
-          className="form-step-content"
-        >
-          {step === 0 && (
-            <div className="form-fields">
-              <Field
-                id="ef-name" label="Event Name" required
-                error={errors.name}
-              >
-                <input
-                  id="ef-name"
-                  type="text"
-                  value={data.name}
-                  onChange={e => set('name', e.target.value)}
-                  placeholder="e.g. TechVista Summit 2025"
-                  className={errors.name ? 'field-error' : ''}
-                />
-              </Field>
-
-              <Field
-                id="ef-desc" label="Description" required
-                error={errors.description}
-                hint={`${data.description.length}/500 characters`}
-              >
-                <textarea
-                  id="ef-desc"
-                  value={data.description}
-                  onChange={e => set('description', e.target.value)}
-                  placeholder="Describe the event, its highlights, and what participants can expect..."
-                  rows={4}
-                  maxLength={500}
-                  className={errors.description ? 'field-error' : ''}
-                />
-              </Field>
-
-              <Field
-                id="ef-short-desc" label="Short Description"
-                hint="Shown on event cards (optional)"
-              >
-                <input
-                  id="ef-short-desc"
-                  type="text"
-                  value={data.shortDescription}
-                  onChange={e => set('shortDescription', e.target.value)}
-                  placeholder="One-line summary for event cards"
-                />
-              </Field>
-
-              <Field id="ef-category" label="Category" required error={errors.category}>
-                <div className="category-grid">
-                  {CATEGORIES.map(cat => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      className={`cat-btn ${data.category === cat.id ? 'cat-btn-active' : ''}`}
-                      style={data.category === cat.id ? {
-                        borderColor: cat.color,
-                        background: `${cat.color}18`,
-                        color: cat.color,
-                      } : {}}
-                      onClick={() => set('category', cat.id)}
-                    >
-                      <span>{cat.icon}</span>
-                      <span>{cat.label}</span>
-                    </button>
-                  ))}
+      {/* Step Panels with Spring Transition */}
+      <div className="form-step-viewport">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -12 }}
+            transition={{ duration: 0.16 }}
+            className="form-step-panel"
+          >
+            {/* Step 0: Specification */}
+            {step === 0 && (
+              <div className="form-grid-fields">
+                <div className="form-field-group">
+                  <label htmlFor="evt-name" className="craft-label">
+                    Event Title <span className="req-star">*</span>
+                  </label>
+                  <input
+                    id="evt-name"
+                    type="text"
+                    className={`craft-input ${errors.name ? 'input-error' : ''}`}
+                    placeholder="e.g. Nexus AI Summit 2026"
+                    value={formData.name}
+                    onChange={(e) => updateField('name', e.target.value)}
+                    autoFocus
+                  />
+                  {errors.name && <p className="field-error-text font-mono">{errors.name}</p>}
                 </div>
-                {errors.category && <p className="field-error-msg">{errors.category}</p>}
-              </Field>
-            </div>
-          )}
 
-          {step === 1 && (
-            <div className="form-fields">
-              <div className="form-row">
-                <Field id="ef-date" label="Event Date" required error={errors.date}>
+                <div className="form-field-group">
+                  <label htmlFor="evt-short" className="craft-label">
+                    One-line Summary (Card View)
+                  </label>
                   <input
-                    id="ef-date"
-                    type="date"
-                    value={data.date}
-                    onChange={e => set('date', e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    className={errors.date ? 'field-error' : ''}
+                    id="evt-short"
+                    type="text"
+                    className="craft-input"
+                    placeholder="Brief 1-line hook for directory card display"
+                    value={formData.shortDescription}
+                    onChange={(e) => updateField('shortDescription', e.target.value)}
                   />
-                </Field>
-                <Field id="ef-time" label="Start Time" required error={errors.time}>
-                  <input
-                    id="ef-time"
-                    type="time"
-                    value={data.time}
-                    onChange={e => set('time', e.target.value)}
-                    className={errors.time ? 'field-error' : ''}
+                </div>
+
+                <div className="form-field-group">
+                  <label htmlFor="evt-desc" className="craft-label">
+                    Detailed Specification Description <span className="req-star">*</span>
+                  </label>
+                  <textarea
+                    id="evt-desc"
+                    className={`craft-input craft-textarea ${errors.description ? 'input-error' : ''}`}
+                    rows={4}
+                    placeholder="Comprehensive overview of session objectives, technical stack, eligibility criteria, and deliverables..."
+                    value={formData.description}
+                    onChange={(e) => updateField('description', e.target.value)}
                   />
-                </Field>
-                <Field id="ef-end-time" label="End Time">
-                  <input
-                    id="ef-end-time"
-                    type="time"
-                    value={data.endTime}
-                    onChange={e => set('endTime', e.target.value)}
-                  />
-                </Field>
+                  {errors.description && (
+                    <p className="field-error-text font-mono">{errors.description}</p>
+                  )}
+                </div>
+
+                <div className="form-field-group">
+                  <label className="craft-label">
+                    Engineering Domain Category <span className="req-star">*</span>
+                  </label>
+                  <div className="form-domain-grid">
+                    {CATEGORIES.filter((c) => c.id !== 'all').map((cat) => {
+                      const isSelected = formData.category === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          className={`domain-tile ${isSelected ? 'domain-tile-selected' : ''}`}
+                          onClick={() => updateField('category', cat.id)}
+                        >
+                          <span className="domain-tile-icon">{cat.icon}</span>
+                          <span className="domain-tile-lbl">{cat.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {errors.category && (
+                    <p className="field-error-text font-mono">{errors.category}</p>
+                  )}
+                </div>
               </div>
+            )}
 
-              <Field id="ef-venue" label="Venue" required error={errors.venue}>
-                <input
-                  id="ef-venue"
-                  type="text"
-                  value={data.venue}
-                  onChange={e => set('venue', e.target.value)}
-                  placeholder="e.g. Main Auditorium, Block A"
-                  className={errors.venue ? 'field-error' : ''}
-                />
-              </Field>
+            {/* Step 1: Logistics */}
+            {step === 1 && (
+              <div className="form-grid-fields">
+                <div className="form-row-2">
+                  <div className="form-field-group">
+                    <label htmlFor="evt-date" className="craft-label">
+                      Event Date <span className="req-star">*</span>
+                    </label>
+                    <input
+                      id="evt-date"
+                      type="date"
+                      className={`craft-input font-mono ${errors.date ? 'input-error' : ''}`}
+                      value={formData.date}
+                      onChange={(e) => updateField('date', e.target.value)}
+                    />
+                    {errors.date && <p className="field-error-text font-mono">{errors.date}</p>}
+                  </div>
 
-              <Field id="ef-tags" label="Tags" hint="Comma-separated (e.g. ai, hackathon, beginner)">
-                <input
-                  id="ef-tags"
-                  type="text"
-                  value={data.tags}
-                  onChange={e => set('tags', e.target.value)}
-                  placeholder="ai, hackathon, beginner-friendly"
-                />
-              </Field>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="form-fields">
-              <Field
-                id="ef-max" label="Maximum Participants" required
-                error={errors.maxParticipants}
-                hint="Enter the maximum number of registrations allowed"
-              >
-                <input
-                  id="ef-max"
-                  type="number"
-                  min="1"
-                  max="10000"
-                  value={data.maxParticipants}
-                  onChange={e => set('maxParticipants', e.target.value)}
-                  placeholder="e.g. 200"
-                  className={errors.maxParticipants ? 'field-error' : ''}
-                />
-              </Field>
-
-              <Field
-                id="ef-organizer" label="Organizer" required
-                error={errors.organizerId}
-              >
-                <select
-                  id="ef-organizer"
-                  value={data.organizerId}
-                  onChange={e => set('organizerId', e.target.value)}
-                  className={errors.organizerId ? 'field-error' : ''}
-                >
-                  <option value="">Select an organizer...</option>
-                  {ORGANIZERS.map(org => (
-                    <option key={org.id} value={org.id}>
-                      {org.name} — {org.role}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-
-              {/* Summary */}
-              {data.name && (
-                <div className="form-summary">
-                  <p className="summary-label">Summary Preview</p>
-                  <div className="summary-card">
-                    <p className="summary-name">{data.name}</p>
-                    {data.date && <p className="summary-detail">📅 {data.date} at {data.time || '--:--'}</p>}
-                    {data.venue && <p className="summary-detail">📍 {data.venue}</p>}
-                    {data.maxParticipants && <p className="summary-detail">👥 Max {data.maxParticipants} participants</p>}
+                  <div className="form-field-group">
+                    <label htmlFor="evt-time" className="craft-label">
+                      Start Time <span className="req-star">*</span>
+                    </label>
+                    <input
+                      id="evt-time"
+                      type="text"
+                      className={`craft-input font-mono ${errors.time ? 'input-error' : ''}`}
+                      placeholder="e.g. 09:30 AM"
+                      value={formData.time}
+                      onChange={(e) => updateField('time', e.target.value)}
+                    />
+                    {errors.time && <p className="field-error-text font-mono">{errors.time}</p>}
                   </div>
                 </div>
-              )}
-            </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
 
-      {/* Actions */}
-      <div className="form-actions">
+                <div className="form-row-2">
+                  <div className="form-field-group">
+                    <label htmlFor="evt-end" className="craft-label">
+                      End Time (Optional)
+                    </label>
+                    <input
+                      id="evt-end"
+                      type="text"
+                      className="craft-input font-mono"
+                      placeholder="e.g. 05:00 PM"
+                      value={formData.endTime}
+                      onChange={(e) => updateField('endTime', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-field-group">
+                    <label htmlFor="evt-fee" className="craft-label">
+                      Registration Fee
+                    </label>
+                    <input
+                      id="evt-fee"
+                      type="text"
+                      className="craft-input"
+                      placeholder="e.g. Free or ₹200 / Team"
+                      value={formData.fee}
+                      onChange={(e) => updateField('fee', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-field-group">
+                  <label htmlFor="evt-venue" className="craft-label">
+                    Laboratory / Auditorium Venue <span className="req-star">*</span>
+                  </label>
+                  <input
+                    id="evt-venue"
+                    type="text"
+                    className={`craft-input ${errors.venue ? 'input-error' : ''}`}
+                    placeholder="e.g. APJ Abdul Kalam Auditorium, Block A"
+                    value={formData.venue}
+                    onChange={(e) => updateField('venue', e.target.value)}
+                  />
+                  {errors.venue && <p className="field-error-text font-mono">{errors.venue}</p>}
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Capacity & Convener */}
+            {step === 2 && (
+              <div className="form-grid-fields">
+                <div className="form-field-group">
+                  <label htmlFor="evt-max" className="craft-label">
+                    Maximum Delegate Capacity <span className="req-star">*</span>
+                  </label>
+                  <div className="capacity-slider-row">
+                    <input
+                      id="evt-max"
+                      type="number"
+                      min="5"
+                      max="5000"
+                      className={`craft-input font-mono ${errors.maxParticipants ? 'input-error' : ''}`}
+                      style={{ maxWidth: '140px' }}
+                      value={formData.maxParticipants}
+                      onChange={(e) => updateField('maxParticipants', e.target.value)}
+                    />
+                    <input
+                      type="range"
+                      min="10"
+                      max="1000"
+                      step="10"
+                      className="craft-range"
+                      value={formData.maxParticipants || 100}
+                      onChange={(e) => updateField('maxParticipants', e.target.value)}
+                    />
+                  </div>
+                  {errors.maxParticipants && (
+                    <p className="field-error-text font-mono">{errors.maxParticipants}</p>
+                  )}
+                </div>
+
+                <div className="form-field-group">
+                  <label htmlFor="evt-org" className="craft-label">
+                    Faculty Convener / Lead <span className="req-star">*</span>
+                  </label>
+                  <select
+                    id="evt-org"
+                    className="craft-input craft-form-select"
+                    value={formData.organizerId}
+                    onChange={(e) => updateField('organizerId', e.target.value)}
+                  >
+                    {ORGANIZERS.map((org) => (
+                      <option key={org.id} value={org.id}>
+                        {org.name} — {org.role} ({org.department})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-field-group">
+                  <label htmlFor="evt-tags" className="craft-label">
+                    Subject Keywords / Tags (Comma-separated)
+                  </label>
+                  <input
+                    id="evt-tags"
+                    type="text"
+                    className="craft-input font-mono"
+                    placeholder="ai, llm, edge-computing, hackathon"
+                    value={formData.tags}
+                    onChange={(e) => updateField('tags', e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Form Bottom Control Buttons */}
+      <div className="form-actions-bar">
         <Button
           variant="ghost"
-          onClick={step === 0 ? onClose : prevStep}
+          size="sm"
+          onClick={step === 0 ? onClose : handleBack}
           type="button"
-          id="ef-back"
         >
-          {step === 0 ? 'Cancel' : 'Back'}
+          {step === 0 ? 'Discard' : '← Previous Step'}
         </Button>
-        <div className="form-actions-right">
+
+        <div className="form-right-actions">
           {step < STEPS.length - 1 ? (
-            <Button variant="primary" onClick={nextStep} type="button" id="ef-next">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleNext}
+              type="button"
+            >
               Continue →
             </Button>
           ) : (
             <Button
               variant="primary"
-              onClick={handleSubmit}
-              loading={loading}
-              type="button"
-              id="ef-submit"
+              size="sm"
+              loading={isSubmitting}
+              type="submit"
             >
-              {isEdit ? 'Save Changes' : 'Create Event'}
+              {isEdit ? 'Save Specification' : 'Confirm & Schedule Event'}
             </Button>
           )}
         </div>
       </div>
-    </div>
+    </form>
   );
 };
-
-// Reusable form field wrapper
-const Field = ({ id, label, required, error, hint, children }) => (
-  <div className={`form-field ${error ? 'has-error' : ''}`}>
-    <label htmlFor={id} className="field-label">
-      {label}
-      {required && <span className="field-required">*</span>}
-    </label>
-    {children}
-    {hint && !error && <p className="field-hint">{hint}</p>}
-    {error && (
-      <motion.p
-        className="field-error-msg"
-        initial={{ opacity: 0, y: -4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.15 }}
-      >
-        ⚠ {error}
-      </motion.p>
-    )}
-  </div>
-);
 
 export default EventForm;
