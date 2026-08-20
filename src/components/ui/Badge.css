@@ -1,0 +1,30 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badge-xs { font-size: 0.625rem; padding: 2px 7px; }
+.badge-sm { font-size: 0.7rem;   padding: 3px 10px; }
+.badge-md { font-size: 0.8rem;   padding: 4px 12px; }
+.badge-lg { font-size: 0.875rem; padding: 6px 14px; }
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.badge-icon {
+  display: flex;
+  align-items: center;
+  font-size: 0.75em;
+}
