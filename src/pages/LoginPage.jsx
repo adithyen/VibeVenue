@@ -7,8 +7,10 @@ import useUIStore from '../store/useUIStore';
 import Button from '../components/ui/Button';
 import './LoginPage.css';
 
-// Default Client ID placeholder (can be overridden via env or user input)
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID_PLACEHOLDER.apps.googleusercontent.com';
+// Real Client ID from Google Cloud Console
+const GOOGLE_CLIENT_ID =
+  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+  '628041736031-8pb4a2hkmm10n18t8fsvqquoj31euhlq.apps.googleusercontent.com';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -22,38 +24,43 @@ const LoginPage = () => {
 
   const googleBtnRef = useRef(null);
 
-  // Dynamic injection of official Google Identity Services SDK script
+  // Dynamic injection & rendering of official Google Identity Services SDK
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    document.body.appendChild(script);
-
-    script.onload = () => {
-      if (window.google) {
+    const renderGoogleBtn = () => {
+      const btnContainer = document.getElementById('google-signin-btn');
+      if (window.google && btnContainer) {
         window.google.accounts.id.initialize({
           client_id: GOOGLE_CLIENT_ID,
           callback: handleGoogleResponse,
           auto_select: false,
         });
 
-        window.google.accounts.id.renderButton(
-          document.getElementById('google-signin-btn'),
-          {
-            theme: 'dark',
-            size: 'large',
-            width: '100%',
-            shape: 'rectangular',
-            text: 'signin_with',
-          }
-        );
+        btnContainer.innerHTML = '';
+        window.google.accounts.id.renderButton(btnContainer, {
+          theme: 'outline',
+          size: 'large',
+          width: 380,
+          shape: 'rectangular',
+          text: 'signin_with',
+          logo_alignment: 'left',
+        });
       }
     };
 
-    return () => {
-      document.body.removeChild(script);
-    };
+    if (window.google) {
+      renderGoogleBtn();
+    } else {
+      const existingScript = document.getElementById('google-gsi-client');
+      if (!existingScript) {
+        const script = document.createElement('script');
+        script.id = 'google-gsi-client';
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+        script.onload = renderGoogleBtn;
+        document.body.appendChild(script);
+      }
+    }
   }, [role]);
 
   const handleGoogleResponse = async (response) => {
