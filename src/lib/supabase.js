@@ -23,24 +23,37 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 /**
  * Upload a base64 data URL to a Supabase Storage bucket.
- * Returns the public URL string, or null on failure.
+ * Returns the public URL string, or the raw dataUrl on storage bucket failure.
+ * This guarantees the user's uploaded images are NEVER lost!
  */
 export async function uploadBase64(bucket, path, dataUrl) {
-  if (!dataUrl || !dataUrl.startsWith('data:')) return null;
-  const [meta, b64] = dataUrl.split(',');
-  const mimeMatch = meta.match(/:(.*?);/);
-  const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-  const byteChars = atob(b64);
-  const byteArray = new Uint8Array(byteChars.length);
-  for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
-  const blob = new Blob([byteArray], { type: mimeType });
+  if (!dataUrl || typeof dataUrl !== 'string') return null;
+  if (!dataUrl.startsWith('data:')) return dataUrl; // Already a URL
 
-  const { error } = await supabase.storage.from(bucket).upload(path, blob, {
-    upsert: true,
-    contentType: mimeType,
-  });
-  if (error) { console.error('Storage upload error:', error); return null; }
+  try {
+    const [meta, b64] = dataUrl.split(',');
+    const mimeMatch = meta?.match(/:(.*?);/);
+    const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const byteChars = atob(b64);
+    const byteArray = new Uint8Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
+    const blob = new Blob([byteArray], { type: mimeType });
 
-  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-  return data.publicUrl;
+    const { error } = await supabase.storage.from(bucket).upload(path, blob, {
+      upsert: true,
+      contentType: mimeType,
+    });
+
+    if (error) {
+      console.warn(`Supabase Storage [${bucket}] upload issue (saving base64 directly):`, error.message);
+      // Fallback: Return raw dataUrl so image is preserved directly in DB!
+      return dataUrl;
+    }
+
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    return data?.publicUrl || dataUrl;
+  } catch (err) {
+    console.warn(`Supabase Storage [${bucket}] exception (saving base64 directly):`, err);
+    return dataUrl;
+  }
 }

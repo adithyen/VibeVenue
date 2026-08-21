@@ -117,15 +117,20 @@ const useEventStore = create((set, get) => ({
   addEvent: async (formData) => {
     set({ isLoading: true });
 
-    // Upload banner + logo if they are base64
+    // Upload banner + logo if they are base64 (fallback to raw dataUrl if bucket fails)
     const bannerId = `${Date.now()}-banner`;
     const logoId   = `${Date.now()}-logo`;
-    const bannerUrl = formData.bannerBase64
-      ? await uploadBase64('event-banners', bannerId, formData.bannerBase64)
-      : null;
-    const logoUrl = formData.logoBase64
-      ? await uploadBase64('event-logos', logoId, formData.logoBase64)
-      : null;
+    let bannerUrl = formData.bannerBase64 || formData.bannerUrl || null;
+    let logoUrl   = formData.logoBase64   || formData.logoUrl   || null;
+
+    if (formData.bannerBase64?.startsWith('data:')) {
+      const uploaded = await uploadBase64('event-banners', bannerId, formData.bannerBase64);
+      if (uploaded) bannerUrl = uploaded;
+    }
+    if (formData.logoBase64?.startsWith('data:')) {
+      const uploaded = await uploadBase64('event-logos', logoId, formData.logoBase64);
+      if (uploaded) logoUrl = uploaded;
+    }
 
     const row = formDataToRow(formData, bannerUrl, logoUrl);
 
@@ -147,13 +152,16 @@ const useEventStore = create((set, get) => ({
     set({ isLoading: true });
 
     // Re-upload images only if they changed (still base64)
-    let bannerUrl = formData.bannerUrl || null;
-    let logoUrl   = formData.logoUrl   || null;
+    let bannerUrl = formData.bannerUrl || formData.bannerBase64 || null;
+    let logoUrl   = formData.logoUrl   || formData.logoBase64   || null;
+
     if (formData.bannerBase64?.startsWith('data:')) {
-      bannerUrl = await uploadBase64('event-banners', `${id}-banner`, formData.bannerBase64);
+      const uploaded = await uploadBase64('event-banners', `${id}-banner`, formData.bannerBase64);
+      if (uploaded) bannerUrl = uploaded;
     }
     if (formData.logoBase64?.startsWith('data:')) {
-      logoUrl = await uploadBase64('event-logos', `${id}-logo`, formData.logoBase64);
+      const uploaded = await uploadBase64('event-logos', `${id}-logo`, formData.logoBase64);
+      if (uploaded) logoUrl = uploaded;
     }
 
     const row = formDataToRow(formData, bannerUrl, logoUrl);

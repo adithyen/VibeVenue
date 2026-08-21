@@ -72,6 +72,10 @@ const EventForm = ({ event = null, onClose }) => {
       ? {
           ...freshData(),
           ...event,
+          bannerBase64: event.bannerUrl || null,
+          bannerName: event.bannerUrl ? 'Current Banner' : '',
+          logoBase64: event.logoUrl || null,
+          logoName: event.logoUrl ? 'Current Logo' : '',
           tags: (event.tags || []).join(', '),
           contacts: event.contacts?.length ? event.contacts : [{ name: '', role: '', phone: '', email: '' }],
           preLinks: event.preLinks?.length ? event.preLinks : [{ label: '', url: '' }],
