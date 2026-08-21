@@ -62,8 +62,9 @@ const RegistrationModal = ({ event, onClose }) => {
 
   const totalAmount = basePrice + addOnTotal;
 
-  // Build UPI note: <StudentName>-<EventName>-<TicketID>
-  // tn must be ≤50 chars, only alphanumeric, spaces, hyphens (NPCI P2P safe)
+  // Build UPI note: <StudentName> <EventName> <TicketID>
+  // NPCI 2025 compliance: tn must be STRICTLY alphanumeric + spaces only.
+  // NO hyphens, NO underscores, NO special chars — causes rejection.
   const cleanStudent = (form.fullName || user?.name || 'STUDENT')
     .trim()
     .replace(/[^a-zA-Z0-9 ]/g, '')
@@ -76,25 +77,27 @@ const RegistrationModal = ({ event, onClose }) => {
     .replace(/\s+/g, ' ')
     .slice(0, 15)
     .trim() || 'EVENT';
+  // Strip hyphens from ticketId too: TCK-482910 → TCK482910
+  const cleanTicketId = tempTicketId.replace(/[^a-zA-Z0-9]/g, '');
 
-  // Format: StudentName-EventName-TCK-XXXXXX (≤50 chars)
-  const upiNote = `${cleanStudent}-${cleanEvent}-${tempTicketId}`.slice(0, 50);
+  // Format: 'StudentName EventName TCK482910' (≤50 chars, alphanumeric+spaces only)
+  const upiNote = `${cleanStudent} ${cleanEvent} ${cleanTicketId}`.slice(0, 50);
 
   // Standard NPCI P2P UPI URI.
-  // CRITICAL: Do NOT include `tr` or `mc` — these are merchant-only fields (P2M).
-  // Using them with a personal VPA causes instant rejection by all UPI PSP apps.
+  // Only safe P2P params: pa, pn, am, cu, tn
+  // tr/mc are merchant-only and cause instant rejection on personal VPAs.
   const cleanUpiId = (event.upiId || '').trim().toLowerCase();
-  // pn: only letters, digits, spaces allowed (no special chars)
+  // pn: only letters, digits, spaces (max 25 chars)
   const cleanPayee = (event.organizerName || event.name || 'VibeVenue')
     .trim()
     .replace(/[^a-zA-Z0-9 ]/g, ' ')
     .replace(/\s+/g, ' ')
     .slice(0, 25)
     .trim() || 'VibeVenue';
-  // am: exactly 2 decimal places, no trailing zeros issues
+  // am: exactly 2 decimal places
   const formattedAmount = totalAmount.toFixed(2);
 
-  // Final URI: pa + pn + am + cu + tn only — universally accepted P2P format
+  // Final URI: strictly P2P format accepted by GPay, PhonePe, Paytm, BHIM
   const upiPayload = cleanUpiId
     ? `upi://pay?pa=${encodeURIComponent(cleanUpiId)}&pn=${encodeURIComponent(cleanPayee)}&am=${formattedAmount}&cu=INR&tn=${encodeURIComponent(upiNote)}`
     : '';
@@ -189,29 +192,46 @@ const RegistrationModal = ({ event, onClose }) => {
           transition={{ type: 'spring', stiffness: 320, damping: 32 }}
           onClick={e => e.stopPropagation()}
         >
-          {/* Optional Event Banner & Logo Cover */}
-          {event.bannerUrl && (
-            <div className="reg-modal-banner" style={{ backgroundImage: `url(${event.bannerUrl})` }}>
-              <div className="reg-modal-banner-overlay" />
-              {event.logoUrl && (
-                <img src={event.logoUrl} alt={event.name} className="reg-modal-banner-logo" />
-              )}
-              {step !== 3 && (
-                <button className="reg-modal-close-btn banner-close" onClick={onClose} type="button" aria-label="Close">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
-              )}
-            </div>
-          )}
+          {/* Event Banner / Logo Cover — always shown */}
+          {(() => {
+            // Generate a deterministic gradient from event name when no banner uploaded
+            const colors = [
+              ['#6366f1', '#8b5cf6'],
+              ['#0ea5e9', '#6366f1'],
+              ['#f59e0b', '#ef4444'],
+              ['#10b981', '#0ea5e9'],
+              ['#8b5cf6', '#ec4899'],
+              ['#ef4444', '#f97316'],
+            ];
+            const idx = (event.name || '').split('').reduce((s, c) => s + c.charCodeAt(0), 0) % colors.length;
+            const [c1, c2] = colors[idx];
+            const bannerStyle = event.bannerUrl
+              ? { backgroundImage: `url(${event.bannerUrl})` }
+              : { background: `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)` };
+            return (
+              <div className="reg-modal-banner" style={bannerStyle}>
+                <div className="reg-modal-banner-overlay" />
+                {event.logoUrl ? (
+                  <img src={event.logoUrl} alt={event.name} className="reg-modal-banner-logo" />
+                ) : (
+                  <div className="reg-modal-banner-initial">
+                    {(event.name || 'E').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                {step !== 3 && (
+                  <button className="reg-modal-close-btn banner-close" onClick={onClose} type="button" aria-label="Close">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Header */}
           <div className="reg-modal-hdr">
             <div className="reg-modal-hdr-left">
-              {!event.bannerUrl && event.logoUrl && (
-                <img src={event.logoUrl} alt={event.name} className="reg-modal-hdr-logo" />
-              )}
               <div>
                 <h2 className="reg-modal-hdr-title">Register for {event.name}</h2>
                 <p className="reg-modal-hdr-sub">
