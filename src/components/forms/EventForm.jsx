@@ -245,7 +245,17 @@ const EventForm = ({ event = null, onClose }) => {
   }
 
   return (
-    <form className="craft-event-form" onSubmit={handleSubmit} noValidate>
+    <form
+      className="craft-event-form"
+      onSubmit={handleSubmit}
+      noValidate
+      onKeyDown={(e) => {
+        // Prevent accidental form submission when pressing Enter on non-final steps
+        if (e.key === 'Enter' && step < STEPS.length - 1) {
+          e.preventDefault();
+        }
+      }}
+    >
       {/* Step Indicator */}
       <div className="form-steps-indicator" role="tablist">
         {STEPS.map((s, idx) => (
