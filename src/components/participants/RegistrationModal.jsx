@@ -302,6 +302,38 @@ const RegistrationModal = ({ event, onClose }) => {
                         </select>
                       </div>
                     </div>
+
+                    {/* Pre-event Resource Links */}
+                    {event.preLinks && event.preLinks.filter(l => l.url).length > 0 && (
+                      <div className="reg-resources-box">
+                        <span className="reg-res-title font-mono">Official Event Resources:</span>
+                        <div className="reg-res-links-row">
+                          {event.preLinks.filter(l => l.url).map((l, i) => (
+                            <a key={i} href={l.url} target="_blank" rel="noopener noreferrer" className="reg-res-link-pill">
+                              🔗 {l.label || 'Resource Link'}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Event Contacts & Coordinators */}
+                    {event.contacts && event.contacts.filter(c => c.name).length > 0 && (
+                      <div className="reg-contacts-box">
+                        <span className="reg-contacts-title font-mono">Event Coordinators & Helpdesk:</span>
+                        <div className="reg-contacts-grid">
+                          {event.contacts.filter(c => c.name).map((c, i) => (
+                            <div key={i} className="reg-contact-pill">
+                              <span className="reg-contact-name">{c.name} {c.role ? `(${c.role})` : ''}</span>
+                              <div className="reg-contact-links">
+                                {c.phone && <a href={`tel:${c.phone}`} className="reg-contact-action font-mono">📞 {c.phone}</a>}
+                                {c.email && <a href={`mailto:${c.email}`} className="reg-contact-action font-mono">✉️ {c.email}</a>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

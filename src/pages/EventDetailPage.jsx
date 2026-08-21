@@ -272,6 +272,54 @@ const EventDetailPage = () => {
             </div>
 
 
+            {/* Pre-Event Resources & Links */}
+            {event.preLinks?.length > 0 && (
+              <div className="craft-card detail-resources-card">
+                <h3 className="card-section-title">Pre-Event Resources & Materials</h3>
+                <div className="detail-links-grid">
+                  {event.preLinks.map((link, idx) => (
+                    <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer" className="detail-res-link-card">
+                      <span className="res-link-icon">🔗</span>
+                      <div className="res-link-info">
+                        <span className="res-link-label">{link.label || 'Resource Link'}</span>
+                        <span className="res-link-url font-mono">{link.url}</span>
+                      </div>
+                      <span className="res-link-arrow">↗</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Event Coordinators & Contacts */}
+            {event.contacts?.length > 0 && (
+              <div className="craft-card detail-contacts-card">
+                <h3 className="card-section-title">Event Coordinators & Helpdesk</h3>
+                <div className="detail-contacts-grid">
+                  {event.contacts.map((contact, idx) => (
+                    <div key={idx} className="detail-contact-card">
+                      <div className="contact-card-header">
+                        <span className="contact-person-name">{contact.name}</span>
+                        {contact.role && <span className="contact-person-role font-mono">{contact.role}</span>}
+                      </div>
+                      <div className="contact-card-actions">
+                        {contact.phone && (
+                          <a href={`tel:${contact.phone}`} className="contact-action-btn font-mono">
+                            📞 {contact.phone}
+                          </a>
+                        )}
+                        {contact.email && (
+                          <a href={`mailto:${contact.email}`} className="contact-action-btn font-mono">
+                            ✉️ {contact.email}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Tags Strip */}
             {event.tags?.length > 0 && (
               <div className="craft-card tags-card">

@@ -546,6 +546,95 @@
   background: var(--accent-emerald);
 }
 
+/* Resources & Contacts on Registration */
+.reg-resources-box,
+.reg-contacts-box {
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.reg-res-title,
+.reg-contacts-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.reg-res-links-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.reg-res-link-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: var(--radius-full, 9999px);
+  color: var(--color-primary-400, #818cf8);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.reg-res-link-pill:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.5);
+  transform: translateY(-1px);
+}
+
+.reg-contacts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reg-contact-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+}
+
+.reg-contact-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.reg-contact-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reg-contact-action {
+  color: var(--color-primary-400, #818cf8);
+  text-decoration: none;
+  font-size: 0.75rem;
+  transition: opacity 0.15s;
+}
+
+.reg-contact-action:hover {
+  opacity: 0.8;
+}
+
 @media (max-width: 600px) {
   .reg-field-row-2 {
     grid-template-columns: 1fr;
@@ -553,5 +642,9 @@
   .reg-modal-container {
     max-height: 100vh;
     border-radius: 0;
+  }
+  .reg-contact-pill {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

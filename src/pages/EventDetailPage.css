@@ -437,6 +437,117 @@ a.org-contact-val:hover {
   color: var(--text-muted);
 }
 
+/* Resources Grid */
+.detail-links-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-res-link-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.detail-res-link-card:hover {
+  background: var(--surface-inset);
+  border-color: rgba(99, 102, 241, 0.4);
+  transform: translateX(2px);
+}
+
+.res-link-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.res-link-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.res-link-url {
+  font-size: 0.75rem;
+  color: var(--color-primary-400, #818cf8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.res-link-arrow {
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+/* Contacts Grid */
+.detail-contacts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.detail-contact-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.contact-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.contact-person-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.contact-person-role {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.contact-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.contact-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--surface-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary-400, #818cf8);
+  font-size: 0.75rem;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.contact-action-btn:hover {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
 @media (max-width: 900px) {
   .detail-overview-grid {
     grid-template-columns: 1fr;

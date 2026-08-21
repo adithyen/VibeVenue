@@ -193,6 +193,31 @@ const ParticipantPortal = () => {
                       <span>📅 {formatDate(event.date)}</span>
                       <span>📍 {event.venue}</span>
                     </div>
+
+                    {/* Pre-event Resource Links */}
+                    {event.preLinks && event.preLinks.filter(l => l.url).length > 0 && (
+                      <div className="rec-links-container">
+                        {event.preLinks.filter(l => l.url).map((l, i) => (
+                          <a key={i} href={l.url} target="_blank" rel="noopener noreferrer" className="rec-link-pill">
+                            🔗 {l.label || 'Event Resource'}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Contact Coordinators */}
+                    {event.contacts && event.contacts.filter(c => c.name).length > 0 && (
+                      <div className="rec-contacts-strip">
+                        <span className="rec-contacts-title font-mono">Coordinators:</span>
+                        <div className="rec-contacts-list">
+                          {event.contacts.filter(c => c.name).map((c, i) => (
+                            <span key={i} className="rec-contact-tag font-mono">
+                              👤 {c.name} {c.role ? `(${c.role})` : ''} {c.phone ? `• 📞 ${c.phone}` : ''}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div className="rec-footer">
                       <ProgressBar
                         current={event.registrationCount}
