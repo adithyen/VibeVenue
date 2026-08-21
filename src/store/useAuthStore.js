@@ -14,48 +14,109 @@ const useAuthStore = create((set, get) => ({
   // ── Boot: restore session from Supabase ─────────────────────
   init: async () => {
     set({ isLoading: true });
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      const profile = await get()._fetchProfile(session.user.id);
-      set({ session, user: profile, isLoading: false });
-    } else {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const profile = await get()._fetchProfile(session.user.id);
+        set({ session, user: profile, isLoading: false });
+      } else {
+        set({ session: null, user: null, isLoading: false });
+      }
+    } catch (err) {
+      console.warn('Session check error:', err);
       set({ session: null, user: null, isLoading: false });
     }
 
-    // Listen for auth state changes (login/logout from any tab)
+    // Listen for auth state changes (login/logout from any tab or OAuth callback)
     supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session) {
+      if (session?.user) {
         const profile = await get()._fetchProfile(session.user.id);
-        set({ session, user: profile });
+        set({ session, user: profile, isLoading: false });
       } else {
-        set({ session: null, user: null });
+        set({ session: null, user: null, isLoading: false });
       }
     });
   },
 
-  // ── Internal: fetch profile row ─────────────────────────────
+  // ── Internal: fetch or auto-create profile row ─────────────
   _fetchProfile: async (userId) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const authUser = authData?.user;
+      if (!authUser) return null;
 
-    if (error || !data) return null;
+      const meta = authUser.user_metadata || {};
+      const savedRole = localStorage.getItem('vibe_intended_role');
 
-    const authUser = (await supabase.auth.getUser()).data.user;
-    return {
-      id: data.id,
-      name: data.name || authUser?.email,
-      email: authUser?.email,
-      avatar: data.avatar_url,
-      role: data.role,
-      studentId: data.student_id,
-      department: data.department,
-      year: data.year,
-      phone: data.phone,
-      initials: (data.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
-    };
+      // Attempt to read from profiles table
+      const { data: profileRow } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      let profile = profileRow;
+
+      // If no profile exists yet in DB (e.g. first-time Google sign-in), auto-create it!
+      if (!profile) {
+        const fallbackName = meta.full_name || meta.name || authUser.email?.split('@')[0] || 'User';
+        const fallbackAvatar = meta.avatar_url || meta.picture || null;
+        const fallbackRole = meta.role || savedRole || 'participant';
+
+        try {
+          const { data: created } = await supabase
+            .from('profiles')
+            .upsert({
+              id: userId,
+              name: fallbackName,
+              avatar_url: fallbackAvatar,
+              role: fallbackRole,
+            })
+            .select()
+            .maybeSingle();
+          if (created) profile = created;
+        } catch (e) {
+          console.warn('Auto profile upsert warning:', e);
+        }
+      }
+
+      const role = profile?.role || meta.role || savedRole || 'participant';
+      const name = profile?.name || meta.full_name || meta.name || authUser.email?.split('@')[0] || 'User';
+      const avatar = profile?.avatar_url || meta.avatar_url || meta.picture || null;
+
+      return {
+        id: userId,
+        name,
+        email: authUser.email,
+        avatar,
+        role,
+        studentId: profile?.student_id || '',
+        department: profile?.department || '',
+        year: profile?.year || '',
+        phone: profile?.phone || '',
+        initials: (name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
+      };
+    } catch (err) {
+      console.error('_fetchProfile exception:', err);
+      // Failsafe fallback: return user object so authentication never hangs
+      const { data: authData } = await supabase.auth.getUser();
+      const authUser = authData?.user;
+      if (!authUser) return null;
+      const meta = authUser.user_metadata || {};
+      const name = meta.full_name || meta.name || authUser.email?.split('@')[0] || 'User';
+      return {
+        id: userId,
+        name,
+        email: authUser.email,
+        avatar: meta.avatar_url || meta.picture || null,
+        role: meta.role || localStorage.getItem('vibe_intended_role') || 'participant',
+        studentId: '',
+        department: '',
+        year: '',
+        phone: '',
+        initials: 'U',
+      };
+    }
   },
 
   // ── Email / Password login ───────────────────────────────────
@@ -102,11 +163,12 @@ const useAuthStore = create((set, get) => ({
   // ── Google OAuth ─────────────────────────────────────────────
   loginWithGoogle: async (role = 'participant') => {
     set({ isLoading: true, error: null });
+    localStorage.setItem('vibe_intended_role', role);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: window.location.origin,
-        queryParams: { access_type: 'offline', prompt: 'consent' },
+        queryParams: { access_type: 'offline', prompt: 'select_account' },
         data: { role },
       },
     });
@@ -114,7 +176,6 @@ const useAuthStore = create((set, get) => ({
       set({ error: error.message, isLoading: false });
       return false;
     }
-    // OAuth redirects — state handled in onAuthStateChange
     return true;
   },
 
