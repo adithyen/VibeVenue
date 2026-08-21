@@ -62,29 +62,41 @@ const RegistrationModal = ({ event, onClose }) => {
 
   const totalAmount = basePrice + addOnTotal;
 
-  // Clean student name and event name for standard NPCI transaction note
+  // Build UPI note: <StudentName>-<EventName>-<TicketID>
+  // tn must be ≤50 chars, only alphanumeric, spaces, hyphens (NPCI P2P safe)
   const cleanStudent = (form.fullName || user?.name || 'STUDENT')
     .trim()
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .slice(0, 15) || 'STUDENT';
+    .replace(/[^a-zA-Z0-9 ]/g, '')
+    .replace(/\s+/g, ' ')
+    .slice(0, 15)
+    .trim() || 'STUDENT';
   const cleanEvent = (event.name || 'EVENT')
     .trim()
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .slice(0, 15) || 'EVENT';
-  
-  // Format: <studentname>-<event-name>-<tempticket_id>
-  const upiNote = `${cleanStudent}-${cleanEvent}-${tempTicketId}`.slice(0, 45);
+    .replace(/[^a-zA-Z0-9 ]/g, '')
+    .replace(/\s+/g, ' ')
+    .slice(0, 15)
+    .trim() || 'EVENT';
 
-  // Standard NPCI UPI URI
-  const cleanUpiId = event.upiId ? event.upiId.trim() : '';
+  // Format: StudentName-EventName-TCK-XXXXXX (≤50 chars)
+  const upiNote = `${cleanStudent}-${cleanEvent}-${tempTicketId}`.slice(0, 50);
+
+  // Standard NPCI P2P UPI URI.
+  // CRITICAL: Do NOT include `tr` or `mc` — these are merchant-only fields (P2M).
+  // Using them with a personal VPA causes instant rejection by all UPI PSP apps.
+  const cleanUpiId = (event.upiId || '').trim().toLowerCase();
+  // pn: only letters, digits, spaces allowed (no special chars)
   const cleanPayee = (event.organizerName || event.name || 'VibeVenue')
     .trim()
-    .replace(/[^a-zA-Z0-9 ]/g, '')
-    .slice(0, 25) || 'VibeVenue';
+    .replace(/[^a-zA-Z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .slice(0, 25)
+    .trim() || 'VibeVenue';
+  // am: exactly 2 decimal places, no trailing zeros issues
   const formattedAmount = totalAmount.toFixed(2);
 
+  // Final URI: pa + pn + am + cu + tn only — universally accepted P2P format
   const upiPayload = cleanUpiId
-    ? `upi://pay?pa=${encodeURIComponent(cleanUpiId)}&pn=${encodeURIComponent(cleanPayee)}&am=${formattedAmount}&cu=INR&tn=${encodeURIComponent(upiNote)}&tr=${encodeURIComponent(tempTicketId)}`
+    ? `upi://pay?pa=${encodeURIComponent(cleanUpiId)}&pn=${encodeURIComponent(cleanPayee)}&am=${formattedAmount}&cu=INR&tn=${encodeURIComponent(upiNote)}`
     : '';
 
   const toggleAddOn = (label) => {
