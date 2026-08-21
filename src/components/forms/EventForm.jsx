@@ -534,14 +534,14 @@ const EventForm = ({ event = null, onClose }) => {
                 {/* Contact Persons */}
                 <div className="form-field-group">
                   <div className="form-label-row">
-                    <label className="craft-label">Contact Persons</label>
-                    <Button type="button" variant="ghost" size="sm" onClick={addContact}>+ Add Contact</Button>
+                    <label className="craft-label">Student Coordinators & Contacts</label>
+                    <Button type="button" variant="ghost" size="sm" onClick={addContact}>+ Add Coordinator</Button>
                   </div>
                   <div className="contacts-list">
                     {formData.contacts.map((contact, idx) => (
                       <div key={idx} className="contact-card">
                         <div className="contact-card-header">
-                          <span className="contact-card-num font-mono">Contact {idx + 1}</span>
+                          <span className="contact-card-num font-mono">Coordinator {idx + 1}</span>
                           {idx > 0 && (
                             <button type="button" className="contact-remove-btn" onClick={() => removeContact(idx)}>✕</button>
                           )}
@@ -550,14 +550,14 @@ const EventForm = ({ event = null, onClose }) => {
                           <input
                             type="text"
                             className="craft-input"
-                            placeholder="Name"
+                            placeholder="Coordinator Name"
                             value={contact.name}
                             onChange={e => updateContact(idx, 'name', e.target.value)}
                           />
                           <input
                             type="text"
                             className="craft-input"
-                            placeholder="Role / Designation"
+                            placeholder="Role (e.g. Lead Coordinator, Tech Head)"
                             value={contact.role}
                             onChange={e => updateContact(idx, 'role', e.target.value)}
                           />

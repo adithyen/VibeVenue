@@ -135,7 +135,7 @@ const TopBar = ({ onAddEvent }) => {
             <div className="convener-info">
               <span className="convener-name">{user.name}</span>
               <span className="convener-role">
-                {user.role === 'admin' ? 'Faculty Convener' : 'Student Delegate'}
+                {user.role === 'admin' ? 'Lead Organizer' : 'Student Delegate'}
               </span>
             </div>
             <svg

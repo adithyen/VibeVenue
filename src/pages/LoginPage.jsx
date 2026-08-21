@@ -100,7 +100,7 @@ const LoginPage = () => {
             >
               <div className="segmented-control role-switcher">
                 <button className={`segmented-option ${role === 'participant' ? 'active' : ''}`} onClick={() => setRole('participant')} type="button">Student Participant</button>
-                <button className={`segmented-option ${role === 'admin' ? 'active' : ''}`} onClick={() => setRole('admin')} type="button">Faculty Admin</button>
+                <button className={`segmented-option ${role === 'admin' ? 'active' : ''}`} onClick={() => setRole('admin')} type="button">Event Organizer</button>
               </div>
             </motion.div>
           )}
