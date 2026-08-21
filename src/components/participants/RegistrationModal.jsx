@@ -1,6 +1,4 @@
-// VibeVenue — Participant Registration Modal (v4.0)
-// Full multi-step form: Personal Details → Preferences → Payment → Confirmation
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import useAuthStore from '../../store/useAuthStore';
@@ -15,6 +13,9 @@ const RegistrationModal = ({ event, onClose }) => {
   const { registerParticipant } = useEventStore();
   const { addToast } = useUIStore();
   const screenshotRef = useRef();
+
+  // Generate a persistent unique ticket ID for this registration session
+  const tempTicketId = useMemo(() => `TCK-${Math.floor(100000 + Math.random() * 900000)}`, []);
 
   const isPaid = event.isPaid || (event.fee && event.fee !== 'Free' && event.fee !== '');
   const hasGroup = event.registrationType === 'group' || event.registrationType === 'both';
@@ -61,9 +62,29 @@ const RegistrationModal = ({ event, onClose }) => {
 
   const totalAmount = basePrice + addOnTotal;
 
-  // UPI QR payload
-  const upiPayload = event.upiId
-    ? `upi://pay?pa=${encodeURIComponent(event.upiId)}&pn=${encodeURIComponent(event.name)}&am=${totalAmount}&cu=INR`
+  // Clean student name and event name for standard NPCI transaction note
+  const cleanStudent = (form.fullName || user?.name || 'STUDENT')
+    .trim()
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .slice(0, 15) || 'STUDENT';
+  const cleanEvent = (event.name || 'EVENT')
+    .trim()
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .slice(0, 15) || 'EVENT';
+  
+  // Format: <studentname>-<event-name>-<tempticket_id>
+  const upiNote = `${cleanStudent}-${cleanEvent}-${tempTicketId}`.slice(0, 45);
+
+  // Standard NPCI UPI URI
+  const cleanUpiId = event.upiId ? event.upiId.trim() : '';
+  const cleanPayee = (event.organizerName || event.name || 'VibeVenue')
+    .trim()
+    .replace(/[^a-zA-Z0-9 ]/g, '')
+    .slice(0, 25) || 'VibeVenue';
+  const formattedAmount = totalAmount.toFixed(2);
+
+  const upiPayload = cleanUpiId
+    ? `upi://pay?pa=${encodeURIComponent(cleanUpiId)}&pn=${encodeURIComponent(cleanPayee)}&am=${formattedAmount}&cu=INR&tn=${encodeURIComponent(upiNote)}&tr=${encodeURIComponent(tempTicketId)}`
     : '';
 
   const toggleAddOn = (label) => {
@@ -128,12 +149,13 @@ const RegistrationModal = ({ event, onClose }) => {
     await new Promise(r => setTimeout(r, 500));
     registerParticipant?.(event.id, {
       ...form,
+      ticketId: tempTicketId,
       userId: user?.id,
       totalPaid: totalAmount,
       registeredAt: new Date().toISOString(),
     });
     setStep(3);
-    addToast({ type: 'success', title: 'Registered! 🎉', message: `You're confirmed for ${event.name}.` });
+    addToast({ type: 'success', title: 'Registered! 🎉', message: `You're confirmed for ${event.name}. Ticket: ${tempTicketId}` });
   };
 
   const isLastBeforeConfirm = visibleSteps[currentVisibleIdx + 1] === 3;
@@ -401,19 +423,23 @@ const RegistrationModal = ({ event, onClose }) => {
                     {/* UPI QR Code */}
                     {upiPayload && (
                       <div className="reg-qr-section">
-                        <p className="reg-qr-label">Scan to pay via any UPI app</p>
+                        <p className="reg-qr-label">Scan to pay via any UPI app (GPay, PhonePe, Paytm, BHIM)</p>
                         <div className="reg-qr-box">
                           <QRCodeSVG
                             value={upiPayload}
-                            size={200}
+                            size={210}
                             level="M"
-                            includeMargin={true}
-                            bgColor="transparent"
-                            fgColor="var(--text-primary)"
+                            includeMargin={false}
+                            bgColor="#FFFFFF"
+                            fgColor="#000000"
                           />
                         </div>
-                        <p className="reg-upi-id font-mono">{event.upiId}</p>
-                        <p className="reg-qr-hint">Pay exactly ₹{totalAmount} • Use your name as note/remark</p>
+                        <p className="reg-upi-id font-mono">{cleanUpiId}</p>
+                        <div className="reg-note-badge">
+                          <span className="reg-note-lbl">Payment Note:</span>
+                          <span className="reg-note-val font-mono">{upiNote}</span>
+                        </div>
+                        <p className="reg-qr-hint">Pre-filled remark: <strong>{upiNote}</strong></p>
                       </div>
                     )}
 
@@ -470,6 +496,10 @@ const RegistrationModal = ({ event, onClose }) => {
                       🎉
                     </motion.div>
                     <h3 className="reg-confirm-title">You're Registered!</h3>
+                    <div className="reg-ticket-badge">
+                      <span className="reg-ticket-lbl font-mono">Digital Ticket ID:</span>
+                      <span className="reg-ticket-code font-mono">{tempTicketId}</span>
+                    </div>
                     <p className="reg-confirm-sub">{event.confirmationMessage || `You're confirmed for ${event.name}. Check your email for details.`}</p>
 
                     {/* WhatsApp group */}

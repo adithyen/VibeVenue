@@ -187,6 +187,7 @@ const useEventStore = create((set, get) => ({
       .insert({
         event_id:          eventId,
         user_id:           formData.userId || null,
+        ticket_id:         formData.ticketId || undefined,
         full_name:         formData.fullName,
         email:             formData.email,
         phone:             formData.phone,

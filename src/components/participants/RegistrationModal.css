@@ -319,13 +319,62 @@
 
 .reg-qr-label { font-size: 0.875rem; font-weight: 600; color: var(--text-secondary); }
 .reg-qr-box {
-  padding: var(--sp-3);
-  background: white;
+  padding: 12px;
+  background: #ffffff;
   border-radius: var(--radius-lg);
   display: inline-flex;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-default);
 }
-.reg-upi-id { font-size: 0.875rem; color: var(--accent-iris); }
+.reg-upi-id { font-size: 0.875rem; color: var(--accent-iris); font-weight: 600; }
+
+.reg-note-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 6px 14px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  max-width: 100%;
+}
+
+.reg-note-lbl {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.reg-note-val {
+  color: var(--accent-iris);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .reg-qr-hint { font-size: 0.75rem; color: var(--text-muted); }
+
+.reg-ticket-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 6px 16px;
+  background: var(--accent-iris-dim);
+  border: 1px solid var(--accent-iris-border);
+  border-radius: var(--radius-full);
+  font-size: 0.8125rem;
+}
+
+.reg-ticket-lbl {
+  color: var(--text-secondary);
+}
+
+.reg-ticket-code {
+  color: var(--accent-iris);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
 
 /* Screenshot upload */
 .reg-screenshot-upload {
