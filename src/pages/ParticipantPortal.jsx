@@ -164,35 +164,50 @@ const ParticipantPortal = () => {
             <div className="recommended-grid">
               {availableEvents.map((event) => (
                 <div key={event.id} className="craft-card rec-event-card">
-                  <div className="rec-card-header">
-                    <h4 className="rec-title">{event.name}</h4>
-                    <Badge category={event.category} size="xs">
-                      {event.category.toUpperCase()}
-                    </Badge>
-                  </div>
-                  <p className="rec-desc">{event.shortDescription || event.description}</p>
-                  <div className="rec-logistics font-mono">
-                    <span>📅 {formatDate(event.date)}</span>
-                    <span>📍 {event.venue}</span>
-                  </div>
-                  <div className="rec-footer">
-                    <ProgressBar
-                      current={event.registrationCount}
-                      total={event.maxParticipants}
-                      showLabel={false}
-                      height={4}
-                    />
-                    <div className="rec-btn-row">
-                      <span className="rec-capacity-label font-mono">
-                        {event.registrationCount}/{event.maxParticipants} slots filled
-                      </span>
-                      <Button
-                        variant="primary"
-                        size="xs"
-                        onClick={() => handleSelfRegister(event)}
-                      >
-                        Register Now
-                      </Button>
+                  {event.bannerUrl && (
+                    <div className="rec-card-banner" style={{ backgroundImage: `url(${event.bannerUrl})` }}>
+                      <div className="rec-card-banner-overlay" />
+                      {event.logoUrl && (
+                        <img src={event.logoUrl} alt="" className="rec-card-logo-badge" />
+                      )}
+                    </div>
+                  )}
+                  <div className="rec-card-body">
+                    <div className="rec-card-header">
+                      <div className="rec-title-wrap">
+                        {!event.bannerUrl && event.logoUrl && (
+                          <img src={event.logoUrl} alt="" className="rec-card-logo-inline" />
+                        )}
+                        <h4 className="rec-title">{event.name}</h4>
+                      </div>
+                      <Badge category={event.category} size="xs">
+                        {event.category.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <p className="rec-desc">{event.shortDescription || event.description}</p>
+                    <div className="rec-logistics font-mono">
+                      <span>📅 {formatDate(event.date)}</span>
+                      <span>📍 {event.venue}</span>
+                    </div>
+                    <div className="rec-footer">
+                      <ProgressBar
+                        current={event.registrationCount}
+                        total={event.maxParticipants}
+                        showLabel={false}
+                        height={4}
+                      />
+                      <div className="rec-btn-row">
+                        <span className="rec-capacity-label font-mono">
+                          {event.registrationCount}/{event.maxParticipants} slots filled
+                        </span>
+                        <Button
+                          variant="primary"
+                          size="xs"
+                          onClick={() => handleSelfRegister(event)}
+                        >
+                          Register Now
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>

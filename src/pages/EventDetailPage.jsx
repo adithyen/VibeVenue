@@ -90,20 +90,33 @@ const EventDetailPage = () => {
 
       {/* Hero Specification Header */}
       <div className="craft-card detail-hero-card">
-        <div className="detail-hero-top">
-          <div className="detail-hero-badges">
-            <Badge category={event.category} size="sm" icon={cat.icon}>
-              {cat.label}
-            </Badge>
-            <Badge status={event.status} dot size="sm">
-              {event.status.toUpperCase()}
-            </Badge>
-            {event.status === 'upcoming' && daysUntil !== null && (
-              <span className="days-chip font-mono">
-                {daysUntil > 0 ? `T-${daysUntil} Days` : daysUntil === 0 ? 'Today' : 'Past'}
-              </span>
+        {event.bannerUrl && (
+          <div className="detail-hero-banner" style={{ backgroundImage: `url(${event.bannerUrl})` }}>
+            <div className="detail-hero-banner-overlay" />
+            {event.logoUrl && (
+              <img src={event.logoUrl} alt={event.name} className="detail-hero-logo" />
             )}
           </div>
+        )}
+
+        <div className="detail-hero-inner">
+          <div className="detail-hero-top">
+            <div className="detail-hero-badges">
+              {!event.bannerUrl && event.logoUrl && (
+                <img src={event.logoUrl} alt={event.name} className="detail-hero-logo-inline" />
+              )}
+              <Badge category={event.category} size="sm" icon={cat.icon}>
+                {cat.label}
+              </Badge>
+              <Badge status={event.status} dot size="sm">
+                {event.status.toUpperCase()}
+              </Badge>
+              {event.status === 'upcoming' && daysUntil !== null && (
+                <span className="days-chip font-mono">
+                  {daysUntil > 0 ? `T-${daysUntil} Days` : daysUntil === 0 ? 'Today' : 'Past'}
+                </span>
+              )}
+            </div>
 
           <Button
             id="detail-edit-btn"
@@ -150,6 +163,7 @@ const EventDetailPage = () => {
               {event.registrationCount} / {event.maxParticipants} Registered ({occupancyPct}%)
             </span>
           </div>
+        </div>
         </div>
       </div>
 

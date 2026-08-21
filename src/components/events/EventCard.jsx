@@ -40,11 +40,26 @@ const EventCard = ({ event, delay = 0 }) => {
       }}
       aria-label={`View details for ${event.name}`}
     >
+      {/* Optional Banner */}
+      {event.bannerUrl && (
+        <div className="event-card-banner" style={{ backgroundImage: `url(${event.bannerUrl})` }}>
+          <div className="event-card-banner-overlay" />
+          {event.logoUrl && (
+            <img src={event.logoUrl} alt="" className="event-card-logo-badge" />
+          )}
+        </div>
+      )}
+
       {/* Top: Category + Status */}
       <div className="event-card-top">
-        <Badge category={event.category} size="xs" icon={cat?.icon}>
-          {cat?.label || event.category}
-        </Badge>
+        <div className="event-card-cat-wrap">
+          {!event.bannerUrl && event.logoUrl && (
+            <img src={event.logoUrl} alt="" className="event-card-logo-inline" />
+          )}
+          <Badge category={event.category} size="xs" icon={cat?.icon}>
+            {cat?.label || event.category}
+          </Badge>
+        </div>
 
         <div className="event-card-status-box">
           <Badge status={event.status} dot size="xs">

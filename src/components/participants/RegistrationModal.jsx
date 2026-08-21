@@ -155,16 +155,38 @@ const RegistrationModal = ({ event, onClose }) => {
           transition={{ type: 'spring', stiffness: 320, damping: 32 }}
           onClick={e => e.stopPropagation()}
         >
+          {/* Optional Event Banner & Logo Cover */}
+          {event.bannerUrl && (
+            <div className="reg-modal-banner" style={{ backgroundImage: `url(${event.bannerUrl})` }}>
+              <div className="reg-modal-banner-overlay" />
+              {event.logoUrl && (
+                <img src={event.logoUrl} alt={event.name} className="reg-modal-banner-logo" />
+              )}
+              {step !== 3 && (
+                <button className="reg-modal-close-btn banner-close" onClick={onClose} type="button" aria-label="Close">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Header */}
           <div className="reg-modal-hdr">
-            <div>
-              <h2 className="reg-modal-hdr-title">Register for {event.name}</h2>
-              <p className="reg-modal-hdr-sub">
-                {STEPS[step === 3 ? 3 : currentVisibleIdx]} · Step {step === 3 ? visibleSteps.length : currentVisibleIdx + 1} of {visibleSteps.length}
-              </p>
+            <div className="reg-modal-hdr-left">
+              {!event.bannerUrl && event.logoUrl && (
+                <img src={event.logoUrl} alt={event.name} className="reg-modal-hdr-logo" />
+              )}
+              <div>
+                <h2 className="reg-modal-hdr-title">Register for {event.name}</h2>
+                <p className="reg-modal-hdr-sub">
+                  {STEPS[step === 3 ? 3 : currentVisibleIdx]} · Step {step === 3 ? visibleSteps.length : currentVisibleIdx + 1} of {visibleSteps.length}
+                </p>
+              </div>
             </div>
-            {step !== 3 && (
-              <button className="reg-modal-close-btn" onClick={onClose} type="button">
+            {!event.bannerUrl && step !== 3 && (
+              <button className="reg-modal-close-btn" onClick={onClose} type="button" aria-label="Close">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
