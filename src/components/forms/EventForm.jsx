@@ -192,46 +192,39 @@ const EventForm = ({ event = null, onClose }) => {
     return Object.keys(e).length === 0;
   };
 
-  const handleNext = () => {
+  const handleNext = (e) => {
+    // Explicitly stop any possible event propagation
+    e?.preventDefault();
+    e?.stopPropagation();
     if (validateStep(step)) setStep(s => Math.min(s + 1, STEPS.length - 1));
   };
-  const handleBack = () => setStep(s => Math.max(s - 1, 0));
+  const handleBack = (e) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    setStep(s => Math.max(s - 1, 0));
+  };
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
+    e?.stopPropagation();
     if (!validateStep(step)) return;
     setIsSubmitting(true);
-    await new Promise(r => setTimeout(r, 600));
 
-    const allCategories = formData.customCategory
-      ? [...CATEGORIES, formData.customCategory]
-      : CATEGORIES;
-
-    const payload = {
-      ...formData,
-      tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-      maxParticipants: formData.hasCapacityLimit && !formData.isOnline
-        ? parseInt(formData.maxParticipants, 10) || 999
-        : 9999,
-      // Flatten dates/times for backward compat
-      date: formData.startDate,
-      time: formData.startTime,
-      endTime: formData.endTime,
-      fee: formData.isPaid
-        ? (formData.registrationType === 'individual' ? `₹${formData.individualPrice}` : `₹${formData.groupPrice}/team`)
-        : 'Free',
-    };
-
-    if (isEdit) {
-      updateEvent(event.id, payload);
-      addToast({ type: 'success', title: 'Event Updated', message: `"${formData.name}" has been updated.` });
-    } else {
-      addEvent(payload);
-      addToast({ type: 'success', title: 'Event Created! 🎉', message: `"${formData.name}" is now live.` });
+    try {
+      if (isEdit) {
+        await updateEvent(event.id, formData);
+        addToast({ type: 'success', title: 'Event Updated', message: `"${formData.name}" has been updated.` });
+      } else {
+        await addEvent(formData);
+        addToast({ type: 'success', title: 'Event Created! 🎉', message: `"${formData.name}" is now live.` });
+      }
+      setIsDone(true);
+      setTimeout(() => onClose?.(), 900);
+    } catch (err) {
+      addToast({ type: 'error', title: 'Error', message: err?.message || 'Something went wrong.' });
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
-    setIsDone(true);
-    setTimeout(() => onClose?.(), 900);
   };
 
   if (isDone) {
@@ -245,17 +238,10 @@ const EventForm = ({ event = null, onClose }) => {
   }
 
   return (
-    <form
-      className="craft-event-form"
-      onSubmit={handleSubmit}
-      noValidate
-      onKeyDown={(e) => {
-        // Prevent accidental form submission when pressing Enter on non-final steps
-        if (e.key === 'Enter' && step < STEPS.length - 1) {
-          e.preventDefault();
-        }
-      }}
-    >
+    // ⚠️  INTENTIONALLY a div, NOT a form — using a <form> caused Framer Motion's
+    // motion.button to lose type="button", defaulting every button to type="submit".
+    // All submission is handled explicitly via onClick handlers.
+    <div className="craft-event-form">
       {/* Step Indicator */}
       <div className="form-steps-indicator" role="tablist">
         {STEPS.map((s, idx) => (
@@ -849,13 +835,13 @@ const EventForm = ({ event = null, onClose }) => {
               Continue →
             </Button>
           ) : (
-            <Button variant="primary" size="sm" loading={isSubmitting} type="submit">
+            <Button variant="primary" size="sm" loading={isSubmitting} type="button" onClick={handleSubmit}>
               {isEdit ? 'Save Changes' : '🎉 Create Event'}
             </Button>
           )}
         </div>
       </div>
-    </form>
+    </div>
   );
 };
 
