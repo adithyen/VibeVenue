@@ -413,7 +413,7 @@ const RegistrationModal = ({ event, onClose }) => {
                     {/* Add-ons */}
                     {event.addOns && event.addOns.length > 0 && (
                       <div className="reg-field">
-                        <label className="reg-label">Optional Add-ons</label>
+                        <label className="reg-label">Select Add-ons</label>
                         <div className="reg-addons-list">
                           {event.addOns.map(addon => {
                             const selected = form.selectedAddOns.includes(addon.label);
@@ -422,7 +422,7 @@ const RegistrationModal = ({ event, onClose }) => {
                                 key={addon.label}
                                 type="button"
                                 className={`reg-addon-chip ${selected ? 'reg-addon-selected' : ''}`}
-                                onClick={() => !addon.required && toggleAddOn(addon.label)}
+                                onClick={() => toggleAddOn(addon.label)}
                               >
                                 <span>{addon.label}</span>
                                 {addon.price ? <span className="reg-addon-price font-mono">+₹{addon.price}</span> : <span className="reg-addon-price">Free</span>}
