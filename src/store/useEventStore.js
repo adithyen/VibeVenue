@@ -102,6 +102,34 @@ const useEventStore = create((set, get) => ({
     }));
   },
 
+  registerParticipant: (eventId, formData) => {
+    const newParticipant = {
+      id: `p-${Date.now()}`,
+      name: formData.fullName,
+      email: formData.email,
+      phone: formData.phone,
+      studentId: formData.rollNumber,
+      college: formData.college,
+      department: formData.department,
+      year: formData.year,
+      registrationType: formData.registrationType,
+      teamName: formData.teamName,
+      selectedAddOns: formData.selectedAddOns,
+      totalPaid: formData.totalPaid,
+      txnId: formData.txnId,
+      status: 'confirmed',
+      registeredAt: formData.registeredAt || new Date().toISOString(),
+    };
+    set(state => ({
+      events: state.events.map(e => {
+        if (e.id !== eventId) return e;
+        const participants = [...(e.participants || []), newParticipant];
+        return { ...e, participants, registrationCount: participants.length };
+      }),
+    }));
+    return newParticipant;
+  },
+
   removeParticipant: (eventId, participantId) => {
     set(state => ({
       events: state.events.map(e => {

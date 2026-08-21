@@ -1,6 +1,6 @@
-// Events Directory Page (Craft Standard v2.0)
-import React, { useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+// Events Directory Page (v4.0)
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useEventStore from '../store/useEventStore';
 import EventCard from '../components/events/EventCard';
@@ -21,14 +21,20 @@ const EVENTS_PER_PAGE = 9;
 const EventsPage = () => {
   const navigate = useNavigate();
   const store = useEventStore();
+  const [searchParams] = useSearchParams();
 
   const [search, setSearch]     = useState('');
   const [category, setCategory] = useState('');
   const [sort, setSort]         = useState('date-asc');
-  const [status, setStatus]     = useState('');
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
+  const [status, setStatus]     = useState(() => searchParams.get('status') || '');
+  const [viewMode, setViewMode] = useState(() => searchParams.get('view') === 'seats' ? 'seats' : 'grid');
   const [page, setPage]         = useState(1);
   const [formOpen, setFormOpen] = useState(false);
+
+  // On mount, open the modal for new event if triggered
+  useEffect(() => {
+    if (searchParams.get('new') === '1') setFormOpen(true);
+  }, []);
 
   const handleSearch = useCallback((val) => {
     setSearch(val);

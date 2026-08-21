@@ -1,4 +1,4 @@
-// High-Craft Metric Card (Linear / Vercel style)
+// High-Craft Metric Card — Clickable Navigation (v4.0)
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import './StatCard.css';
@@ -30,6 +30,7 @@ const StatCard = ({
   indicatorColor = 'var(--accent-iris)',
   delay = 0,
   id,
+  onClick,
 }) => {
   const animatedValue = useCountUp(typeof value === 'number' ? value : 0);
   const displayValue =
@@ -38,7 +39,7 @@ const StatCard = ({
   return (
     <motion.div
       id={id}
-      className="craft-metric-card"
+      className={`craft-metric-card ${onClick ? 'craft-metric-card-clickable' : ''}`}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
@@ -47,6 +48,12 @@ const StatCard = ({
         stiffness: 350,
         damping: 30,
       }}
+      whileHover={onClick ? { y: -2, boxShadow: 'var(--shadow-elevated)' } : {}}
+      whileTap={onClick ? { scale: 0.98 } : {}}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); } : undefined}
     >
       <div className="metric-header">
         <span className="metric-title">{title}</span>
@@ -75,6 +82,15 @@ const StatCard = ({
               }}
             />
           </div>
+        )}
+
+        {onClick && (
+          <span className="metric-cta-arrow">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+              <polyline points="12 5 19 12 12 19"/>
+            </svg>
+          </span>
         )}
       </div>
     </motion.div>

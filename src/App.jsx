@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage';
 import EventsPage from './pages/EventsPage';
 import EventDetailPage from './pages/EventDetailPage';
 import RegistrationsPage from './pages/RegistrationsPage';
+import SettingsPage from './pages/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import LoginPage from './pages/LoginPage';
 import ParticipantPortal from './pages/ParticipantPortal';
@@ -73,6 +74,18 @@ const App = () => {
           <GuardedRoute allowedRole="participant">
             <Layout>
               <ParticipantPortal />
+            </Layout>
+          </GuardedRoute>
+        }
+      />
+
+      {/* Settings (all authenticated users) */}
+      <Route
+        path="/settings"
+        element={
+          <GuardedRoute allowedRole="any">
+            <Layout>
+              <SettingsPage />
             </Layout>
           </GuardedRoute>
         }

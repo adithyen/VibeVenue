@@ -1,6 +1,7 @@
-// Dashboard Overview Page (Craft Standard v2.0)
-import React from 'react';
+// Dashboard Overview Page (VibeVenue v4.0)
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import useEventStore from '../store/useEventStore';
 import StatCard from '../components/dashboard/StatCard';
 import RegistrationChart from '../components/dashboard/RegistrationChart';
@@ -23,12 +24,12 @@ const DashboardPage = () => {
 
   return (
     <div className="dashboard-view">
-      {/* Top Banner Context */}
+      {/* Page Header */}
       <div className="page-header">
         <div className="page-title-group">
-          <h2 className="page-title">Operations Control Center</h2>
+          <h2 className="page-title">Dashboard</h2>
           <p className="page-subtitle">
-            Live telemetry, attendee registration velocity, and capacity monitoring
+            Overview of events, registrations and activity
           </p>
         </div>
 
@@ -45,7 +46,7 @@ const DashboardPage = () => {
               </svg>
             }
           >
-            Export Attendee Manifest
+            Export Registrations
           </Button>
 
           <Button
@@ -53,19 +54,19 @@ const DashboardPage = () => {
             size="sm"
             onClick={() => navigate('/events')}
           >
-            Browse All Events →
+            All Events →
           </Button>
         </div>
       </div>
 
-      {/* 4 Executive Metrics */}
-      <section className="grid-metrics" aria-label="Executive Metrics">
+      {/* 4 Clickable Stat Cards */}
+      <section className="grid-metrics" aria-label="Key Metrics">
         <StatCard
           id="stat-total-events"
-          title="Total Events Scheduled"
+          title="Total Events"
           value={stats.totalEvents}
-          subvalue="8 engineering domains"
-          badgeText="All Approved"
+          subvalue="across all categories"
+          badgeText="View All"
           badgeType="neutral"
           icon={
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -76,14 +77,15 @@ const DashboardPage = () => {
             </svg>
           }
           delay={0}
+          onClick={() => navigate('/events?view=all')}
         />
 
         <StatCard
           id="stat-upcoming-events"
-          title="Active Upcoming Events"
+          title="Upcoming Events"
           value={stats.upcomingEvents}
-          subvalue="2 completed sessions"
-          badgeText="Phase 1 Ready"
+          subvalue="scheduled ahead"
+          badgeText="Earliest First"
           badgeType="iris"
           icon={
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -91,14 +93,15 @@ const DashboardPage = () => {
             </svg>
           }
           delay={0.05}
+          onClick={() => navigate('/events?status=upcoming')}
         />
 
         <StatCard
           id="stat-total-registrations"
-          title="Total Registered Attendees"
+          title="Total Registrations"
           value={stats.totalRegistrations}
-          subvalue={`${stats.avgOccupancy}% occupancy`}
-          badgeText="+18.4% this week"
+          subvalue={`${stats.avgOccupancy}% avg occupancy`}
+          badgeText="View All"
           badgeType="positive"
           indicatorPct={stats.avgOccupancy}
           indicatorColor="var(--accent-emerald)"
@@ -110,14 +113,15 @@ const DashboardPage = () => {
             </svg>
           }
           delay={0.1}
+          onClick={() => navigate('/registrations')}
         />
 
         <StatCard
           id="stat-available-seats"
-          title="Remaining Seat Capacity"
+          title="Available Seats"
           value={stats.availableSeats}
-          subvalue="across all venues"
-          badgeText="High Demand"
+          subvalue="across all events"
+          badgeText="By Event"
           badgeType="warning"
           indicatorPct={100 - stats.avgOccupancy}
           indicatorColor="var(--accent-amber)"
@@ -128,28 +132,29 @@ const DashboardPage = () => {
             </svg>
           }
           delay={0.15}
+          onClick={() => navigate('/events?view=seats')}
         />
       </section>
 
-      {/* Middle Grid: Telemetry Chart & Live Feed */}
-      <section className="grid-two-column" aria-label="Telemetry & Activity">
+      {/* Middle Grid: Trend Chart & Registrations Feed */}
+      <section className="grid-two-column" aria-label="Activity">
         <RegistrationChart data={trend} />
         <RecentRegistrations registrations={recentRegs} />
       </section>
 
-      {/* Upcoming Imminent Events */}
+      {/* Upcoming Events Preview */}
       <section className="dashboard-upcoming-section" aria-label="Upcoming Events">
         <div className="section-title-row">
           <div className="title-with-pill">
-            <h3 className="section-heading">Imminent Major Events</h3>
-            <span className="section-pill font-mono">Next 30 Days</span>
+            <h3 className="section-heading">Upcoming Events</h3>
+            <span className="section-pill font-mono">Next 30 days</span>
           </div>
           <button
             className="section-link font-mono"
-            onClick={() => navigate('/events')}
+            onClick={() => navigate('/events?status=upcoming')}
             type="button"
           >
-            Explore Directory ({store.events.length}) →
+            See all ({store.events.filter(e => e.status === 'upcoming').length}) →
           </button>
         </div>
 

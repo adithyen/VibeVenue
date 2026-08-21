@@ -1,11 +1,86 @@
 /* ============================================================
-   CAMPUSCORE — MODERN HIGH-CRAFT DESIGN SYSTEM (v2.0)
-   Obsidian & Zinc Tactile Theme with Precision Typography
+   VIBEVENUE — MODERN HIGH-CRAFT DESIGN SYSTEM (v4.0)
+   Light-First Premium Theme with Dark Mode Support
    ============================================================ */
 
-/* ---------- CSS Custom Properties (Design Tokens) ---------- */
-:root {
-  /* Surfaces (Warm Obsidian Slate) */
+/* ---------- LIGHT THEME (Default) ---------- */
+:root,
+[data-theme="light"] {
+  /* Surfaces */
+  --surface-canvas:      #F5F5F7;
+  --surface-panel:       #FFFFFF;
+  --surface-card:        #FFFFFF;
+  --surface-card-hover:  #F9F9FB;
+  --surface-elevated:    #FFFFFF;
+  --surface-inset:       #F0F0F3;
+  --surface-glass:       rgba(255, 255, 255, 0.90);
+
+  /* Hairline Borders */
+  --border-subtle:       rgba(0, 0, 0, 0.05);
+  --border-default:      rgba(0, 0, 0, 0.09);
+  --border-strong:       rgba(0, 0, 0, 0.15);
+  --border-interactive:  rgba(0, 0, 0, 0.22);
+  --border-focus:        #6366F1;
+
+  /* Shadows */
+  --shadow-inset-top:    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --shadow-inset-subtle: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --shadow-sm:           0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-card:         0 1px 3px rgba(0, 0, 0, 0.07), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --shadow-elevated:     0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 16px 40px -8px rgba(0, 0, 0, 0.12);
+  --shadow-popup:        0 8px 24px rgba(0, 0, 0, 0.14), 0 0 0 1px var(--border-default);
+
+  /* Accent Colors */
+  --accent-iris:         #6366F1;
+  --accent-iris-hover:   #4F46E5;
+  --accent-iris-dim:     rgba(99, 102, 241, 0.10);
+  --accent-iris-border:  rgba(99, 102, 241, 0.25);
+
+  --accent-emerald:        #059669;
+  --accent-emerald-dim:    rgba(5, 150, 105, 0.10);
+  --accent-emerald-border: rgba(5, 150, 105, 0.25);
+
+  --accent-amber:          #D97706;
+  --accent-amber-dim:      rgba(217, 119, 6, 0.10);
+  --accent-amber-border:   rgba(217, 119, 6, 0.25);
+
+  --accent-rose:           #E11D48;
+  --accent-rose-dim:       rgba(225, 29, 72, 0.10);
+  --accent-rose-border:    rgba(225, 29, 72, 0.25);
+
+  --accent-cyan:           #0891B2;
+  --accent-cyan-dim:       rgba(8, 145, 178, 0.10);
+  --accent-cyan-border:    rgba(8, 145, 178, 0.25);
+
+  --accent-violet:         #7C3AED;
+  --accent-violet-dim:     rgba(124, 58, 237, 0.10);
+  --accent-violet-border:  rgba(124, 58, 237, 0.25);
+
+  /* Typography Colors */
+  --text-primary:        #111827;
+  --text-secondary:      #374151;
+  --text-muted:          #6B7280;
+  --text-tertiary:       #9CA3AF;
+
+  /* Scrollbar */
+  --scrollbar-thumb:     rgba(0,0,0,0.15);
+  --scrollbar-thumb-hov: rgba(0,0,0,0.25);
+
+  /* Sidebar */
+  --sidebar-bg:          #FFFFFF;
+  --sidebar-border:      rgba(0,0,0,0.07);
+  --nav-active-bg:       rgba(99, 102, 241, 0.09);
+  --nav-active-color:    #6366F1;
+  --nav-hover-bg:        rgba(0, 0, 0, 0.04);
+
+  /* TopBar */
+  --topbar-bg:           rgba(255, 255, 255, 0.92);
+  --topbar-border:       rgba(0, 0, 0, 0.07);
+}
+
+/* ---------- DARK THEME ---------- */
+[data-theme="dark"] {
+  /* Surfaces */
   --surface-canvas:      #090A0D;
   --surface-panel:       #0F1115;
   --surface-card:        #14161C;
@@ -21,7 +96,7 @@
   --border-interactive:  rgba(255, 255, 255, 0.22);
   --border-focus:        #6366F1;
 
-  /* Specular Inset Highlights & Elevation */
+  /* Shadows */
   --shadow-inset-top:    inset 0 1px 0 rgba(255, 255, 255, 0.07);
   --shadow-inset-subtle: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   --shadow-sm:           0 1px 2px rgba(0, 0, 0, 0.4);
@@ -29,12 +104,12 @@
   --shadow-elevated:     0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 24px 48px -12px rgba(0, 0, 0, 0.7);
   --shadow-popup:        0 12px 32px rgba(0, 0, 0, 0.8), 0 0 0 1px var(--border-default);
 
-  /* Curated Non-Generic Accents */
+  /* Accent Colors */
   --accent-iris:         #6366F1;
   --accent-iris-hover:   #4F46E5;
   --accent-iris-dim:     rgba(99, 102, 241, 0.12);
   --accent-iris-border:  rgba(99, 102, 241, 0.30);
-  
+
   --accent-emerald:        #10B981;
   --accent-emerald-dim:    rgba(16, 185, 129, 0.12);
   --accent-emerald-border: rgba(16, 185, 129, 0.30);
@@ -61,6 +136,24 @@
   --text-muted:          #6B7280;
   --text-tertiary:       #4B5563;
 
+  /* Scrollbar */
+  --scrollbar-thumb:     rgba(255,255,255,0.12);
+  --scrollbar-thumb-hov: rgba(255,255,255,0.22);
+
+  /* Sidebar */
+  --sidebar-bg:          #0F1115;
+  --sidebar-border:      rgba(255,255,255,0.06);
+  --nav-active-bg:       rgba(99, 102, 241, 0.12);
+  --nav-active-color:    #818CF8;
+  --nav-hover-bg:        rgba(255, 255, 255, 0.05);
+
+  /* TopBar */
+  --topbar-bg:           rgba(15, 17, 21, 0.92);
+  --topbar-border:       rgba(255, 255, 255, 0.07);
+}
+
+/* ---------- Shared Tokens (theme-independent) ---------- */
+:root {
   /* Typography Families */
   --font-sans:           'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono:           'JetBrains Mono', monospace;
@@ -121,6 +214,7 @@ body {
   text-rendering: optimizeLegibility;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 #root {
@@ -138,11 +232,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--scrollbar-thumb);
   border-radius: var(--radius-full);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: var(--scrollbar-thumb-hov);
 }
 
 /* ---------- Typography Hierarchy ---------- */
@@ -174,8 +268,8 @@ p {
 
 /* ---------- Selection & Focus ---------- */
 ::selection {
-  background: rgba(99, 102, 241, 0.35);
-  color: #FFFFFF;
+  background: rgba(99, 102, 241, 0.25);
+  color: inherit;
 }
 
 :focus-visible {
@@ -240,16 +334,17 @@ p {
 .craft-card {
   background: var(--surface-card);
   border: 1px solid var(--border-default);
-  box-shadow: var(--shadow-card), var(--shadow-inset-top);
+  box-shadow: var(--shadow-card);
   border-radius: var(--radius-xl);
   padding: var(--sp-6);
   position: relative;
-  transition: border-color var(--dur-fast) ease, background var(--dur-fast) ease;
+  transition: border-color var(--dur-fast) ease, background var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
 }
 
 .craft-card-interactive:hover {
   border-color: var(--border-interactive);
   background: var(--surface-card-hover);
+  box-shadow: var(--shadow-elevated);
 }
 
 /* ---------- Segmented Control (Linear-Style Pill) ---------- */
@@ -336,6 +431,27 @@ p {
   grid-template-columns: repeat(3, 1fr);
   gap: var(--sp-5);
 }
+
+/* ---------- Input, select, textarea base ---------- */
+.craft-input {
+  width: 100%;
+  background: var(--surface-inset);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast), background var(--dur-fast);
+  outline: none;
+}
+.craft-input::placeholder { color: var(--text-tertiary); }
+.craft-input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-iris-dim);
+  background: var(--surface-panel);
+}
+.craft-input.input-error { border-color: var(--accent-rose); }
 
 /* ---------- Responsive Breakpoints ---------- */
 @media (max-width: 1200px) {

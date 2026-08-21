@@ -1,4 +1,4 @@
-// High-Craft Event Card Component
+// VibeVenue Event Card — with status, amenity, and mode badges (v4.0)
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -14,6 +14,8 @@ const EventCard = ({ event, delay = 0 }) => {
   const occupancyPct = Math.round(
     (event.registrationCount / event.maxParticipants) * 100
   );
+  const isPaid = event.fee && event.fee !== 'Free' && event.fee !== '';
+  const isOnline = event.isOnline;
 
   return (
     <motion.article
@@ -38,15 +40,17 @@ const EventCard = ({ event, delay = 0 }) => {
       }}
       aria-label={`View details for ${event.name}`}
     >
-      {/* Top Meta: Domain Tag & Status */}
+      {/* Top: Category + Status */}
       <div className="event-card-top">
-        <Badge category={event.category} size="xs" icon={cat.icon}>
-          {cat.label}
+        <Badge category={event.category} size="xs" icon={cat?.icon}>
+          {cat?.label || event.category}
         </Badge>
-        
+
         <div className="event-card-status-box">
           <Badge status={event.status} dot size="xs">
-            {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+            {event.status === 'upcoming' ? 'Upcoming'
+              : event.status === 'ongoing' ? 'Live Now'
+              : 'Ended'}
           </Badge>
         </div>
       </div>
@@ -59,9 +63,42 @@ const EventCard = ({ event, delay = 0 }) => {
         </p>
       </div>
 
+      {/* Info Badges Row */}
+      <div className="event-card-badges">
+        {/* Online / Offline */}
+        <span className={`event-info-badge ${isOnline ? 'badge-online' : 'badge-offline'}`}>
+          {isOnline ? '🌐 Online' : '📍 In-Person'}
+        </span>
+
+        {/* Paid / Free */}
+        <span className={`event-info-badge ${isPaid ? 'badge-paid' : 'badge-free'}`}>
+          {isPaid ? `₹ Paid` : '✓ Free'}
+        </span>
+
+        {/* Registration type */}
+        {event.registrationType && (
+          <span className="event-info-badge badge-regtype">
+            {event.registrationType === 'individual' ? '👤 Individual'
+              : event.registrationType === 'group' ? '👥 Group'
+              : '👤👥 Open'}
+          </span>
+        )}
+
+        {/* Amenities */}
+        {event.amenities?.refreshments && (
+          <span className="event-info-badge badge-amenity">🍵 Refreshments</span>
+        )}
+        {event.amenities?.accommodation && (
+          <span className="event-info-badge badge-amenity">🏠 Stay</span>
+        )}
+        {event.amenities?.certificate && (
+          <span className="event-info-badge badge-amenity">📜 Certificate</span>
+        )}
+      </div>
+
       {/* Logistics Pills */}
       <div className="event-logistics">
-        <div className="logistic-item" title="Event Schedule">
+        <div className="logistic-item" title="Date & Time">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
             <line x1="16" y1="2" x2="16" y2="6"/>
@@ -71,32 +108,32 @@ const EventCard = ({ event, delay = 0 }) => {
           <span>{formatDate(event.date)} · {event.time}</span>
         </div>
 
-        <div className="logistic-item" title="Venue Location">
+        <div className="logistic-item" title={isOnline ? 'Online Event' : 'Venue'}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
             <circle cx="12" cy="10" r="3"/>
           </svg>
-          <span className="logistic-venue">{event.venue}</span>
+          <span className="logistic-venue">{event.venue || (isOnline ? 'Online' : '—')}</span>
         </div>
       </div>
 
       {/* Capacity Meter */}
-      <div className="event-card-capacity">
-        <ProgressBar
-          current={event.registrationCount}
-          total={event.maxParticipants}
-          height={4}
-        />
-      </div>
+      {!isOnline && event.maxParticipants && (
+        <div className="event-card-capacity">
+          <ProgressBar
+            current={event.registrationCount}
+            total={event.maxParticipants}
+            height={4}
+          />
+        </div>
+      )}
 
-      {/* Card Footer Action */}
+      {/* Card Footer */}
       <div className="event-card-footer">
         <span className="event-fee font-mono">
-          {event.fee || 'Free Entry'}
+          {isPaid ? event.fee : 'Free Entry'}
         </span>
-        <span className="event-arrow font-mono">
-          Inspect Specs →
-        </span>
+        <span className="event-arrow font-mono">View Details →</span>
       </div>
     </motion.article>
   );

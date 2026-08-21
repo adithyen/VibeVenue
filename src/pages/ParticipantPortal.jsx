@@ -1,15 +1,14 @@
-// Student Participant Dashboard Portal (Craft Standard v2.0)
+// Student Participant Dashboard Portal (v4.0)
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
 import useEventStore from '../store/useEventStore';
 import useUIStore from '../store/useUIStore';
 import Avatar from '../components/ui/Avatar';
-import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import ProgressBar from '../components/ui/ProgressBar';
 import Modal from '../components/ui/Modal';
-import { generateParticipant } from '../data/mockData';
+import RegistrationModal from '../components/participants/RegistrationModal';
 import { formatDate } from '../utils/dateUtils';
 import './ParticipantPortal.css';
 
@@ -22,6 +21,7 @@ const ParticipantPortal = () => {
   const [inspectPass, setInspectPass] = useState(null);
   const [confirmCancel, setConfirmCancel] = useState(null);
   const [isRevoking, setIsRevoking] = useState(false);
+  const [registeringEvent, setRegisteringEvent] = useState(null);
 
   // Get active passes registered for this user
   const passes = useMemo(() => getParticipantPasses(), [events, user]);
@@ -39,39 +39,19 @@ const ParticipantPortal = () => {
       .slice(0, 3);
   }, [events, user]);
 
-  // Handle new self-registration
-  const handleSelfRegister = async (event) => {
-    if (event.registrationCount >= event.maxParticipants) {
+  // Handle new self-registration — opens Registration Modal
+  const handleSelfRegister = (event) => {
+    if (event.registrationCount >= event.maxParticipants && !event.isOnline) {
       addToast({
         type: 'error',
-        title: 'Registration Failed',
-        message: `"${event.name}" has reached maximum participant capacity.`,
+        title: 'Event Full',
+        message: `"${event.name}" has no more seats available.`,
       });
       return;
     }
-
-    const selfAttendee = generateParticipant(event.id, {
-      name: user.name,
-      email: user.email,
-      studentId: user.studentId,
-      department: user.department,
-      year: user.year,
-      status: 'confirmed',
-      checkInStatus: 'Not Checked In',
-    });
-
-    const updatedParticipants = [...event.participants, selfAttendee];
-    updateEvent(event.id, {
-      participants: updatedParticipants,
-      registrationCount: updatedParticipants.length,
-    });
-
-    addToast({
-      type: 'success',
-      title: 'Registration Confirmed',
-      message: `You have successfully registered for "${event.name}". Digital pass is ready.`,
-    });
+    setRegisteringEvent(event);
   };
+
 
   // Revoke self registration pass
   const handleRevokePass = async (pass) => {
@@ -333,8 +313,17 @@ const ParticipantPortal = () => {
           </div>
         )}
       </Modal>
+
+      {/* Registration Modal for participants */}
+      {registeringEvent && (
+        <RegistrationModal
+          event={registeringEvent}
+          onClose={() => setRegisteringEvent(null)}
+        />
+      )}
     </div>
   );
 };
+
 
 export default ParticipantPortal;

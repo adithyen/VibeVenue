@@ -1,7 +1,7 @@
 .craft-metric-card {
   background: var(--surface-card);
   border: 1px solid var(--border-default);
-  box-shadow: var(--shadow-card), var(--shadow-inset-top);
+  box-shadow: var(--shadow-card);
   border-radius: var(--radius-xl);
   padding: var(--sp-5) var(--sp-5) var(--sp-4);
   display: flex;
@@ -9,11 +9,17 @@
   gap: var(--sp-3);
   position: relative;
   overflow: hidden;
-  transition: border-color var(--dur-fast);
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast);
 }
 
-.craft-metric-card:hover {
-  border-color: var(--border-strong);
+.craft-metric-card-clickable {
+  cursor: pointer;
+  outline: none;
+}
+
+.craft-metric-card-clickable:focus-visible {
+  outline: 2px solid var(--accent-iris);
+  outline-offset: 2px;
 }
 
 .metric-header {
@@ -33,7 +39,7 @@
   width: 28px;
   height: 28px;
   border-radius: var(--radius-sm);
-  background: var(--surface-elevated);
+  background: var(--surface-inset);
   border: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
@@ -85,7 +91,7 @@
 }
 
 .metric-badge-neutral {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-inset);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
 }
@@ -115,4 +121,16 @@
   height: 100%;
   border-radius: var(--radius-full);
   transition: width 0.6s ease;
+}
+
+.metric-cta-arrow {
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  transition: color var(--dur-fast), transform var(--dur-fast);
+}
+
+.craft-metric-card-clickable:hover .metric-cta-arrow {
+  color: var(--accent-iris);
+  transform: translateX(2px);
 }

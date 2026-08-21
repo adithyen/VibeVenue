@@ -8,14 +8,11 @@ export const GuardedRoute = ({ children, allowedRole }) => {
   const { user } = useAuthStore();
 
   if (!user) {
-    // Redirect to login if unauthenticated
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRole && user.role !== allowedRole) {
-    // If user's role is not permitted:
-    // Admin trying to access participant page -> redirect to dashboard (/)
-    // Participant trying to access admin page -> redirect to portal (/portal)
+  // 'any' allows any authenticated role (admin or participant)
+  if (allowedRole && allowedRole !== 'any' && user.role !== allowedRole) {
     return user.role === 'admin' ? (
       <Navigate to="/" replace />
     ) : (

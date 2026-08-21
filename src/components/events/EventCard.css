@@ -41,6 +41,32 @@
   overflow: hidden;
 }
 
+/* Info Badges Row */
+.event-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.event-info-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.badge-online  { background: var(--accent-cyan-dim); border-color: var(--accent-cyan-border); color: var(--accent-cyan); }
+.badge-offline { background: var(--surface-inset); border-color: var(--border-default); color: var(--text-secondary); }
+.badge-free    { background: var(--accent-emerald-dim); border-color: var(--accent-emerald-border); color: var(--accent-emerald); }
+.badge-paid    { background: var(--accent-amber-dim); border-color: var(--accent-amber-border); color: var(--accent-amber); }
+.badge-regtype { background: var(--accent-iris-dim); border-color: var(--accent-iris-border); color: var(--accent-iris); }
+.badge-amenity { background: var(--surface-inset); border-color: var(--border-subtle); color: var(--text-muted); }
+
 .event-logistics {
   display: flex;
   flex-direction: column;
@@ -99,3 +125,4 @@
 .craft-event-card:hover .event-arrow {
   transform: translateX(3px);
 }
+

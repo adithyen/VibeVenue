@@ -23,8 +23,8 @@ const NAV_ITEMS = [
   {
     id: 'nav-events',
     path: '/events',
-    label: 'Events Directory',
-    badge: '12',
+    label: 'Events',
+    badge: null,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -37,14 +37,28 @@ const NAV_ITEMS = [
   {
     id: 'nav-registrations',
     path: '/registrations',
-    label: 'Registrations & Passes',
-    badge: 'Live',
+    label: 'Registrations',
+    badge: null,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
         <circle cx="9" cy="7" r="4"/>
         <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
         <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+    ),
+  },
+];
+
+const BOTTOM_NAV_ITEMS = [
+  {
+    id: 'nav-settings',
+    path: '/settings',
+    label: 'Settings',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
       </svg>
     ),
   },
@@ -81,10 +95,10 @@ const Sidebar = () => {
               transition={{ duration: 0.15 }}
             >
               <div className="brand-name-row">
-                <span className="brand-name">CampusCore</span>
-                <span className="brand-tag font-mono">v2.4</span>
+                <span className="brand-name">VibeVenue</span>
+                <span className="brand-tag font-mono">v4.0</span>
               </div>
-              <span className="brand-sub">Technical Fest 2026</span>
+              <span className="brand-sub">Event Management Platform</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -144,27 +158,42 @@ const Sidebar = () => {
         })}
       </nav>
 
-      {/* Shortcuts & Collapse Footer */}
+      {/* Bottom Nav: Settings + Collapse */}
       <div className="sidebar-footer">
-        <AnimatePresence>
-          {!sidebarCollapsed && (
-            <motion.div
-              className="sidebar-shortcuts-card"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+        {BOTTOM_NAV_ITEMS.map((item) => {
+          const isActive = location.pathname.startsWith(item.path);
+          return (
+            <NavLink
+              key={item.id}
+              to={item.path}
+              id={item.id}
+              className={`nav-link ${isActive ? 'nav-link-active' : ''}`}
+              title={sidebarCollapsed ? item.label : undefined}
             >
-              <div className="shortcut-row">
-                <span className="shortcut-desc">Search</span>
-                <span className="kbd-badge font-mono">/</span>
-              </div>
-              <div className="shortcut-row">
-                <span className="shortcut-desc">New Event</span>
-                <span className="kbd-badge font-mono">N</span>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <span className="nav-icon">{item.icon}</span>
+              <AnimatePresence>
+                {!sidebarCollapsed && (
+                  <motion.span
+                    className="nav-label"
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -6 }}
+                    transition={{ duration: 0.12 }}
+                  >
+                    {item.label}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+              {isActive && (
+                <motion.div
+                  className="nav-active-pip"
+                  layoutId="sidebar-active-pip-bottom"
+                  transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                />
+              )}
+            </NavLink>
+          );
+        })}
 
         <button
           id="sidebar-toggle-btn"
@@ -186,7 +215,7 @@ const Sidebar = () => {
           >
             <polyline points="15 18 9 12 15 6"/>
           </svg>
-          {!sidebarCollapsed && <span>Collapse Sidebar</span>}
+          {!sidebarCollapsed && <span>Collapse</span>}
         </button>
       </div>
     </motion.aside>

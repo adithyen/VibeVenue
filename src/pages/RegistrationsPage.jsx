@@ -113,9 +113,9 @@ const RegistrationsPage = () => {
       {/* Top Header */}
       <div className="page-header">
         <div className="page-title-group">
-          <h2 className="page-title">Attendee Registrations & Passes</h2>
+          <h2 className="page-title">Registrations</h2>
           <p className="page-subtitle">
-            Search delegate credentials, inspect passes, and export attendance rosters
+            View, search and export all event registrations
           </p>
         </div>
 
@@ -135,22 +135,18 @@ const RegistrationsPage = () => {
         </Button>
       </div>
 
-      {/* Summary Telemetry Strip */}
+      {/* Summary Strip */}
       <div className="attendee-summary-strip">
         <div className="summary-pill-item">
-          <span className="summary-pill-lbl">Total Passes</span>
+          <span className="summary-pill-lbl">Total</span>
           <span className="summary-pill-val font-mono">{totalCount.toLocaleString()}</span>
         </div>
         <div className="summary-pill-item">
-          <span className="summary-pill-lbl">Confirmed</span>
+          <span className="summary-pill-lbl">Registered</span>
           <span className="summary-pill-val font-mono text-emerald">{confirmedCount.toLocaleString()}</span>
         </div>
         <div className="summary-pill-item">
-          <span className="summary-pill-lbl">Pending</span>
-          <span className="summary-pill-val font-mono text-amber">{pendingCount.toLocaleString()}</span>
-        </div>
-        <div className="summary-pill-item">
-          <span className="summary-pill-lbl">Revoked</span>
+          <span className="summary-pill-lbl">Cancelled</span>
           <span className="summary-pill-val font-mono text-rose">{cancelledCount.toLocaleString()}</span>
         </div>
       </div>
@@ -195,8 +191,7 @@ const RegistrationsPage = () => {
           }}
         >
           <option value="">All Statuses</option>
-          <option value="confirmed">Confirmed</option>
-          <option value="pending">Pending</option>
+          <option value="confirmed">Registered</option>
           <option value="cancelled">Cancelled</option>
         </select>
       </div>

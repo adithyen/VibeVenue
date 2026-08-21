@@ -1,11 +1,32 @@
 // ============================================================
-//  EVENTFLOW — UI STORE (Zustand)
-//  Manages toast notifications, modals, and global UI state
+//  VIBEVENUE — UI STORE (Zustand)
+//  Manages toast notifications, modals, global UI state & theme
 // ============================================================
 
 import { create } from 'zustand';
 
+// Apply theme to <html> element and persist
+const applyTheme = (theme) => {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('vv-theme', theme);
+};
+
+const savedTheme = localStorage.getItem('vv-theme') || 'light';
+applyTheme(savedTheme);
+
 const useUIStore = create((set, get) => ({
+  // ---- Theme ----
+  theme: savedTheme,
+  setTheme: (theme) => {
+    applyTheme(theme);
+    set({ theme });
+  },
+  toggleTheme: () => {
+    const next = get().theme === 'light' ? 'dark' : 'light';
+    applyTheme(next);
+    set({ theme: next });
+  },
+
   // ---- Toast Notifications ----
   toasts: [],
 

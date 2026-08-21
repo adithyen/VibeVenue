@@ -10,10 +10,11 @@ import './TopBar.css';
 
 
 const BREADCRUMB_MAP = {
-  '/':              { section: 'Symposium Operations', current: 'Overview' },
-  '/events':        { section: 'Operations',          current: 'Events Directory' },
-  '/registrations': { section: 'Attendee Management', current: 'Registrations & Passes' },
-  '/portal':        { section: 'CampusCore Portal',    current: 'Student Dashboard' },
+  '/':              { section: 'VibeVenue', current: 'Overview' },
+  '/events':        { section: 'Events',    current: 'All Events' },
+  '/registrations': { section: 'People',    current: 'Registrations' },
+  '/portal':        { section: 'VibeVenue', current: 'My Dashboard' },
+  '/settings':      { section: 'VibeVenue', current: 'Settings' },
 };
 
 const TopBar = ({ onAddEvent }) => {
@@ -72,7 +73,7 @@ const TopBar = ({ onAddEvent }) => {
     return (
       <header className="craft-topbar topbar-participant">
         <div className="topbar-breadcrumbs">
-          <span className="breadcrumb-current">CampusCore</span>
+          <span className="breadcrumb-current">VibeVenue</span>
         </div>
       </header>
     );
@@ -93,11 +94,13 @@ const TopBar = ({ onAddEvent }) => {
 
       {/* Right: Actions */}
       <div className="topbar-actions">
-        {/* Live Pulse Indicator */}
-        <div className="telemetry-pill" title="Real-time operations synced">
-          <span className="telemetry-dot" />
-          <span className="telemetry-label font-mono">LIVE SYMPOSIUM</span>
-        </div>
+        {/* Live Pulse Indicator — shows only for admin */}
+        {!isParticipant && (
+          <div className="telemetry-pill" title="Real-time data synced">
+            <span className="telemetry-dot" />
+            <span className="telemetry-label font-mono">LIVE</span>
+          </div>
+        )}
 
         {/* New Event CTA (Admins only) */}
         {!isParticipant && (
