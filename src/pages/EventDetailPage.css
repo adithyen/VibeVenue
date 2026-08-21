@@ -34,8 +34,11 @@
 
 .detail-hero-banner {
   position: relative;
-  width: 100%;
+  width: calc(100% - 20px);
+  margin: 10px auto 0;
   height: 200px;
+  border-radius: var(--radius-lg, 14px);
+  overflow: hidden;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

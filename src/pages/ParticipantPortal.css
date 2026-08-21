@@ -136,8 +136,11 @@
 
 .rec-card-banner {
   position: relative;
-  width: 100%;
-  height: 125px;
+  width: calc(100% - 16px);
+  margin: 8px auto 0;
+  height: 130px;
+  border-radius: var(--radius-lg, 12px);
+  overflow: hidden;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

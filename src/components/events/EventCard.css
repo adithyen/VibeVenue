@@ -10,8 +10,11 @@
 
 .event-card-banner {
   position: relative;
-  width: 100%;
+  width: calc(100% - 16px);
+  margin: 8px auto 0;
   height: 135px;
+  border-radius: var(--radius-lg, 12px);
+  overflow: hidden;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
