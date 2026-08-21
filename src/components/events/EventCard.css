@@ -11,32 +11,16 @@
 .event-card-banner {
   position: relative;
   width: 100%;
-  height: 110px;
+  height: 120px;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  display: flex;
-  align-items: flex-end;
-  padding: var(--sp-2) var(--sp-4);
 }
 
 .event-card-banner-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.65) 100%);
-}
-
-.event-card-logo-badge {
-  position: relative;
-  z-index: 2;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  object-fit: cover;
-  border: 2px solid var(--surface-panel);
-  background: var(--surface-panel);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-  margin-bottom: -12px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.45) 100%);
 }
 
 .event-card-top {
@@ -44,24 +28,35 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-2);
-  padding: var(--sp-4) var(--sp-4) 0;
+  padding: var(--sp-3) var(--sp-4) 0;
 }
 
-.event-card-cat-wrap {
+.event-card-main-row {
   display: flex;
-  align-items: center;
-  gap: var(--sp-2);
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: 0 var(--sp-4);
 }
 
-.event-card-logo-inline {
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-sm);
+.event-card-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-lg);
   object-fit: cover;
-  border: 1px solid var(--border-default);
+  flex-shrink: 0;
+  border: 2px solid var(--surface-card);
+  background: var(--surface-card);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.event-card-main,
+.event-card-logo-overlap {
+  margin-top: -28px;
+  position: relative;
+  z-index: 2;
+  border: 2.5px solid var(--surface-panel);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
 .event-card-badges,
 .event-logistics,
 .event-card-capacity,
@@ -78,6 +73,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex: 1;
+  min-width: 0;
 }
 
 .event-card-title {

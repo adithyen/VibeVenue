@@ -44,22 +44,14 @@ const EventCard = ({ event, delay = 0 }) => {
       {event.bannerUrl && (
         <div className="event-card-banner" style={{ backgroundImage: `url(${event.bannerUrl})` }}>
           <div className="event-card-banner-overlay" />
-          {event.logoUrl && (
-            <img src={event.logoUrl} alt="" className="event-card-logo-badge" />
-          )}
         </div>
       )}
 
       {/* Top: Category + Status */}
       <div className="event-card-top">
-        <div className="event-card-cat-wrap">
-          {!event.bannerUrl && event.logoUrl && (
-            <img src={event.logoUrl} alt="" className="event-card-logo-inline" />
-          )}
-          <Badge category={event.category} size="xs" icon={cat?.icon}>
-            {cat?.label || event.category}
-          </Badge>
-        </div>
+        <Badge category={event.category} size="xs" icon={cat?.icon}>
+          {cat?.label || event.category}
+        </Badge>
 
         <div className="event-card-status-box">
           <Badge status={event.status} dot size="xs">
@@ -70,12 +62,21 @@ const EventCard = ({ event, delay = 0 }) => {
         </div>
       </div>
 
-      {/* Main Info */}
-      <div className="event-card-main">
-        <h3 className="event-card-title">{event.name}</h3>
-        <p className="event-card-desc">
-          {event.shortDescription || event.description}
-        </p>
+      {/* Main Info: Logo on Left, Title on Right */}
+      <div className="event-card-main-row">
+        {event.logoUrl && (
+          <img
+            src={event.logoUrl}
+            alt=""
+            className={`event-card-logo ${event.bannerUrl ? 'event-card-logo-overlap' : ''}`}
+          />
+        )}
+        <div className="event-card-main">
+          <h3 className="event-card-title">{event.name}</h3>
+          <p className="event-card-desc">
+            {event.shortDescription || event.description}
+          </p>
+        </div>
       </div>
 
       {/* Info Badges Row */}

@@ -167,22 +167,26 @@ const ParticipantPortal = () => {
                   {event.bannerUrl && (
                     <div className="rec-card-banner" style={{ backgroundImage: `url(${event.bannerUrl})` }}>
                       <div className="rec-card-banner-overlay" />
-                      {event.logoUrl && (
-                        <img src={event.logoUrl} alt="" className="rec-card-logo-badge" />
-                      )}
                     </div>
                   )}
                   <div className="rec-card-body">
-                    <div className="rec-card-header">
-                      <div className="rec-title-wrap">
-                        {!event.bannerUrl && event.logoUrl && (
-                          <img src={event.logoUrl} alt="" className="rec-card-logo-inline" />
-                        )}
-                        <h4 className="rec-title">{event.name}</h4>
+                    <div className="rec-card-header-row">
+                      {event.logoUrl && (
+                        <img
+                          src={event.logoUrl}
+                          alt={event.name}
+                          className={`rec-card-logo ${event.bannerUrl ? 'rec-card-logo-overlap' : ''}`}
+                        />
+                      )}
+                      <div className="rec-card-header-info">
+                        <div className="rec-card-title-line">
+                          <h4 className="rec-title">{event.name}</h4>
+                          <Badge category={event.category} size="xs">
+                            {event.category.toUpperCase()}
+                          </Badge>
+                        </div>
+                        {event.tagline && <p className="rec-card-tagline">{event.tagline}</p>}
                       </div>
-                      <Badge category={event.category} size="xs">
-                        {event.category.toUpperCase()}
-                      </Badge>
                     </div>
                     <p className="rec-desc">{event.shortDescription || event.description}</p>
                     <div className="rec-logistics font-mono">
