@@ -539,6 +539,121 @@
   color: var(--text-muted);
 }
 
+/* Dynamic Tier Builder */
+.tier-presets-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.tier-presets-label {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.tier-preset-btn {
+  background: var(--surface-inset);
+  border: 1px dashed var(--border-default);
+  color: var(--color-primary-400, #818cf8);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tier-preset-btn:hover {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: var(--accent-iris);
+}
+
+.pricing-tiers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.tier-builder-card {
+  padding: 10px 12px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tier-builder-main-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tier-name-input {
+  flex: 1;
+  min-width: 140px;
+}
+
+.tier-price-wrapper {
+  position: relative;
+  width: 95px;
+  display: flex;
+  align-items: center;
+}
+
+.tier-currency-prefix {
+  position: absolute;
+  left: 10px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.tier-price-input {
+  padding-left: 22px !important;
+  width: 100%;
+}
+
+.tier-proof-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 4px 8px;
+  background: var(--surface-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.tier-proof-prompt-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--radius-sm);
+}
+
+.tier-proof-icon {
+  font-size: 0.8125rem;
+}
+
+.tier-proof-input {
+  font-size: 0.75rem !important;
+  height: 32px !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
 @media (max-width: 600px) {
   .form-row-2 {
     grid-template-columns: 1fr;
@@ -550,5 +665,8 @@
   .upload-logo-box {
     width: 64px;
     height: 64px;
+  }
+  .tier-builder-main-row {
+    flex-wrap: wrap;
   }
 }

@@ -210,6 +210,22 @@ const ParticipantTable = ({ participants, eventId, showEvent = false }) => {
                   <span className="pass-lbl">Gate Check-in</span>
                   <span className="pass-val font-mono">{inspectAttendee.checkInStatus || 'Not Checked'}</span>
                 </div>
+                {inspectAttendee.pricingTier && (
+                  <div className="pass-grid-item" style={{ gridColumn: '1 / -1' }}>
+                    <span className="pass-lbl">Registration Category / Tier</span>
+                    <span className="pass-val">
+                      🏷️ <strong>{inspectAttendee.pricingTier}</strong>
+                    </span>
+                  </div>
+                )}
+                {inspectAttendee.membershipProof && (
+                  <div className="pass-grid-item" style={{ gridColumn: '1 / -1' }}>
+                    <span className="pass-lbl">Membership ID / Verification Proof</span>
+                    <span className="pass-val font-mono" style={{ color: '#F59E0B', fontWeight: 600 }}>
+                      🔒 {inspectAttendee.membershipProof}
+                    </span>
+                  </div>
+                )}
                 {inspectAttendee.teamName && (
                   <div className="pass-grid-item" style={{ gridColumn: '1 / -1' }}>
                     <span className="pass-lbl">Team Name</span>

@@ -440,6 +440,51 @@ a.org-contact-val:hover {
   color: var(--text-muted);
 }
 
+/* Tiers Grid */
+.detail-tiers-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-tier-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.detail-tier-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.detail-tier-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.detail-tier-proof-badge {
+  font-size: 0.6875rem;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+}
+
+.detail-tier-price {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-primary-400, #818cf8);
+}
+
 /* Resources Grid */
 .detail-links-grid {
   display: flex;

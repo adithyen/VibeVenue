@@ -206,6 +206,8 @@ const useEventStore = create((set, get) => ({
         registration_type: formData.registrationType || 'individual',
         team_name:         formData.teamName || null,
         team_members:      formData.teamMembers || [],
+        pricing_tier:      formData.pricingTier || null,
+        membership_proof:  formData.membershipProof || null,
         total_paid:        formData.totalPaid || 0,
         txn_id:            formData.txnId || null,
         status:            'confirmed',
@@ -233,7 +235,12 @@ const useEventStore = create((set, get) => ({
           : e
       ),
     }));
-    return { ...reg, ticketId: reg.ticket_id };
+    return {
+      ...reg,
+      ticketId: reg.ticket_id,
+      pricingTier: reg.pricing_tier,
+      membershipProof: reg.membership_proof,
+    };
   },
 
   removeParticipant: async (eventId, registrationId) => {
@@ -281,6 +288,8 @@ const useEventStore = create((set, get) => ({
       name: r.full_name,
       studentId: r.student_id,
       ticketId: r.ticket_id,
+      pricingTier: r.pricing_tier,
+      membershipProof: r.membership_proof,
       checkInStatus: r.check_in_status,
       registeredAt: r.registered_at,
     }));
@@ -290,7 +299,46 @@ const useEventStore = create((set, get) => ({
   setError:   (err) => set({ error: err }),
 }));
 
-// ── Helpers ──────────────────────────────────────────────────────
+// ── Helpers: DB to App conversions ───────────────────────────
+
+function buildEventPayload(f, userId) {
+  return {
+    created_by:            userId,
+    name:                  f.name,
+    tagline:               f.tagline   || null,
+    description:           f.description || null,
+    category:              f.category  || 'general',
+    tags:                  (f.tags || '').split(',').map(t => t.trim()).filter(Boolean),
+    is_online:             f.isOnline  || false,
+    banner_url:            f.bannerUrl || null,
+    logo_url:              f.logoUrl   || null,
+    status:                f.status || 'upcoming',
+    start_date:            f.startDate || null,
+    start_time:            f.startTime || null,
+    end_date:              f.endDate   || null,
+    end_time:              f.endTime   || null,
+    venue:                 f.venue     || null,
+    meeting_link:          f.meetingLink || null,
+    whatsapp_link:         f.whatsappLink || null,
+    registration_type:     f.registrationType || 'individual',
+    is_paid:               f.isPaid || false,
+    pricing_type:          f.pricingType || 'flat',
+    pricing_tiers:         f.pricingTiers || [],
+    individual_price:      f.individualPrice ? parseFloat(f.individualPrice) : null,
+    group_price:           f.groupPrice       ? parseFloat(f.groupPrice)       : null,
+    group_min_size:        parseInt(f.groupMinSize, 10) || 2,
+    group_max_size:        parseInt(f.groupMaxSize, 10) || 5,
+    has_capacity_limit:    f.hasCapacityLimit || false,
+    max_participants:      f.hasCapacityLimit ? (parseInt(f.maxParticipants, 10) || 9999) : 9999,
+    amenities:             f.amenities || {},
+    upi_id:                f.upiId    || null,
+    has_bank_transfer:     f.hasBankTransfer || false,
+    account_no:            f.accountNo || null,
+    ifsc_code:             f.ifscCode  || null,
+    payment_verification:  f.paymentVerification || 'both',
+    confirmation_message:  f.confirmationMessage || null,
+  };
+}
 
 function formDataToRow(f, bannerUrl, logoUrl) {
   return {
@@ -312,6 +360,8 @@ function formDataToRow(f, bannerUrl, logoUrl) {
     whatsapp_link:         f.whatsappLink || null,
     registration_type:     f.registrationType || 'individual',
     is_paid:               f.isPaid || false,
+    pricing_type:          f.pricingType || 'flat',
+    pricing_tiers:         f.pricingTiers || [],
     individual_price:      f.individualPrice ? parseFloat(f.individualPrice) : null,
     group_price:           f.groupPrice       ? parseFloat(f.groupPrice)       : null,
     group_min_size:        parseInt(f.groupMinSize, 10) || 2,
@@ -368,12 +418,17 @@ async function insertChildRows(eventId, f) {
 
 function normaliseEvent(row) {
   // Flatten the DB snake_case row back to the camelCase shape pages expect
+  const isTiered = row.pricing_type === 'tiered' && Array.isArray(row.pricing_tiers) && row.pricing_tiers.length > 0;
+  const minTierPrice = isTiered
+    ? Math.min(...row.pricing_tiers.map(t => parseFloat(t.price) || 0))
+    : 0;
+
   return {
     id:                row.id,
+    createdBy:         row.created_by,
     name:              row.name,
     tagline:           row.tagline,
     description:       row.description,
-    shortDescription:  row.tagline,
     category:          row.category,
     tags:              row.tags || [],
     isOnline:          row.is_online,
@@ -381,18 +436,20 @@ function normaliseEvent(row) {
     logoUrl:           row.logo_url,
     status:            row.status,
 
-    date:              row.start_date,
     startDate:         row.start_date,
-    time:              row.start_time,
     startTime:         row.start_time,
     endDate:           row.end_date,
     endTime:           row.end_time,
+    date:              row.start_date,
+
     venue:             row.venue,
     meetingLink:       row.meeting_link,
     whatsappLink:      row.whatsapp_link,
 
     registrationType:  row.registration_type,
     isPaid:            row.is_paid,
+    pricingType:       row.pricing_type || 'flat',
+    pricingTiers:      Array.isArray(row.pricing_tiers) ? row.pricing_tiers : [],
     individualPrice:   row.individual_price,
     groupPrice:        row.group_price,
     groupMinSize:      row.group_min_size,
@@ -407,9 +464,11 @@ function normaliseEvent(row) {
     paymentVerification: row.payment_verification,
     confirmationMessage: row.confirmation_message,
 
-    fee: row.is_paid
-      ? (row.registration_type === 'group' ? `₹${row.group_price}/team` : `₹${row.individual_price}`)
-      : 'Free',
+    fee: !row.is_paid
+      ? 'Free'
+      : isTiered
+        ? `From ₹${minTierPrice}`
+        : (row.registration_type === 'group' ? `₹${row.group_price}/team` : `₹${row.individual_price}`),
 
     // Counts from the event_summary view
     registrationCount: parseInt(row.registration_count, 10) || 0,

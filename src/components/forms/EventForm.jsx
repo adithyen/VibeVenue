@@ -40,6 +40,13 @@ const freshData = () => ({
 
   // Step 3
   registrationType: 'individual', // 'individual' | 'group' | 'both'
+  pricingType: 'flat', // 'flat' | 'tiered'
+  pricingTiers: [
+    { id: 'tier-1', label: 'CSI Member (SCTians)', price: '600', requiresProof: true, proofLabel: 'CSI Membership ID' },
+    { id: 'tier-2', label: 'CSI Member (Non-SCTians)', price: '700', requiresProof: true, proofLabel: 'CSI Membership ID' },
+    { id: 'tier-3', label: 'SCTians', price: '750', requiresProof: false, proofLabel: '' },
+    { id: 'tier-4', label: 'Non-SCTians', price: '850', requiresProof: false, proofLabel: '' },
+  ],
   individualPrice: '',
   groupPrice: '',
   groupMinSize: '2',
@@ -72,6 +79,8 @@ const EventForm = ({ event = null, onClose }) => {
       ? {
           ...freshData(),
           ...event,
+          pricingType: event.pricingType || (event.pricingTiers?.length ? 'tiered' : 'flat'),
+          pricingTiers: event.pricingTiers?.length ? event.pricingTiers : freshData().pricingTiers,
           bannerBase64: event.bannerUrl || null,
           bannerName: event.bannerUrl ? 'Current Banner' : '',
           logoBase64: event.logoUrl || null,
@@ -138,6 +147,48 @@ const EventForm = ({ event = null, onClose }) => {
 
   const removeContact = (idx) =>
     setFormData(prev => ({ ...prev, contacts: prev.contacts.filter((_, i) => i !== idx) }));
+
+  // ---- Pricing Tier helpers ----
+  const addPricingTier = () =>
+    setFormData(prev => ({
+      ...prev,
+      pricingTiers: [
+        ...prev.pricingTiers,
+        { id: `tier-${Date.now()}`, label: '', price: '', requiresProof: false, proofLabel: 'Membership ID / Roll No' }
+      ]
+    }));
+
+  const updatePricingTier = (idx, field, val) =>
+    setFormData(prev => ({
+      ...prev,
+      pricingTiers: prev.pricingTiers.map((t, i) => i === idx ? { ...t, [field]: val } : t),
+    }));
+
+  const removePricingTier = (idx) =>
+    setFormData(prev => ({ ...prev, pricingTiers: prev.pricingTiers.filter((_, i) => i !== idx) }));
+
+  const applyTierPreset = (presetType) => {
+    let presets = [];
+    if (presetType === 'csi') {
+      presets = [
+        { id: 'tier-1', label: 'CSI Member (SCTians)', price: '600', requiresProof: true, proofLabel: 'CSI Membership ID' },
+        { id: 'tier-2', label: 'CSI Member (Non-SCTians)', price: '700', requiresProof: true, proofLabel: 'CSI Membership ID' },
+        { id: 'tier-3', label: 'SCTians', price: '750', requiresProof: false, proofLabel: '' },
+        { id: 'tier-4', label: 'Non-SCTians', price: '850', requiresProof: false, proofLabel: '' },
+      ];
+    } else if (presetType === 'ieee') {
+      presets = [
+        { id: 'tier-1', label: 'IEEE Student Member', price: '500', requiresProof: true, proofLabel: 'IEEE Membership Number' },
+        { id: 'tier-2', label: 'Non-IEEE Participant', price: '750', requiresProof: false, proofLabel: '' },
+      ];
+    } else if (presetType === 'college') {
+      presets = [
+        { id: 'tier-1', label: 'Internal College Student', price: '250', requiresProof: true, proofLabel: 'College Roll Number' },
+        { id: 'tier-2', label: 'External College Student', price: '450', requiresProof: false, proofLabel: '' },
+      ];
+    }
+    setFormData(prev => ({ ...prev, pricingType: 'tiered', pricingTiers: presets }));
+  };
 
   // ---- Add-on helpers ----
   const addAddOn = () =>
@@ -611,29 +662,126 @@ const EventForm = ({ event = null, onClose }) => {
 
                 {/* Paid / Free Toggle */}
                 <div className="form-field-group">
-                  <label className="craft-label">Pricing</label>
+                  <label className="craft-label">Pricing Model</label>
                   <div className="mode-toggle-row">
                     <button type="button" className={`mode-toggle-btn ${!formData.isPaid ? 'mode-toggle-active' : ''}`} onClick={() => set('isPaid', false)}>✓ Free</button>
                     <button type="button" className={`mode-toggle-btn ${formData.isPaid ? 'mode-toggle-active' : ''}`} onClick={() => set('isPaid', true)}>₹ Paid</button>
                   </div>
                 </div>
 
-                {/* Prices based on type */}
                 {formData.isPaid && (
-                  <div className="form-row-2">
-                    {(formData.registrationType === 'individual' || formData.registrationType === 'both') && (
-                      <div className="form-field-group">
-                        <label htmlFor="individual-price" className="craft-label">Individual Price (₹)</label>
-                        <input id="individual-price" type="number" min="0" className="craft-input font-mono" placeholder="e.g. 200" value={formData.individualPrice} onChange={e => set('individualPrice', e.target.value)} />
+                  <>
+                    {/* Pricing Structure Type */}
+                    <div className="form-field-group">
+                      <label className="craft-label">Pricing Structure</label>
+                      <div className="mode-toggle-row">
+                        <button
+                          type="button"
+                          className={`mode-toggle-btn ${formData.pricingType === 'flat' ? 'mode-toggle-active' : ''}`}
+                          onClick={() => set('pricingType', 'flat')}
+                        >
+                          🏷️ Flat Price
+                        </button>
+                        <button
+                          type="button"
+                          className={`mode-toggle-btn ${formData.pricingType === 'tiered' ? 'mode-toggle-active' : ''}`}
+                          onClick={() => {
+                            set('pricingType', 'tiered');
+                            if (!formData.pricingTiers?.length) applyTierPreset('csi');
+                          }}
+                        >
+                          📊 Dynamic Category Tiers (CSI / Members)
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Flat Pricing Inputs */}
+                    {formData.pricingType === 'flat' && (
+                      <div className="form-row-2">
+                        {(formData.registrationType === 'individual' || formData.registrationType === 'both') && (
+                          <div className="form-field-group">
+                            <label htmlFor="individual-price" className="craft-label">Individual Price (₹)</label>
+                            <input id="individual-price" type="number" min="0" className="craft-input font-mono" placeholder="e.g. 200" value={formData.individualPrice} onChange={e => set('individualPrice', e.target.value)} />
+                          </div>
+                        )}
+                        {(formData.registrationType === 'group' || formData.registrationType === 'both') && (
+                          <div className="form-field-group">
+                            <label htmlFor="group-price" className="craft-label">Group Price (₹ per team)</label>
+                            <input id="group-price" type="number" min="0" className="craft-input font-mono" placeholder="e.g. 500" value={formData.groupPrice} onChange={e => set('groupPrice', e.target.value)} />
+                          </div>
+                        )}
                       </div>
                     )}
-                    {(formData.registrationType === 'group' || formData.registrationType === 'both') && (
+
+                    {/* Dynamic Category / Membership Tiers Builder */}
+                    {formData.pricingType === 'tiered' && (
                       <div className="form-field-group">
-                        <label htmlFor="group-price" className="craft-label">Group Price (₹ per team)</label>
-                        <input id="group-price" type="number" min="0" className="craft-input font-mono" placeholder="e.g. 500" value={formData.groupPrice} onChange={e => set('groupPrice', e.target.value)} />
+                        <div className="form-label-row">
+                          <label className="craft-label">Dynamic Category & Membership Tiers</label>
+                          <Button type="button" variant="ghost" size="sm" onClick={addPricingTier}>+ Add Tier</Button>
+                        </div>
+                        
+                        {/* Quick Presets */}
+                        <div className="tier-presets-row">
+                          <span className="tier-presets-label font-mono">Quick Templates:</span>
+                          <button type="button" className="tier-preset-btn" onClick={() => applyTierPreset('csi')}>+ CSI Member Tiers</button>
+                          <button type="button" className="tier-preset-btn" onClick={() => applyTierPreset('ieee')}>+ IEEE Member Tiers</button>
+                          <button type="button" className="tier-preset-btn" onClick={() => applyTierPreset('college')}>+ College / External</button>
+                        </div>
+
+                        <div className="pricing-tiers-list">
+                          {formData.pricingTiers.map((tier, idx) => (
+                            <div key={tier.id || idx} className="tier-builder-card">
+                              <div className="tier-builder-main-row">
+                                <input
+                                  type="text"
+                                  className="craft-input tier-name-input"
+                                  placeholder="Category Name (e.g. CSI Member (SCTians))"
+                                  value={tier.label}
+                                  onChange={e => updatePricingTier(idx, 'label', e.target.value)}
+                                />
+                                <div className="tier-price-wrapper">
+                                  <span className="tier-currency-prefix">₹</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    className="craft-input font-mono tier-price-input"
+                                    placeholder="600"
+                                    value={tier.price}
+                                    onChange={e => updatePricingTier(idx, 'price', e.target.value)}
+                                  />
+                                </div>
+                                <label className="tier-proof-toggle">
+                                  <input
+                                    type="checkbox"
+                                    checked={tier.requiresProof}
+                                    onChange={e => updatePricingTier(idx, 'requiresProof', e.target.checked)}
+                                  />
+                                  <span>Verify ID</span>
+                                </label>
+                                {formData.pricingTiers.length > 1 && (
+                                  <button type="button" className="contact-remove-btn" onClick={() => removePricingTier(idx)}>✕</button>
+                                )}
+                              </div>
+
+                              {tier.requiresProof && (
+                                <div className="tier-proof-prompt-row">
+                                  <span className="tier-proof-icon">🔒</span>
+                                  <input
+                                    type="text"
+                                    className="craft-input tier-proof-input"
+                                    placeholder="Proof Prompt for Student (e.g. CSI Membership ID / Student ID)"
+                                    value={tier.proofLabel}
+                                    onChange={e => updatePricingTier(idx, 'proofLabel', e.target.value)}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
 
                 {/* Group size */}

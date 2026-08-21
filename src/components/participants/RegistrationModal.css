@@ -638,6 +638,91 @@
   opacity: 0.8;
 }
 
+/* Dynamic Category Tiers on Registration */
+.reg-tiers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.reg-tier-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--surface-card);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.reg-tier-card:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+  background: var(--surface-panel);
+  transform: translateY(-1px);
+}
+
+.reg-tier-card-active {
+  border-color: var(--color-primary-500, #6366f1) !important;
+  background: rgba(99, 102, 241, 0.08) !important;
+  box-shadow: 0 0 0 1px var(--color-primary-500, #6366f1);
+}
+
+.reg-tier-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.reg-tier-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.reg-tier-price {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-primary-400, #818cf8);
+}
+
+.reg-tier-req-tag {
+  font-size: 0.6875rem;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  align-self: flex-start;
+}
+
+.reg-proof-field-box {
+  background: rgba(245, 158, 11, 0.04);
+  border: 1px dashed rgba(245, 158, 11, 0.3);
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  margin-top: 4px;
+}
+
+.reg-proof-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.reg-tier-badge-confirmed {
+  font-size: 0.8125rem;
+  color: var(--color-primary-400, #818cf8);
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  margin-top: 6px;
+}
+
 @media (max-width: 600px) {
   .reg-field-row-2 {
     grid-template-columns: 1fr;
@@ -649,5 +734,8 @@
   .reg-contact-pill {
     flex-direction: column;
     align-items: flex-start;
+  }
+  .reg-tiers-grid {
+    grid-template-columns: 1fr;
   }
 }

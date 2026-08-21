@@ -192,6 +192,7 @@ const ParticipantPortal = () => {
                     <div className="rec-logistics font-mono">
                       <span>📅 {formatDate(event.date)}</span>
                       <span>📍 {event.venue}</span>
+                      <span className="rec-fee-tag">🎟️ {event.fee}</span>
                     </div>
 
                     {/* Pre-event Resource Links */}
@@ -258,14 +259,14 @@ const ParticipantPortal = () => {
               <h4 className="profile-student-name">{user.name}</h4>
               <p className="profile-student-dept">{user.department}</p>
             </div>
-            <div className="profile-metadata-rows font-mono">
+            <div className="profile-meta-rows font-mono">
               <div className="meta-row">
                 <span className="meta-lbl">Student ID</span>
-                <span className="meta-val">{user.studentId}</span>
+                <span className="meta-val">{user.studentId || '21CS108'}</span>
               </div>
               <div className="meta-row">
                 <span className="meta-lbl">Year Group</span>
-                <span className="meta-val">{user.year}</span>
+                <span className="meta-val">{user.year || '3rd Year'}</span>
               </div>
               <div className="meta-row">
                 <span className="meta-lbl">Primary Email</span>
@@ -308,6 +309,18 @@ const ParticipantPortal = () => {
                   {inspectPass.checkInStatus || 'Not Checked'}
                 </span>
               </div>
+              {inspectPass.pricingTier && (
+                <div className="tig-item" style={{ gridColumn: '1 / -1' }}>
+                  <span className="tig-lbl">Category Tier</span>
+                  <span className="tig-val">🏷️ {inspectPass.pricingTier}</span>
+                </div>
+              )}
+              {inspectPass.membershipProof && (
+                <div className="tig-item" style={{ gridColumn: '1 / -1' }}>
+                  <span className="tig-lbl">Membership Proof</span>
+                  <span className="tig-val" style={{ color: '#F59E0B' }}>🔒 {inspectPass.membershipProof}</span>
+                </div>
+              )}
             </div>
 
             <div className="barcode-mock-container">

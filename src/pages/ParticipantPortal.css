@@ -224,9 +224,19 @@
 .rec-logistics {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--sp-4);
   font-size: 0.75rem;
   color: var(--text-secondary);
+}
+
+.rec-fee-tag {
+  color: var(--color-primary-400, #818cf8);
+  font-weight: 600;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
 }
 
 .rec-links-container {

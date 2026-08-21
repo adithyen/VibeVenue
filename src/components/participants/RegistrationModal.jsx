@@ -20,7 +20,9 @@ const RegistrationModal = ({ event, onClose }) => {
   const isPaid = event.isPaid || (event.fee && event.fee !== 'Free' && event.fee !== '');
   const hasGroup = event.registrationType === 'group' || event.registrationType === 'both';
   const hasIndividual = event.registrationType === 'individual' || event.registrationType === 'both';
-  const needsPreferences = hasGroup || (event.addOns && event.addOns.length > 0);
+  const hasTiers = isPaid && event.pricingType === 'tiered' && Array.isArray(event.pricingTiers) && event.pricingTiers.length > 0;
+  const defaultTier = hasTiers ? (event.pricingTiers[0]?.label || '') : '';
+  const needsPreferences = hasGroup || (event.addOns && event.addOns.length > 0) || hasTiers;
 
   // Determine starting step — if no preferences and free event, may skip to confirm
   const firstUsefulStep = 0;
@@ -37,7 +39,9 @@ const RegistrationModal = ({ event, onClose }) => {
     registrationType: hasIndividual ? 'individual' : 'group',
     teamName: '',
     teamMembers: [{ name: '', email: '' }],
-    selectedAddOns: [],
+    pricingTier: defaultTier,
+    membershipProof: '',
+    selectedAddOns: (event.addOns || []).filter(a => a.required).map(a => a.label),
     txnId: '',
     screenshotBase64: null,
     screenshotName: '',
@@ -50,10 +54,17 @@ const RegistrationModal = ({ event, onClose }) => {
     if (errors[key]) setErrors(p => { const n = { ...p }; delete n[key]; return n; });
   };
 
-  // Calculate total price
-  const basePrice = form.registrationType === 'individual'
-    ? parseFloat(event.individualPrice || 0)
-    : parseFloat(event.groupPrice || 0);
+  // Find currently selected tier object
+  const selectedTierObj = hasTiers
+    ? (event.pricingTiers.find(t => t.label === form.pricingTier) || event.pricingTiers[0])
+    : null;
+
+  // Calculate base price
+  const basePrice = hasTiers
+    ? parseFloat(selectedTierObj?.price || 0)
+    : (form.registrationType === 'individual'
+        ? parseFloat(event.individualPrice || 0)
+        : parseFloat(event.groupPrice || 0));
 
   const addOnTotal = form.selectedAddOns.reduce((sum, label) => {
     const addon = event.addOns?.find(a => a.label === label);
@@ -129,6 +140,10 @@ const RegistrationModal = ({ event, onClose }) => {
       if (!form.phone?.trim()) e.phone = 'Required';
       if (!form.college?.trim()) e.college = 'Required';
       if (!form.rollNumber?.trim()) e.rollNumber = 'Required';
+    } else if (s === 1) {
+      if (hasTiers && selectedTierObj?.requiresProof && !form.membershipProof?.trim()) {
+        e.membershipProof = `${selectedTierObj.proofLabel || 'Membership ID'} is required for this discounted category.`;
+      }
     } else if (s === 2 && isPaid) {
       const needsShot = event.paymentVerification === 'screenshot' || event.paymentVerification === 'both';
       const needsTxn = event.paymentVerification === 'txnId' || event.paymentVerification === 'both';
@@ -139,19 +154,12 @@ const RegistrationModal = ({ event, onClose }) => {
     return Object.keys(e).length === 0;
   };
 
-  const visibleSteps = [0];
-  if (needsPreferences) visibleSteps.push(1);
-  if (isPaid) visibleSteps.push(2);
-  visibleSteps.push(3);
-
   const currentVisibleIdx = visibleSteps.indexOf(step);
 
   const handleNext = () => {
     if (!validateStep(step)) return;
     const nextStepInVisible = visibleSteps[currentVisibleIdx + 1];
-    if (nextStepInVisible !== undefined) {
-      setStep(nextStepInVisible);
-    }
+    if (nextStepInVisible !== undefined) setStep(nextStepInVisible);
   };
 
   const handleBack = () => {
@@ -162,112 +170,61 @@ const RegistrationModal = ({ event, onClose }) => {
   const handleSubmit = async () => {
     if (!validateStep(step)) return;
     await new Promise(r => setTimeout(r, 500));
-    registerParticipant?.(event.id, {
-      ...form,
-      ticketId: tempTicketId,
-      userId: user?.id,
-      totalPaid: totalAmount,
-      registeredAt: new Date().toISOString(),
-    });
+    registerParticipant?.(event.id, { ...form, ticketId: tempTicketId, userId: user?.id, totalPaid: totalAmount, registeredAt: new Date().toISOString() });
     setStep(3);
     addToast({ type: 'success', title: 'Registered! 🎉', message: `You're confirmed for ${event.name}. Ticket: ${tempTicketId}` });
   };
 
-  const isLastBeforeConfirm = visibleSteps[currentVisibleIdx + 1] === 3;
-
   return (
     <AnimatePresence>
-      <motion.div
-        className="reg-modal-overlay"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={step !== 3 ? onClose : undefined}
-      >
-        <motion.div
-          className="reg-modal-container"
-          initial={{ opacity: 0, y: 40, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 20, scale: 0.97 }}
-          transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-          onClick={e => e.stopPropagation()}
-        >
-          {/* Exact Creator Event Banner */}
+      <motion.div className="reg-modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={step !== 3 ? onClose : undefined}>
+        <motion.div className="reg-modal-container" initial={{ opacity: 0, y: 40, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.97 }} transition={{ type: 'spring', stiffness: 320, damping: 32 }} onClick={e => e.stopPropagation()}>
           {event.bannerUrl && (
             <div className="reg-modal-banner" style={{ backgroundImage: `url(${event.bannerUrl})` }}>
               <div className="reg-modal-banner-overlay" />
-              {event.logoUrl && (
-                <img src={event.logoUrl} alt={event.name} className="reg-modal-banner-logo" />
-              )}
-              {step !== 3 && (
-                <button className="reg-modal-close-btn banner-close" onClick={onClose} type="button" aria-label="Close">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
-              )}
+              {event.logoUrl && <img src={event.logoUrl} alt={event.name} className="reg-modal-banner-logo" />}
             </div>
           )}
-
-          {/* Header */}
-          <div className="reg-modal-hdr">
-            <div className="reg-modal-hdr-left">
-              {!event.bannerUrl && event.logoUrl && (
-                <img src={event.logoUrl} alt={event.name} className="reg-modal-hdr-logo" />
-              )}
-              <div>
-                <h2 className="reg-modal-hdr-title">Register for {event.name}</h2>
-                <p className="reg-modal-hdr-sub">
-                  {STEPS[step === 3 ? 3 : currentVisibleIdx]} · Step {step === 3 ? visibleSteps.length : currentVisibleIdx + 1} of {visibleSteps.length}
-                </p>
-              </div>
+          <div className="reg-modal-header">
+            <div className="reg-header-meta">
+              <span className="reg-event-badge font-mono">{event.category?.toUpperCase() || 'EVENT'}</span>
+              <h2 className="reg-event-title">{event.name}</h2>
+              <p className="reg-event-sub font-mono">📅 {formatDate(event.date || event.startDate)} • 📍 {event.venue || (event.isOnline ? 'Online Event' : 'Campus Venue')}</p>
             </div>
-            {!event.bannerUrl && step !== 3 && (
-              <button className="reg-modal-close-btn" onClick={onClose} type="button" aria-label="Close">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            )}
+            <button className="reg-close-btn" onClick={onClose} aria-label="Close modal">✕</button>
           </div>
-
-          {/* Progress bar */}
-          <div className="reg-progress-bar">
-            <motion.div
-              className="reg-progress-fill"
-              animate={{ width: `${((currentVisibleIdx + 1) / visibleSteps.length) * 100}%` }}
-              transition={{ duration: 0.3 }}
-            />
+          <div className="reg-stepper-bar">
+            {visibleSteps.map((s, idx) => {
+              const isActive = s === step;
+              const isPast = visibleSteps.indexOf(step) > idx;
+              return (
+                <React.Fragment key={s}>
+                  <div className={`reg-step-node ${isActive ? 'step-node-active' : ''} ${isPast ? 'step-node-done' : ''}`}>
+                    <span className="step-num">{isPast ? '✓' : idx + 1}</span>
+                    <span className="step-name">{STEP_LABELS[s]}</span>
+                  </div>
+                  {idx < visibleSteps.length - 1 && <div className={`reg-step-connector ${isPast ? 'connector-done' : ''}`} />}
+                </React.Fragment>
+              );
+            })}
           </div>
-
-          {/* Body */}
           <div className="reg-modal-body">
             <AnimatePresence mode="wait">
-              <motion.div
-                key={step}
-                initial={{ opacity: 0, x: 16 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -16 }}
-                transition={{ duration: 0.18 }}
-              >
-                {/* Step 0: Personal Details */}
+              <motion.div key={step} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.18 }}>
                 {step === 0 && (
                   <div className="reg-form-grid">
-                    <h3 className="reg-section-title">Personal Information</h3>
-
                     <div className="reg-field-row-2">
                       <div className="reg-field">
                         <label className="reg-label">Full Name <span className="req-star">*</span></label>
-                        <input className={`craft-input ${errors.fullName ? 'input-error' : ''}`} type="text" placeholder="Aditya Kumar" value={form.fullName} onChange={e => setF('fullName', e.target.value)} />
+                        <input className={`craft-input ${errors.fullName ? 'input-error' : ''}`} type="text" placeholder="Adithyen H" value={form.fullName} onChange={e => setF('fullName', e.target.value)} />
                         {errors.fullName && <p className="reg-error">{errors.fullName}</p>}
                       </div>
                       <div className="reg-field">
-                        <label className="reg-label">Email <span className="req-star">*</span></label>
-                        <input className={`craft-input ${errors.email ? 'input-error' : ''}`} type="email" placeholder="you@college.edu" value={form.email} onChange={e => setF('email', e.target.value)} />
+                        <label className="reg-label">Email Address <span className="req-star">*</span></label>
+                        <input className={`craft-input font-mono ${errors.email ? 'input-error' : ''}`} type="email" placeholder="adithyen@college.edu" value={form.email} onChange={e => setF('email', e.target.value)} />
                         {errors.email && <p className="reg-error">{errors.email}</p>}
                       </div>
                     </div>
-
                     <div className="reg-field-row-2">
                       <div className="reg-field">
                         <label className="reg-label">Phone <span className="req-star">*</span></label>
@@ -280,68 +237,42 @@ const RegistrationModal = ({ event, onClose }) => {
                         {errors.rollNumber && <p className="reg-error">{errors.rollNumber}</p>}
                       </div>
                     </div>
-
                     <div className="reg-field">
                       <label className="reg-label">College / Institution <span className="req-star">*</span></label>
                       <input className={`craft-input ${errors.college ? 'input-error' : ''}`} type="text" placeholder="SRM Institute of Science & Technology" value={form.college} onChange={e => setF('college', e.target.value)} />
                       {errors.college && <p className="reg-error">{errors.college}</p>}
                     </div>
-
-                    <div className="reg-field-row-2">
-                      <div className="reg-field">
-                        <label className="reg-label">Department</label>
-                        <input className="craft-input" type="text" placeholder="Computer Science" value={form.department} onChange={e => setF('department', e.target.value)} />
-                      </div>
-                      <div className="reg-field">
-                        <label className="reg-label">Year of Study</label>
-                        <select className="craft-input" value={form.year} onChange={e => setF('year', e.target.value)}>
-                          <option value="">Select year</option>
-                          {['1st Year', '2nd Year', '3rd Year', '4th Year', 'PG / Masters', 'PhD'].map(y => (
-                            <option key={y} value={y}>{y}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Pre-event Resource Links */}
-                    {event.preLinks && event.preLinks.filter(l => l.url).length > 0 && (
-                      <div className="reg-resources-box">
-                        <span className="reg-res-title font-mono">Official Event Resources:</span>
-                        <div className="reg-res-links-row">
-                          {event.preLinks.filter(l => l.url).map((l, i) => (
-                            <a key={i} href={l.url} target="_blank" rel="noopener noreferrer" className="reg-res-link-pill">
-                              🔗 {l.label || 'Resource Link'}
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Event Contacts & Coordinators */}
-                    {event.contacts && event.contacts.filter(c => c.name).length > 0 && (
-                      <div className="reg-contacts-box">
-                        <span className="reg-contacts-title font-mono">Event Coordinators & Helpdesk:</span>
-                        <div className="reg-contacts-grid">
-                          {event.contacts.filter(c => c.name).map((c, i) => (
-                            <div key={i} className="reg-contact-pill">
-                              <span className="reg-contact-name">{c.name} {c.role ? `(${c.role})` : ''}</span>
-                              <div className="reg-contact-links">
-                                {c.phone && <a href={`tel:${c.phone}`} className="reg-contact-action font-mono">📞 {c.phone}</a>}
-                                {c.email && <a href={`mailto:${c.email}`} className="reg-contact-action font-mono">✉️ {c.email}</a>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
-
-                {/* Step 1: Preferences */}
                 {step === 1 && (
                   <div className="reg-form-grid">
-                    {/* Registration type choice */}
-                    {hasIndividual && hasGroup && (
+                    {hasTiers && (
+                      <div className="reg-field">
+                        <label className="reg-label">Select Your Category / Membership <span className="req-star">*</span></label>
+                        <div className="reg-tiers-grid">
+                          {event.pricingTiers.map(tier => {
+                            const isSelected = form.pricingTier === tier.label;
+                            return (
+                              <button key={tier.id || tier.label} type="button" className={`reg-tier-card ${isSelected ? 'reg-tier-card-active' : ''}`} onClick={() => setF('pricingTier', tier.label)}>
+                                <div className="reg-tier-header">
+                                  <span className="reg-tier-name">{tier.label}</span>
+                                  <span className="reg-tier-price font-mono">₹{tier.price}</span>
+                                </div>
+                                {tier.requiresProof && <div className="reg-tier-req-tag font-mono">🔒 Requires {tier.proofLabel || 'Membership ID'}</div>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {hasTiers && selectedTierObj?.requiresProof && (
+                      <div className="reg-field reg-proof-field-box">
+                        <label className="reg-label">{selectedTierObj.proofLabel || 'Membership ID / Verification Code'} <span className="req-star">*</span></label>
+                        <input type="text" className={`craft-input font-mono ${errors.membershipProof ? 'input-error' : ''}`} placeholder={`Enter your ${selectedTierObj.proofLabel || 'Membership ID / Proof Number'}`} value={form.membershipProof} onChange={e => setF('membershipProof', e.target.value)} />
+                        {errors.membershipProof ? <p className="reg-error">{errors.membershipProof}</p> : <p className="reg-proof-note">🔒 Proof is required for this discounted member tier and will be audited at event check-in.</p>}
+                      </div>
+                    )}
+                    {!hasTiers && hasIndividual && hasGroup && (
                       <div className="reg-field">
                         <label className="reg-label">How are you registering?</label>
                         <div className="mode-toggle-row">
@@ -350,95 +281,10 @@ const RegistrationModal = ({ event, onClose }) => {
                         </div>
                       </div>
                     )}
-
-                    {form.registrationType === 'group' && (
-                      <>
-                        <div className="reg-field">
-                          <label className="reg-label">Team Name <span className="req-star">*</span></label>
-                          <input className="craft-input" type="text" placeholder="Team Nexus" value={form.teamName} onChange={e => setF('teamName', e.target.value)} />
-                        </div>
-                        <div className="reg-field">
-                          <div className="form-label-row">
-                            <label className="reg-label">Team Members (Name & Email)</label>
-                            <button type="button" className="reg-add-link" onClick={() => setF('teamMembers', [...form.teamMembers, { name: '', email: '' }])}>+ Add Member</button>
-                          </div>
-                          <div className="team-members-list">
-                            {form.teamMembers.map((m, i) => {
-                              const memberName = typeof m === 'object' ? (m.name || '') : '';
-                              const memberEmail = typeof m === 'object' ? (m.email || '') : (m || '');
-                              return (
-                                <div key={i} className="team-member-item">
-                                  <div className="team-member-inputs">
-                                    <input
-                                      className="craft-input"
-                                      type="text"
-                                      placeholder={`Member ${i + 1} Name`}
-                                      value={memberName}
-                                      onChange={e => {
-                                        const updated = [...form.teamMembers];
-                                        updated[i] = { name: e.target.value, email: memberEmail };
-                                        setF('teamMembers', updated);
-                                      }}
-                                    />
-                                    <input
-                                      className="craft-input font-mono"
-                                      type="email"
-                                      placeholder={`member${i + 1}@college.edu`}
-                                      value={memberEmail}
-                                      onChange={e => {
-                                        const updated = [...form.teamMembers];
-                                        updated[i] = { name: memberName, email: e.target.value };
-                                        setF('teamMembers', updated);
-                                      }}
-                                    />
-                                  </div>
-                                  {i > 0 && (
-                                    <button
-                                      type="button"
-                                      className="contact-remove-btn"
-                                      onClick={() => setF('teamMembers', form.teamMembers.filter((_, idx) => idx !== i))}
-                                      title="Remove member"
-                                    >
-                                      ✕
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    {/* Add-ons */}
-                    {event.addOns && event.addOns.length > 0 && (
-                      <div className="reg-field">
-                        <label className="reg-label">Select Add-ons</label>
-                        <div className="reg-addons-list">
-                          {event.addOns.map(addon => {
-                            const selected = form.selectedAddOns.includes(addon.label);
-                            return (
-                              <button
-                                key={addon.label}
-                                type="button"
-                                className={`reg-addon-chip ${selected ? 'reg-addon-selected' : ''}`}
-                                onClick={() => toggleAddOn(addon.label)}
-                              >
-                                <span>{addon.label}</span>
-                                {addon.price ? <span className="reg-addon-price font-mono">+₹{addon.price}</span> : <span className="reg-addon-price">Free</span>}
-                                {addon.required && <span className="reg-addon-req">Required</span>}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Price Summary */}
                     {isPaid && (
                       <div className="reg-price-summary">
                         <div className="reg-price-row">
-                          <span>Base ({form.registrationType})</span>
+                          <span>{hasTiers ? (form.pricingTier || 'Category Tier') : `Base (${form.registrationType})`}</span>
                           <span className="font-mono">₹{basePrice}</span>
                         </div>
                         {form.selectedAddOns.map(label => {
@@ -458,8 +304,6 @@ const RegistrationModal = ({ event, onClose }) => {
                     )}
                   </div>
                 )}
-
-                {/* Step 2: Payment */}
                 {step === 2 && isPaid && (
                   <div className="reg-form-grid">
                     <div className="reg-payment-header">
@@ -547,6 +391,14 @@ const RegistrationModal = ({ event, onClose }) => {
                       <span className="reg-ticket-lbl font-mono">Digital Ticket ID:</span>
                       <span className="reg-ticket-code font-mono">{tempTicketId}</span>
                     </div>
+
+                    {form.pricingTier && (
+                      <div className="reg-tier-badge-confirmed font-mono">
+                        <span>Category: <strong>{form.pricingTier}</strong></span>
+                        {form.membershipProof && <span> • ID: <strong>{form.membershipProof}</strong></span>}
+                      </div>
+                    )}
+
                     <p className="reg-confirm-sub">{event.confirmationMessage || `You're confirmed for ${event.name}. Check your email for details.`}</p>
 
                     {/* WhatsApp group */}

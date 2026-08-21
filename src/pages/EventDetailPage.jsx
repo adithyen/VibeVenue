@@ -272,6 +272,28 @@ const EventDetailPage = () => {
             </div>
 
 
+            {/* Dynamic Pricing Tiers */}
+            {event.pricingType === 'tiered' && event.pricingTiers?.length > 0 && (
+              <div className="craft-card detail-tiers-card">
+                <h3 className="card-section-title">Membership & Category Pricing</h3>
+                <div className="detail-tiers-grid">
+                  {event.pricingTiers.map((tier, idx) => (
+                    <div key={idx} className="detail-tier-row">
+                      <div className="detail-tier-info">
+                        <span className="detail-tier-label">{tier.label}</span>
+                        {tier.requiresProof && (
+                          <span className="detail-tier-proof-badge font-mono">
+                            🔒 {tier.proofLabel || 'Membership ID Required'}
+                          </span>
+                        )}
+                      </div>
+                      <span className="detail-tier-price font-mono">₹{tier.price}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Pre-Event Resources & Links */}
             {event.preLinks?.length > 0 && (
               <div className="craft-card detail-resources-card">
