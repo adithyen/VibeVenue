@@ -32,7 +32,7 @@
 .reg-modal-banner {
   position: relative;
   width: 100%;
-  height: 145px;
+  height: 160px;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -50,35 +50,35 @@
 .reg-modal-banner-logo {
   position: relative;
   z-index: 2;
-  width: 72px;
-  height: 72px;
-  border-radius: var(--radius-lg);
+  width: 90px;
+  height: 90px;
+  border-radius: var(--radius-xl);
   object-fit: cover;
-  border: 3px solid #ffffff;
+  border: 3.5px solid #ffffff;
   background: #ffffff;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
-  margin-bottom: -26px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+  margin-bottom: -32px;
 }
 
 /* Fallback initial when no logo uploaded */
 .reg-modal-banner-initial {
   position: relative;
   z-index: 2;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md);
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-lg);
   border: 2.5px solid rgba(255, 255, 255, 0.8);
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 800;
   color: #ffffff;
   letter-spacing: -0.02em;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  margin-bottom: -16px;
+  margin-bottom: -20px;
 }
 
 .reg-modal-close-btn.banner-close {
@@ -101,7 +101,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: var(--sp-6) var(--sp-6) var(--sp-4);
+  padding: calc(var(--sp-6) + 8px) var(--sp-6) var(--sp-4);
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
 }
@@ -109,15 +109,15 @@
 .reg-modal-hdr-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .reg-modal-hdr-logo {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-lg);
   object-fit: cover;
-  border: 1px solid var(--border-default);
+  border: 2px solid var(--border-default);
   flex-shrink: 0;
 }
 
