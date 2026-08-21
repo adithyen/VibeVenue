@@ -167,6 +167,32 @@
   gap: 5px;
 }
 
+/* Team Members */
+.team-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.team-member-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.team-member-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: var(--sp-2);
+  flex: 1;
+}
+
+@media (max-width: 480px) {
+  .team-member-inputs {
+    grid-template-columns: 1fr;
+  }
+}
+
 .reg-label {
   font-size: 0.8125rem;
   font-weight: 600;

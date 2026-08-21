@@ -35,7 +35,7 @@ const RegistrationModal = ({ event, onClose }) => {
     rollNumber: '',
     registrationType: hasIndividual ? 'individual' : 'group',
     teamName: '',
-    teamMembers: [''],
+    teamMembers: [{ name: '', email: '' }],
     selectedAddOns: [],
     txnId: '',
     screenshotBase64: null,
@@ -285,26 +285,58 @@ const RegistrationModal = ({ event, onClose }) => {
                     {form.registrationType === 'group' && (
                       <>
                         <div className="reg-field">
-                          <label className="reg-label">Team Name</label>
+                          <label className="reg-label">Team Name <span className="req-star">*</span></label>
                           <input className="craft-input" type="text" placeholder="Team Nexus" value={form.teamName} onChange={e => setF('teamName', e.target.value)} />
                         </div>
                         <div className="reg-field">
                           <div className="form-label-row">
-                            <label className="reg-label">Team Member Emails</label>
-                            <button type="button" className="reg-add-link" onClick={() => setF('teamMembers', [...form.teamMembers, ''])}>+ Add</button>
+                            <label className="reg-label">Team Members (Name & Email)</label>
+                            <button type="button" className="reg-add-link" onClick={() => setF('teamMembers', [...form.teamMembers, { name: '', email: '' }])}>+ Add Member</button>
                           </div>
-                          {form.teamMembers.map((m, i) => (
-                            <div key={i} className="link-row" style={{ marginBottom: 6 }}>
-                              <input className="craft-input font-mono" type="email" placeholder={`member${i + 1}@college.edu`} value={m} onChange={e => {
-                                const updated = [...form.teamMembers];
-                                updated[i] = e.target.value;
-                                setF('teamMembers', updated);
-                              }} />
-                              {i > 0 && (
-                                <button type="button" className="contact-remove-btn" onClick={() => setF('teamMembers', form.teamMembers.filter((_, idx) => idx !== i))}>✕</button>
-                              )}
-                            </div>
-                          ))}
+                          <div className="team-members-list">
+                            {form.teamMembers.map((m, i) => {
+                              const memberName = typeof m === 'object' ? (m.name || '') : '';
+                              const memberEmail = typeof m === 'object' ? (m.email || '') : (m || '');
+                              return (
+                                <div key={i} className="team-member-item">
+                                  <div className="team-member-inputs">
+                                    <input
+                                      className="craft-input"
+                                      type="text"
+                                      placeholder={`Member ${i + 1} Name`}
+                                      value={memberName}
+                                      onChange={e => {
+                                        const updated = [...form.teamMembers];
+                                        updated[i] = { name: e.target.value, email: memberEmail };
+                                        setF('teamMembers', updated);
+                                      }}
+                                    />
+                                    <input
+                                      className="craft-input font-mono"
+                                      type="email"
+                                      placeholder={`member${i + 1}@college.edu`}
+                                      value={memberEmail}
+                                      onChange={e => {
+                                        const updated = [...form.teamMembers];
+                                        updated[i] = { name: memberName, email: e.target.value };
+                                        setF('teamMembers', updated);
+                                      }}
+                                    />
+                                  </div>
+                                  {i > 0 && (
+                                    <button
+                                      type="button"
+                                      className="contact-remove-btn"
+                                      onClick={() => setF('teamMembers', form.teamMembers.filter((_, idx) => idx !== i))}
+                                      title="Remove member"
+                                    >
+                                      ✕
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </>
                     )}

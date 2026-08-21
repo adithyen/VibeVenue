@@ -210,6 +210,28 @@ const ParticipantTable = ({ participants, eventId, showEvent = false }) => {
                   <span className="pass-lbl">Gate Check-in</span>
                   <span className="pass-val font-mono">{inspectAttendee.checkInStatus || 'Not Checked'}</span>
                 </div>
+                {inspectAttendee.teamName && (
+                  <div className="pass-grid-item" style={{ gridColumn: '1 / -1' }}>
+                    <span className="pass-lbl">Team Name</span>
+                    <span className="pass-val">👥 {inspectAttendee.teamName}</span>
+                  </div>
+                )}
+                {inspectAttendee.teamMembers && inspectAttendee.teamMembers.length > 0 && (
+                  <div className="pass-grid-item" style={{ gridColumn: '1 / -1' }}>
+                    <span className="pass-lbl">Team Members ({inspectAttendee.teamMembers.length})</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                      {inspectAttendee.teamMembers.map((m, idx) => {
+                        const name = typeof m === 'object' ? m.name : '';
+                        const email = typeof m === 'object' ? m.email : m;
+                        return (
+                          <div key={idx} style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                            • {name ? <strong>{name}</strong> : null} {email ? <span className="font-mono">({email})</span> : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Barcode Mock */}
