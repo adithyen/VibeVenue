@@ -1,5 +1,5 @@
 // Event Specification & Detailed Telemetry Page (Craft v2.0)
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
@@ -30,6 +30,18 @@ const EventDetailPage = () => {
   const event = store.getEventById(id);
   const [activeTab, setActiveTab] = useState('overview');
   const [editOpen, setEditOpen] = useState(false);
+  const [participants, setParticipants] = useState([]);
+  const [participantsLoading, setParticipantsLoading] = useState(false);
+
+  // Fetch real participants from Supabase
+  useEffect(() => {
+    if (!id) return;
+    setParticipantsLoading(true);
+    store.fetchEventParticipants(id).then(data => {
+      setParticipants(data);
+      setParticipantsLoading(false);
+    });
+  }, [id]);
 
   if (!event) {
     return (
@@ -49,15 +61,14 @@ const EventDetailPage = () => {
   }
 
   const cat = getCategoryById(event.category);
-  const organizer = store.getOrganizerById(event.organizerId);
   const daysUntil = getDaysUntil(event.date);
   const occupancyPct = Math.round(
     (event.registrationCount / event.maxParticipants) * 100
   );
 
-  // Telemetry breakdown data for charts
-  const confirmedCount = event.participants.filter((p) => p.status === 'confirmed').length;
-  const pendingCount = event.participants.filter((p) => p.status === 'pending').length;
+  // Telemetry breakdown data for charts — from real fetched participants
+  const confirmedCount = participants.filter(p => p.status === 'confirmed').length;
+  const pendingCount   = participants.filter(p => p.status === 'pending').length;
   const availableSeats = Math.max(0, event.maxParticipants - event.registrationCount);
 
   const chartData = [
@@ -246,40 +257,6 @@ const EventDetailPage = () => {
               </div>
             </div>
 
-            {/* Right: Faculty Convener & Coordinator */}
-            {organizer && (
-              <div className="craft-card organizer-card">
-                <h3 className="card-section-title">Faculty Convener & In-charge</h3>
-                
-                <div className="organizer-profile">
-                  <Avatar name={organizer.name} initials={organizer.initials} size="lg" />
-                  <div className="organizer-details">
-                    <h4 className="organizer-name">{organizer.name}</h4>
-                    <p className="organizer-role">{organizer.role}</p>
-                    <p className="organizer-dept">{organizer.department}</p>
-                  </div>
-                </div>
-
-                <div className="organizer-contact-list">
-                  <div className="org-contact-row">
-                    <span className="org-contact-label">Email:</span>
-                    <a href={`mailto:${organizer.email}`} className="org-contact-val font-mono">
-                      {organizer.email}
-                    </a>
-                  </div>
-                  <div className="org-contact-row">
-                    <span className="org-contact-label">Phone:</span>
-                    <span className="org-contact-val font-mono">{organizer.phone}</span>
-                  </div>
-                  {organizer.office && (
-                    <div className="org-contact-row">
-                      <span className="org-contact-label">Office:</span>
-                      <span className="org-contact-val">{organizer.office}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* Tags Strip */}
             {event.tags?.length > 0 && (
@@ -363,8 +340,9 @@ const EventDetailPage = () => {
             </div>
 
             <ParticipantTable
-              participants={event.participants}
+              participants={participants}
               eventId={event.id}
+              isLoading={participantsLoading}
             />
           </div>
         )}

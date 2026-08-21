@@ -1,5 +1,5 @@
 // Student Participant Dashboard Portal (v4.0)
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
 import useEventStore from '../store/useEventStore';
@@ -23,22 +23,27 @@ const ParticipantPortal = () => {
   const [confirmCancel, setConfirmCancel] = useState(null);
   const [isRevoking, setIsRevoking] = useState(false);
   const [registeringEvent, setRegisteringEvent] = useState(null);
+  const [passes, setPasses] = useState([]);
+  const [passesLoading, setPassesLoading] = useState(true);
 
-  // Get active passes registered for this user
-  const passes = useMemo(() => getParticipantPasses(), [events, user]);
+  // Fetch passes from Supabase (shows registrations created in any session/account)
+  useEffect(() => {
+    setPassesLoading(true);
+    getParticipantPasses().then(data => {
+      setPasses(data);
+      setPassesLoading(false);
+    });
+  }, [user?.id]);
 
-  // Compute upcoming events available for registration (where the student is not yet registered)
+  // Compute upcoming events available for registration
+  // An event is available if user has no pass for it yet
+  const registeredEventIds = new Set(passes.map(p => p.eventId));
   const availableEvents = useMemo(() => {
     return events
-      .filter((evt) => evt.status === 'upcoming')
-      .filter(
-        (evt) =>
-          !evt.participants.some(
-            (p) => p.email.toLowerCase() === user.email.toLowerCase() || p.name === user.name
-          )
-      )
+      .filter(evt => evt.status === 'upcoming')
+      .filter(evt => !registeredEventIds.has(evt.id))
       .slice(0, 3);
-  }, [events, user]);
+  }, [events, passes]);
 
   // Handle new self-registration — opens Registration Modal
   const handleSelfRegister = (event) => {
@@ -57,15 +62,17 @@ const ParticipantPortal = () => {
   // Revoke self registration pass
   const handleRevokePass = async (pass) => {
     setIsRevoking(true);
-    await new Promise((r) => setTimeout(r, 500));
-
-    removeParticipant(pass.eventId, pass.id);
-    addToast({
-      type: 'success',
-      title: 'Pass Revoked',
-      message: `Your registration for "${pass.eventName}" has been cancelled.`,
-    });
-
+    const ok = await removeParticipant(pass.eventId, pass.id);
+    if (ok) {
+      setPasses(prev => prev.filter(p => p.id !== pass.id));
+      addToast({
+        type: 'success',
+        title: 'Pass Revoked',
+        message: `Your registration for "${pass.eventName}" has been cancelled.`,
+      });
+    } else {
+      addToast({ type: 'error', title: 'Error', message: 'Could not cancel registration.' });
+    }
     setIsRevoking(false);
     setConfirmCancel(null);
     setInspectPass(null);

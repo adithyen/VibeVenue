@@ -1,7 +1,6 @@
-// Dashboard Overview Page (VibeVenue v4.0)
-import React, { useState } from 'react';
+// Dashboard Overview Page (VibeVenue — Supabase powered)
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
 import useEventStore from '../store/useEventStore';
 import StatCard from '../components/dashboard/StatCard';
 import RegistrationChart from '../components/dashboard/RegistrationChart';
@@ -10,15 +9,45 @@ import EventCard from '../components/events/EventCard';
 import Button from '../components/ui/Button';
 import './DashboardPage.css';
 
+// Generate a lightweight 30-day registration trend from real data
+const buildTrend = (regs) => {
+  const map = {};
+  const now = new Date();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    map[label] = { date: label, registrations: 0, checkins: 0 };
+  }
+  (regs || []).forEach(r => {
+    const label = new Date(r.registered_at || r.registeredAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (map[label]) {
+      map[label].registrations += 1;
+      if (r.check_in_status === 'Checked In' || r.checkInStatus === 'Checked In') {
+        map[label].checkins += 1;
+      }
+    }
+  });
+  return Object.values(map);
+};
+
 const DashboardPage = () => {
   const navigate = useNavigate();
   const store = useEventStore();
   const stats = store.getDashboardStats();
-  const recentRegs = store.getRecentRegistrations(7);
-  const trend = store.registrationTrend;
+
+  const [recentRegs, setRecentRegs]   = useState([]);
+  const [trend, setTrend]             = useState([]);
+
+  useEffect(() => {
+    store.getRecentRegistrations(7).then(data => {
+      setRecentRegs(data);
+      setTrend(buildTrend(data));
+    });
+  }, [store.events]); // re-run when realtime pushes new events
 
   const upcomingEvents = store.events
-    .filter((e) => e.status === 'upcoming')
+    .filter(e => e.status === 'upcoming')
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .slice(0, 3);
 
@@ -29,7 +58,7 @@ const DashboardPage = () => {
         <div className="page-title-group">
           <h2 className="page-title">Dashboard</h2>
           <p className="page-subtitle">
-            Overview of events, registrations and activity
+            Live overview — events, registrations and activity
           </p>
         </div>
 
@@ -49,91 +78,29 @@ const DashboardPage = () => {
             Export Registrations
           </Button>
 
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => navigate('/events')}
-          >
+          <Button variant="primary" size="sm" onClick={() => navigate('/events')}>
             All Events →
           </Button>
         </div>
       </div>
 
-      {/* 4 Clickable Stat Cards */}
+      {/* 4 Stat Cards */}
       <section className="grid-metrics" aria-label="Key Metrics">
-        <StatCard
-          id="stat-total-events"
-          title="Total Events"
-          value={stats.totalEvents}
-          subvalue="across all categories"
-          badgeText="View All"
-          badgeType="neutral"
-          icon={
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-              <line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-          }
-          delay={0}
-          onClick={() => navigate('/events?view=all')}
-        />
+        <StatCard id="stat-total-events" title="Total Events" value={stats.totalEvents} subvalue="across all categories" badgeText="View All" badgeType="neutral"
+          icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
+          delay={0} onClick={() => navigate('/events?view=all')} />
 
-        <StatCard
-          id="stat-upcoming-events"
-          title="Upcoming Events"
-          value={stats.upcomingEvents}
-          subvalue="scheduled ahead"
-          badgeText="Earliest First"
-          badgeType="iris"
-          icon={
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-            </svg>
-          }
-          delay={0.05}
-          onClick={() => navigate('/events?status=upcoming')}
-        />
+        <StatCard id="stat-upcoming-events" title="Upcoming Events" value={stats.upcomingEvents} subvalue="scheduled ahead" badgeText="Earliest First" badgeType="iris"
+          icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>}
+          delay={0.05} onClick={() => navigate('/events?status=upcoming')} />
 
-        <StatCard
-          id="stat-total-registrations"
-          title="Total Registrations"
-          value={stats.totalRegistrations}
-          subvalue={`${stats.avgOccupancy}% avg occupancy`}
-          badgeText="View All"
-          badgeType="positive"
-          indicatorPct={stats.avgOccupancy}
-          indicatorColor="var(--accent-emerald)"
-          icon={
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            </svg>
-          }
-          delay={0.1}
-          onClick={() => navigate('/registrations')}
-        />
+        <StatCard id="stat-total-registrations" title="Total Registrations" value={stats.totalRegistrations} subvalue={`${stats.avgOccupancy}% avg occupancy`} badgeText="View All" badgeType="positive" indicatorPct={stats.avgOccupancy} indicatorColor="var(--accent-emerald)"
+          icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>}
+          delay={0.1} onClick={() => navigate('/registrations')} />
 
-        <StatCard
-          id="stat-available-seats"
-          title="Available Seats"
-          value={stats.availableSeats}
-          subvalue="across all events"
-          badgeText="By Event"
-          badgeType="warning"
-          indicatorPct={100 - stats.avgOccupancy}
-          indicatorColor="var(--accent-amber)"
-          icon={
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 16 14"/>
-            </svg>
-          }
-          delay={0.15}
-          onClick={() => navigate('/events?view=seats')}
-        />
+        <StatCard id="stat-available-seats" title="Available Seats" value={stats.availableSeats} subvalue="across all events" badgeText="By Event" badgeType="warning" indicatorPct={100 - stats.avgOccupancy} indicatorColor="var(--accent-amber)"
+          icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
+          delay={0.15} onClick={() => navigate('/events?view=seats')} />
       </section>
 
       {/* Middle Grid: Trend Chart & Registrations Feed */}
@@ -149,11 +116,7 @@ const DashboardPage = () => {
             <h3 className="section-heading">Upcoming Events</h3>
             <span className="section-pill font-mono">Next 30 days</span>
           </div>
-          <button
-            className="section-link font-mono"
-            onClick={() => navigate('/events?status=upcoming')}
-            type="button"
-          >
+          <button className="section-link font-mono" onClick={() => navigate('/events?status=upcoming')} type="button">
             See all ({store.events.filter(e => e.status === 'upcoming').length}) →
           </button>
         </div>

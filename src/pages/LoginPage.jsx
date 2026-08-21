@@ -1,83 +1,27 @@
-// Premium Login Page (Obsidian & Zinc Craft Aesthetics)
-import React, { useState, useEffect, useRef } from 'react';
+// LoginPage — Supabase Auth (email/password + Google OAuth + Sign Up)
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../store/useAuthStore';
 import useUIStore from '../store/useUIStore';
 import Button from '../components/ui/Button';
 import './LoginPage.css';
 
-// Real Client ID from Google Cloud Console
-const GOOGLE_CLIENT_ID =
-  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-  '628041736031-8pb4a2hkmm10n18t8fsvqquoj31euhlq.apps.googleusercontent.com';
-
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login, loginWithGoogle, isLoading, error } = useAuthStore();
+  const { login, signUp, loginWithGoogle, isLoading, error, clearError } = useAuthStore();
   const { addToast } = useUIStore();
 
-  const [role, setRole] = useState('participant'); // 'participant' | 'admin'
-  const [email, setEmail] = useState('');
+  const [mode, setMode]       = useState('login');  // 'login' | 'signup'
+  const [role, setRole]       = useState('participant');
+  const [email, setEmail]     = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName]       = useState('');
   const [formError, setFormError] = useState('');
 
-  const googleBtnRef = useRef(null);
+  const switchMode = (m) => { setMode(m); setFormError(''); clearError(); };
 
-  // Dynamic injection & rendering of official Google Identity Services SDK
-  useEffect(() => {
-    const renderGoogleBtn = () => {
-      const btnContainer = document.getElementById('google-signin-btn');
-      if (window.google && btnContainer) {
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: handleGoogleResponse,
-          auto_select: false,
-        });
-
-        btnContainer.innerHTML = '';
-        window.google.accounts.id.renderButton(btnContainer, {
-          theme: 'outline',
-          size: 'large',
-          width: 380,
-          shape: 'rectangular',
-          text: 'signin_with',
-          logo_alignment: 'left',
-        });
-      }
-    };
-
-    if (window.google) {
-      renderGoogleBtn();
-    } else {
-      const existingScript = document.getElementById('google-gsi-client');
-      if (!existingScript) {
-        const script = document.createElement('script');
-        script.id = 'google-gsi-client';
-        script.src = 'https://accounts.google.com/gsi/client';
-        script.async = true;
-        script.defer = true;
-        script.onload = renderGoogleBtn;
-        document.body.appendChild(script);
-      }
-    }
-  }, [role]);
-
-  const handleGoogleResponse = async (response) => {
-    if (response.credential) {
-      const success = await loginWithGoogle(response.credential, role);
-      if (success) {
-        addToast({
-          type: 'success',
-          title: 'Google Sign-In Success',
-          message: `Logged in successfully as ${role === 'admin' ? 'Administrator' : 'Student Delegate'}.`,
-        });
-        navigate(role === 'admin' ? '/' : '/portal');
-      }
-    }
-  };
-
-  const handleLocalSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
 
@@ -85,42 +29,47 @@ const LoginPage = () => {
       setFormError('Please enter both email and password.');
       return;
     }
+    if (mode === 'signup' && !name.trim()) {
+      setFormError('Please enter your name.');
+      return;
+    }
 
-    const success = await login(email, password, role);
-    if (success) {
-      addToast({
-        type: 'success',
-        title: 'Login Success',
-        message: `Welcome back! Redirecting to dashboard...`,
-      });
-      navigate(role === 'admin' ? '/' : '/portal');
+    if (mode === 'login') {
+      const success = await login(email, password);
+      if (success) {
+        addToast({ type: 'success', title: 'Welcome back!', message: 'Redirecting...' });
+        // role is determined by the profile in DB
+        const { user } = useAuthStore.getState();
+        navigate(user?.role === 'admin' ? '/' : '/portal');
+      }
+    } else {
+      const result = await signUp(email, password, role, { name });
+      if (result === true) {
+        addToast({ type: 'success', title: 'Account Created!', message: 'Welcome to VibeVenue 🎉' });
+        const { user } = useAuthStore.getState();
+        navigate(user?.role === 'admin' ? '/' : '/portal');
+      } else if (result === 'confirm-email') {
+        addToast({ type: 'info', title: 'Check your email', message: 'We sent you a confirmation link.' });
+      }
     }
   };
 
-  // Pre-fill helper for quick review and testing
-  const handleQuickLogin = (type) => {
-    if (type === 'admin') {
-      setEmail('admin@campus.edu');
-      setPassword('admin123');
-      setRole('admin');
-    } else {
-      setEmail('student@campus.edu');
-      setPassword('student123');
-      setRole('participant');
-    }
+  const handleGoogle = async () => {
+    await loginWithGoogle(role);
+    // OAuth redirects — page will reload with session
   };
 
   return (
     <div className="login-view">
       <div className="bg-orbs" />
-      
+
       <motion.div
         className="login-card-container"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 350, damping: 30 }}
       >
-        {/* Brand Mark Header */}
+        {/* Brand */}
         <div className="login-brand-header">
           <div className="login-brand-logo">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -134,41 +83,63 @@ const LoginPage = () => {
           <p className="login-subtitle">Event Management Platform</p>
         </div>
 
-        {/* Role Tab Switcher */}
-        <div className="segmented-control role-switcher">
-          <button
-            className={`segmented-option ${role === 'participant' ? 'active' : ''}`}
-            onClick={() => {
-              setRole('participant');
-              setFormError('');
-            }}
-            type="button"
-          >
-            Student Participant
-          </button>
-          <button
-            className={`segmented-option ${role === 'admin' ? 'active' : ''}`}
-            onClick={() => {
-              setRole('admin');
-              setFormError('');
-            }}
-            type="button"
-          >
-            Faculty Admin
-          </button>
+        {/* Mode tabs */}
+        <div className="segmented-control role-switcher" style={{ marginBottom: '0.5rem' }}>
+          <button className={`segmented-option ${mode === 'login' ? 'active' : ''}`} onClick={() => switchMode('login')} type="button">Sign In</button>
+          <button className={`segmented-option ${mode === 'signup' ? 'active' : ''}`} onClick={() => switchMode('signup')} type="button">Create Account</button>
         </div>
 
-        {/* Login Form */}
-        <form className="login-form" onSubmit={handleLocalSubmit}>
+        {/* Role selector — only meaningful for sign-up */}
+        <AnimatePresence mode="wait">
+          {mode === 'signup' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              style={{ overflow: 'hidden', marginBottom: '1rem' }}
+            >
+              <div className="segmented-control role-switcher">
+                <button className={`segmented-option ${role === 'participant' ? 'active' : ''}`} onClick={() => setRole('participant')} type="button">Student Participant</button>
+                <button className={`segmented-option ${role === 'admin' ? 'active' : ''}`} onClick={() => setRole('admin')} type="button">Faculty Admin</button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Form */}
+        <form className="login-form" onSubmit={handleSubmit}>
+          <AnimatePresence mode="wait">
+            {mode === 'signup' && (
+              <motion.div
+                key="name-field"
+                className="form-field-group"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                style={{ overflow: 'hidden' }}
+              >
+                <label htmlFor="login-name" className="craft-label">Full Name</label>
+                <input
+                  id="login-name"
+                  type="text"
+                  className="craft-input"
+                  placeholder="Aarav Sharma"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="form-field-group">
             <label htmlFor="login-email" className="craft-label">Email Address</label>
             <input
               id="login-email"
               type="email"
               className="craft-input font-mono"
-              placeholder={role === 'admin' ? 'admin@campus.edu' : 'student@campus.edu'}
+              placeholder="you@campus.edu"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => { setEmail(e.target.value); setFormError(''); }}
             />
           </div>
 
@@ -180,11 +151,10 @@ const LoginPage = () => {
               className="craft-input font-mono"
               placeholder="••••••••"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={e => { setPassword(e.target.value); setFormError(''); }}
             />
           </div>
 
-          {/* Validation & Store errors */}
           {(formError || error) && (
             <div className="login-error-box font-mono">
               <span>⚠️</span>
@@ -192,14 +162,8 @@ const LoginPage = () => {
             </div>
           )}
 
-          <Button
-            type="submit"
-            variant="primary"
-            fullWidth
-            loading={isLoading}
-            id="local-login-btn"
-          >
-            Sign In with Credentials
+          <Button type="submit" variant="primary" fullWidth loading={isLoading} id="local-login-btn">
+            {mode === 'login' ? 'Sign In' : 'Create Account'}
           </Button>
         </form>
 
@@ -210,33 +174,30 @@ const LoginPage = () => {
           <span className="separator-line" />
         </div>
 
-        {/* Google Sign-In Target */}
+        {/* Google OAuth */}
         <div className="google-btn-wrapper">
-          <div id="google-signin-btn" ref={googleBtnRef} />
+          <Button
+            type="button"
+            variant="ghost"
+            fullWidth
+            onClick={handleGoogle}
+            loading={isLoading}
+            id="google-oauth-btn"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" style={{ marginRight: 8 }}>
+              <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+              <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+              <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+              <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+            </svg>
+            Continue with Google
+          </Button>
         </div>
 
-        {/* Demo Fast Login Guides */}
-        <div className="demo-guide-box">
-          <p className="demo-guide-title font-mono">DEMO CREDENTIALS</p>
-          <div className="demo-actions">
-            <button
-              className="demo-btn font-mono"
-              onClick={() => handleQuickLogin('student')}
-              type="button"
-              id="demo-student-login"
-            >
-              AS STUDENT
-            </button>
-            <button
-              className="demo-btn font-mono"
-              onClick={() => handleQuickLogin('admin')}
-              type="button"
-              id="demo-admin-login"
-            >
-              AS ADMIN
-            </button>
-          </div>
-        </div>
+        {/* Info note */}
+        <p className="demo-guide-title font-mono" style={{ textAlign: 'center', marginTop: '1.25rem', opacity: 0.5, fontSize: '0.7rem' }}>
+          CREATE AN ACCOUNT OR USE GOOGLE — REAL AUTH, REAL DATA
+        </p>
       </motion.div>
     </div>
   );

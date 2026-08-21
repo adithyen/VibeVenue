@@ -1,5 +1,5 @@
 // Registrations & Pass Operations (Craft Standard v2.0)
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import useEventStore from '../store/useEventStore';
 import useUIStore from '../store/useUIStore';
 import ParticipantTable from '../components/participants/ParticipantTable';
@@ -20,18 +20,11 @@ const RegistrationsPage = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(1);
 
-  // Flatten attendees across all events
-  const allAttendees = useMemo(() => {
-    return store.events.flatMap((evt) =>
-      evt.participants.map((p) => ({
-        ...p,
-        eventName: evt.name,
-        eventId: evt.id,
-        eventCategory: evt.category,
-        eventDate: evt.date,
-        eventStatus: evt.status,
-      }))
-    );
+  const [allAttendees, setAllAttendees] = useState([]);
+
+  // Fetch all registrations from Supabase (cross-account real data)
+  useEffect(() => {
+    store.getRecentRegistrations(500).then(data => setAllAttendees(data));
   }, [store.events]);
 
   // Multi-facet filtering
