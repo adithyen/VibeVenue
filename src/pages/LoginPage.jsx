@@ -130,8 +130,8 @@ const LoginPage = () => {
               <path d="M4 16L12 20L20 16" stroke="#818CF8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <h1 className="login-title font-display">CampusCore Gateway</h1>
-          <p className="login-subtitle">Symposium & Technical Event Operations</p>
+          <h1 className="login-title font-display">VibeVenue</h1>
+          <p className="login-subtitle">Event Management Platform</p>
         </div>
 
         {/* Role Tab Switcher */}

@@ -167,7 +167,7 @@ const ParticipantTable = ({ participants, eventId, showEvent = false }) => {
             {/* Ticket Header Strip */}
             <div className="pass-header">
               <div className="pass-brand-row">
-                <span className="pass-fest font-mono">CAMPUSCORE '26</span>
+                <span className="pass-fest font-mono">VIBEVENUE '26</span>
                 <span className="pass-id-badge font-mono">{inspectAttendee.ticketId}</span>
               </div>
               <h3 className="pass-event-title">{inspectAttendee.eventName || 'Symposium Track'}</h3>

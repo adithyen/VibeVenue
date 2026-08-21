@@ -5,6 +5,7 @@ import useAuthStore from '../store/useAuthStore';
 import useEventStore from '../store/useEventStore';
 import useUIStore from '../store/useUIStore';
 import Avatar from '../components/ui/Avatar';
+import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import ProgressBar from '../components/ui/ProgressBar';
 import Modal from '../components/ui/Modal';
@@ -234,7 +235,7 @@ const ParticipantPortal = () => {
       >
         {inspectPass && (
           <div className="portal-ticket-inspect">
-            <div className="ticket-brand font-mono">CAMPUSCORE GATEWAY</div>
+            <div className="ticket-brand font-mono">VIBEVENUE '26</div>
             <h3 className="ticket-inspect-title">{inspectPass.eventName}</h3>
             
             <div className="ticket-inspect-grid font-mono">

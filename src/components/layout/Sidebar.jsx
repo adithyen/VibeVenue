@@ -76,7 +76,7 @@ const Sidebar = () => {
     >
       {/* Brand Header */}
       <div className="sidebar-brand">
-        <div className="brand-badge-icon" title="CampusCore Symposium Engine">
+        <div className="brand-badge-icon" title="VibeVenue Event Platform">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <rect width="24" height="24" rx="6" fill="#6366F1" fillOpacity="0.2"/>
             <path d="M12 4L4 8L12 12L20 8L12 4Z" stroke="#818CF8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
