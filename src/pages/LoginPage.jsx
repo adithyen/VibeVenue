@@ -26,6 +26,25 @@ const LoginPage = () => {
     }
   }, [user, navigate]);
 
+  // Check for URL OAuth errors (e.g. Supabase code exchange failure)
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const errorDesc = params.get('error_description') || hashParams.get('error_description');
+    if (errorDesc) {
+      const decoded = decodeURIComponent(errorDesc.replace(/\+/g, ' '));
+      setFormError(`Google Sign-In: ${decoded}`);
+      addToast({
+        type: 'warning',
+        title: 'Google Sign-In Failed',
+        message: decoded.includes('exchange')
+          ? 'Google Client Secret in Supabase is invalid. Please update it in Supabase Providers.'
+          : decoded,
+      });
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [addToast]);
+
   const switchMode = (m) => { setMode(m); setFormError(''); clearError(); };
 
   const handleSubmit = async (e) => {
