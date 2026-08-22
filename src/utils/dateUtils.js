@@ -3,19 +3,33 @@
 // ============================================================
 import { format, formatDistanceToNow, isAfter, isBefore, parseISO } from 'date-fns';
 
-export const formatDate = (dateStr) => {
-  try {
-    return format(parseISO(dateStr), 'dd MMM yyyy');
-  } catch {
-    return dateStr;
+const toDate = (val) => {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  if (typeof val === 'string') {
+    try {
+      const d = parseISO(val);
+      if (!isNaN(d.getTime())) return d;
+    } catch {}
+    const d2 = new Date(val);
+    if (!isNaN(d2.getTime())) return d2;
   }
+  if (typeof val === 'number') {
+    const d3 = new Date(val);
+    if (!isNaN(d3.getTime())) return d3;
+  }
+  return null;
+};
+
+export const formatDate = (dateStr) => {
+  const d = toDate(dateStr);
+  return d ? format(d, 'dd MMM yyyy') : (dateStr ? String(dateStr) : '—');
 };
 
 export const formatDateTime = (dateStr, timeStr) => {
-  if (!dateStr) return '—';
+  const d = toDate(dateStr);
+  if (!d) return dateStr ? String(dateStr) : '—';
   try {
-    const d = typeof dateStr === 'string' ? parseISO(dateStr) : new Date(dateStr);
-    if (isNaN(d.getTime())) return String(dateStr);
     if (timeStr) {
       return `${format(d, 'EEE, dd MMM yyyy')} • ${timeStr}`;
     }
@@ -26,52 +40,40 @@ export const formatDateTime = (dateStr, timeStr) => {
 };
 
 export const formatTimeAgo = (dateStr) => {
+  const d = toDate(dateStr);
+  if (!d) return 'just now';
   try {
-    return formatDistanceToNow(parseISO(dateStr), { addSuffix: true });
+    return formatDistanceToNow(d, { addSuffix: true });
   } catch {
-    return dateStr;
+    return 'recently';
   }
 };
 
 export const isUpcoming = (dateStr) => {
-  try {
-    return isAfter(parseISO(dateStr), new Date());
-  } catch {
-    return false;
-  }
+  const d = toDate(dateStr);
+  return d ? isAfter(d, new Date()) : false;
 };
 
 export const isPast = (dateStr) => {
-  try {
-    return isBefore(parseISO(dateStr), new Date());
-  } catch {
-    return false;
-  }
+  const d = toDate(dateStr);
+  return d ? isBefore(d, new Date()) : false;
 };
 
 export const getDaysUntil = (dateStr) => {
-  try {
-    const diff = parseISO(dateStr) - new Date();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
-  } catch {
-    return null;
-  }
+  const d = toDate(dateStr);
+  if (!d) return null;
+  const diff = d - new Date();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
 };
 
 export const formatShortDate = (dateStr) => {
-  try {
-    return format(parseISO(dateStr), 'MMM dd');
-  } catch {
-    return dateStr;
-  }
+  const d = toDate(dateStr);
+  return d ? format(d, 'MMM dd') : (dateStr ? String(dateStr) : '—');
 };
 
 export const formatMonthYear = (dateStr) => {
-  try {
-    return format(parseISO(dateStr), 'MMMM yyyy');
-  } catch {
-    return dateStr;
-  }
+  const d = toDate(dateStr);
+  return d ? format(d, 'MMMM yyyy') : (dateStr ? String(dateStr) : '—');
 };
 
 export const formatEventSchedule = (dateStr, startTime, endTime) => {

@@ -309,12 +309,12 @@ const CheckInScannerPage = () => {
       setRecentScans((prev) => [
         {
           id: match.id,
-          name: match.name,
+          name: match.name || 'Attendee',
           ticketId: match.ticketId,
-          eventName: match.eventName,
-          time: scanTimestamp,
-          avatar: match.initials,
-          tier: match.pricingTier,
+          eventName: match.eventName || 'Event Pass',
+          time: scanTimestamp.toISOString(),
+          avatar: match.initials || match.name?.slice(0, 2)?.toUpperCase() || 'A',
+          tier: match.pricingTier || 'Standard',
         },
         ...prev.slice(0, 9),
       ]);
