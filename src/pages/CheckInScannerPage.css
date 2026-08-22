@@ -228,25 +228,27 @@
 }
 
 .scanner-target-corners {
-  width: 220px;
-  height: 220px;
-  border: 2px solid rgba(99, 102, 241, 0.6);
+  width: 320px;
+  height: 200px;
+  max-width: 90%;
+  border: 2px solid rgba(99, 102, 241, 0.7);
   border-radius: var(--radius-lg);
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
 }
 
 .scanner-laser-line {
   position: absolute;
-  width: 220px;
+  width: 320px;
+  max-width: 90%;
   height: 2px;
   background: #6366F1;
-  box-shadow: 0 0 12px #6366F1;
+  box-shadow: 0 0 14px #6366F1;
   animation: scanLaser 2s ease-in-out infinite alternate;
 }
 
 @keyframes scanLaser {
-  0% { transform: translateY(-90px); }
-  100% { transform: translateY(90px); }
+  0% { transform: translateY(-80px); }
+  100% { transform: translateY(80px); }
 }
 
 .camera-error-banner {

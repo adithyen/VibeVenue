@@ -10,6 +10,7 @@ import Button from '../components/ui/Button';
 import ProgressBar from '../components/ui/ProgressBar';
 import Modal from '../components/ui/Modal';
 import EditProfileModal from '../components/profile/EditProfileModal';
+import PassBarcodeQR from '../components/common/PassBarcodeQR';
 import { formatDate, formatEventSchedule, getEventFeeDisplay, getComputedEventStatus, getRegistrationStatusInfo } from '../utils/dateUtils';
 import './ParticipantPortal.css';
 
@@ -414,10 +415,7 @@ const ParticipantPortal = () => {
               )}
             </div>
 
-            <div className="barcode-mock-container">
-              <div className="barcode-lines" />
-              <span className="barcode-code font-mono">{inspectPass.ticketId}-CAMPUS-2026</span>
-            </div>
+            <PassBarcodeQR value={inspectPass.ticketId} />
 
             <div className="ticket-inspect-actions">
               <Button

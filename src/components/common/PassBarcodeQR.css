@@ -1,0 +1,93 @@
+/* PassBarcodeQR.css — Crisp High-Contrast Scannable Barcode & QR Suite */
+
+.pass-barcode-qr-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface-inset);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl, 16px);
+  margin-top: 14px;
+}
+
+.pass-code-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pass-tab-pill {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  padding: 3px 10px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pass-tab-pill:hover {
+  color: var(--text-primary);
+  background: var(--surface-card);
+}
+
+.pass-tab-pill.active {
+  background: var(--surface-card);
+  color: var(--accent-iris, #6366F1);
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-sm);
+}
+
+.pass-codes-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.qr-box-wrapper,
+.barcode-svg-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.qr-canvas-card,
+.barcode-svg-card {
+  background: #FFFFFF !important;
+  padding: 8px;
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.real-barcode-svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.qr-hint,
+.barcode-hint {
+  font-size: 0.5625rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+
+.pass-security-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-align: center;
+}

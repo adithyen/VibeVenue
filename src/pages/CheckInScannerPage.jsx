@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import useEventStore from '../store/useEventStore';
 import useUIStore from '../store/useUIStore';
 import Avatar from '../components/ui/Avatar';
@@ -31,10 +31,11 @@ const CheckInScannerPage = () => {
   // Manual / Keyboard Barcode Scanner input
   const [manualInput, setManualInput] = useState('');
   const [recentScans, setRecentScans] = useState([]);
-  const [lastScannedResult, setLastScannedResult] = useState(null); // { attendee, status: 'success' | 'already_checked' | 'not_found', scannedCode, timestamp }
+  const [lastScannedResult, setLastScannedResult] = useState(null);
 
   const scannerRef = useRef(null);
   const html5QrCodeRef = useRef(null);
+  const fileInputRef = useRef(null);
   const barcodeBufferRef = useRef('');
   const lastKeyTimeRef = useRef(Date.now());
 
@@ -51,10 +52,8 @@ const CheckInScannerPage = () => {
   }, [fetchAttendees]);
 
   // 2. Hardware Barcode Gun / USB Scanner Listener (Keyboard Wedge)
-  // Barcode scanners type extremely fast (< 30ms per character) and end with 'Enter'
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Ignore if user is currently typing in an input or textarea
       if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
         return;
       }
@@ -86,7 +85,6 @@ const CheckInScannerPage = () => {
       .then((devices) => {
         if (devices && devices.length > 0) {
           setCamerasList(devices);
-          // Prefer back camera if available on mobile/tablet
           const backCam = devices.find((d) => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
           setSelectedCameraId(backCam ? backCam.id : devices[0].id);
         }
@@ -96,7 +94,7 @@ const CheckInScannerPage = () => {
       });
   }, []);
 
-  // 4. Start Camera QR Scanner
+  // 4. Start Camera Multi-Format Scanner
   const startCamera = async (cameraId) => {
     setCameraError(null);
     try {
@@ -104,13 +102,35 @@ const CheckInScannerPage = () => {
         await stopCamera();
       }
 
-      const html5QrCode = new Html5Qrcode('qr-reader-viewport');
+      const html5QrCode = new Html5Qrcode('qr-reader-viewport', {
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.CODE_93,
+          Html5QrcodeSupportedFormats.CODABAR,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.ITF,
+          Html5QrcodeSupportedFormats.DATA_MATRIX,
+        ],
+        verbose: false,
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true,
+        },
+      });
       html5QrCodeRef.current = html5QrCode;
 
       const config = {
-        fps: 15,
-        qrbox: { width: 260, height: 260 },
-        aspectRatio: 1.0,
+        fps: 20,
+        qrbox: (viewfinderWidth, viewfinderHeight) => ({
+          width: Math.min(Math.floor(viewfinderWidth * 0.92), 420),
+          height: Math.min(Math.floor(viewfinderHeight * 0.75), 260),
+        }),
+        aspectRatio: 1.33,
+        disableFlip: false,
       };
 
       await html5QrCode.start(
@@ -120,7 +140,7 @@ const CheckInScannerPage = () => {
           processScanCode(decodedText);
         },
         () => {
-          // Ignore parse errors on empty frames
+          // Ignore empty frame parse warnings
         }
       );
 
@@ -158,7 +178,7 @@ const CheckInScannerPage = () => {
   // 6. Process Scanned Code (QR / Barcode / Roll No / Ticket ID)
   const processScanCode = async (rawCode) => {
     if (!rawCode || isProcessingScan) return;
-    const cleanCode = rawCode.trim().toUpperCase();
+    const cleanCode = String(rawCode).trim().toUpperCase();
 
     setIsProcessingScan(true);
 
@@ -168,10 +188,11 @@ const CheckInScannerPage = () => {
       if (selectedEventId !== 'all' && a.eventId !== selectedEventId) {
         return false;
       }
-      const ticketMatch = a.ticketId?.toUpperCase() === cleanCode || cleanCode.includes(a.ticketId?.toUpperCase());
-      const studentMatch = a.studentId?.toUpperCase() === cleanCode || a.rollNumber?.toUpperCase() === cleanCode;
-      const idMatch = a.id?.toUpperCase() === cleanCode;
-      const emailMatch = a.email?.toUpperCase() === cleanCode;
+      const ticket = a.ticketId?.toUpperCase();
+      const ticketMatch = ticket && (cleanCode === ticket || cleanCode.includes(ticket) || ticket.includes(cleanCode));
+      const studentMatch = (a.studentId && cleanCode.includes(a.studentId.toUpperCase())) || (a.rollNumber && cleanCode.includes(a.rollNumber.toUpperCase()));
+      const idMatch = a.id && cleanCode.includes(a.id.toUpperCase());
+      const emailMatch = a.email && cleanCode.includes(a.email.toUpperCase());
       return ticketMatch || studentMatch || idMatch || emailMatch;
     });
 
@@ -190,7 +211,7 @@ const CheckInScannerPage = () => {
         title: 'Pass Not Found ✕',
         message: `No active registration matched code "${rawCode}".`,
       });
-      setTimeout(() => setIsProcessingScan(false), 1200);
+      setTimeout(() => setIsProcessingScan(false), 1500);
       return;
     }
 
@@ -208,7 +229,7 @@ const CheckInScannerPage = () => {
         title: 'Already Checked In ⚠️',
         message: `${match.name} was already checked in ${formatTimeAgo(match.checkedInAt || match.registeredAt)}.`,
       });
-      setTimeout(() => setIsProcessingScan(false), 1200);
+      setTimeout(() => setIsProcessingScan(false), 1500);
       return;
     }
 
@@ -250,7 +271,33 @@ const CheckInScannerPage = () => {
       });
     }
 
-    setTimeout(() => setIsProcessingScan(false), 1200);
+    setTimeout(() => setIsProcessingScan(false), 1500);
+  };
+
+  // Handle Image File Scan (Upload badge image / screenshot)
+  const handleFileScan = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const html5QrCode = new Html5Qrcode('qr-file-reader-dummy', {
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.EAN_13,
+        ],
+        verbose: false,
+      });
+      const decodedText = await html5QrCode.scanFile(file, true);
+      html5QrCode.clear();
+      processScanCode(decodedText);
+    } catch (err) {
+      addToast({
+        type: 'error',
+        title: 'Could Not Decode Image',
+        message: 'No readable QR code or barcode found in the selected file.',
+      });
+    }
   };
 
   // 7. Manual Search / Barcode Form Submit
@@ -386,16 +433,36 @@ const CheckInScannerPage = () => {
                   <p className="standby-sub font-mono">
                     Point laptop camera or mobile lens at the attendee's ticket QR code.
                   </p>
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="md"
-                    onClick={() => startCamera(selectedCameraId)}
-                  >
-                    ▶ Start Live Camera
-                  </Button>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="md"
+                      onClick={() => startCamera(selectedCameraId)}
+                    >
+                      ▶ Start Live Camera
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="md"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      📁 Upload / Scan Image
+                    </Button>
+                  </div>
                 </div>
               )}
+
+              {/* Hidden file input & dummy container for file decoding */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleFileScan}
+              />
+              <div id="qr-file-reader-dummy" style={{ display: 'none' }} />
 
               {cameraActive && (
                 <div className="scanner-laser-overlay">
@@ -412,7 +479,15 @@ const CheckInScannerPage = () => {
             )}
 
             {cameraActive && (
-              <div className="camera-controls-footer">
+              <div className="camera-controls-footer" style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  📁 Scan Image File
+                </Button>
                 <Button
                   type="button"
                   variant="secondary"
