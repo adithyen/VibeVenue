@@ -20,6 +20,7 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
     getRecentRegistrations,
     updateParticipantStatus,
     updateCheckInStatus,
+    updateMemberCheckIn,
     updateAddonFulfillment,
     removeParticipant,
   } = useEventStore();
@@ -96,26 +97,68 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
     }
   };
 
-  // 1. Toggle Check-In Attendance
+  // 1. Toggle Check-In Attendance (syncs all team members)
   const handleToggleCheckIn = async () => {
     if (!attendee) return;
     setIsUpdating(true);
-    const newCheckIn = attendee.checkInStatus !== 'Checked In';
-    const ok = await updateCheckInStatus(attendee.id, newCheckIn);
+    const newStatus = attendee.checkInStatus !== 'Checked In';
+    const ok = await updateCheckInStatus(attendee.id, newStatus);
     if (ok) {
+      const updatedMembers = Array.isArray(attendee.teamMembers)
+        ? attendee.teamMembers.map((m) => ({
+            ...m,
+            checkedIn: newStatus,
+            checkedInAt: newStatus ? new Date().toISOString() : null,
+          }))
+        : attendee.teamMembers;
+
       const updated = {
         ...attendee,
-        checkInStatus: newCheckIn ? 'Checked In' : 'Not Checked In',
-        checkedInAt: newCheckIn ? new Date().toISOString() : null,
+        checkInStatus: newStatus ? 'Checked In' : 'Not Checked In',
+        checkedInAt: newStatus ? new Date().toISOString() : null,
+        teamMembers: updatedMembers,
       };
       setAttendee(updated);
       addToast({
-        type: newCheckIn ? 'success' : 'info',
-        title: newCheckIn ? 'Attendee Checked In' : 'Check-In Reset',
-        message: `${attendee.name} marked as ${newCheckIn ? 'Checked In' : 'Not Checked In'}.`,
+        type: newStatus ? 'success' : 'info',
+        title: newStatus ? 'Gate Check-In Verified ✓' : 'Gate Check-In Reset',
+        message: newStatus
+          ? `${attendee.name} (and all team members) marked as present.`
+          : 'Gate access status cleared.',
       });
     }
     setIsUpdating(false);
+  };
+
+  // Individual Team Member Toggle
+  const handleToggleMember = async (idx) => {
+    if (!attendee || !Array.isArray(attendee.teamMembers)) return;
+    const member = attendee.teamMembers[idx];
+    if (!member) return;
+    const nextVal = !member.checkedIn;
+    const ok = await updateMemberCheckIn(attendee.id, idx, nextVal);
+    if (ok) {
+      const updatedMembers = [...attendee.teamMembers];
+      updatedMembers[idx] = {
+        ...member,
+        checkedIn: nextVal,
+        checkedInAt: nextVal ? new Date().toISOString() : null,
+      };
+      const allChecked = updatedMembers.length > 0 && updatedMembers.every((m) => m.checkedIn);
+      const anyChecked = updatedMembers.some((m) => m.checkedIn);
+      const overallStatus = allChecked ? 'Checked In' : anyChecked ? 'Partially Checked In' : 'Not Checked In';
+
+      setAttendee({
+        ...attendee,
+        teamMembers: updatedMembers,
+        checkInStatus: overallStatus,
+      });
+      addToast({
+        type: nextVal ? 'success' : 'info',
+        title: nextVal ? 'Member Checked In ✓' : 'Member Check-In Reset',
+        message: `${member.name || `Member ${idx + 1}`} marked as ${nextVal ? 'Present' : 'Absent'}.`,
+      });
+    }
   };
 
   // 2. Submit Decision Status with Reason
@@ -355,9 +398,23 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
                               {mRoll ? `${mRoll} • ` : ''}{mEmail}
                             </div>
                           </div>
-                          <span className={`font-mono ${isChecked ? 'text-emerald' : 'text-muted'}`} style={{ fontSize: '0.6875rem', fontWeight: 700 }}>
-                            {isChecked ? '✓ Present' : '○ Absent'}
-                          </span>
+                          <button
+                            type="button"
+                            className={`att-addon-toggle font-mono ${isChecked ? 'given' : 'pending'}`}
+                            onClick={() => handleToggleMember(idx)}
+                            style={{
+                              fontSize: '0.75rem',
+                              padding: '4px 10px',
+                              borderRadius: 20,
+                              cursor: 'pointer',
+                              border: isChecked ? '1px solid rgba(5, 150, 105, 0.4)' : '1px solid var(--border-default)',
+                              background: isChecked ? 'rgba(5, 150, 105, 0.1)' : 'var(--surface-inset)',
+                              color: isChecked ? 'var(--accent-emerald, #059669)' : 'var(--text-muted)',
+                              fontWeight: 700,
+                            }}
+                          >
+                            {isChecked ? '✓ Present' : '○ Mark Present'}
+                          </button>
                         </div>
                       );
                     })}

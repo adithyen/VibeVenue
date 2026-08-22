@@ -303,12 +303,77 @@ const useEventStore = create((set, get) => ({
     return !error;
   },
 
-  updateCheckInStatus: async (registrationId, checkIn) => {
+  updateCheckInStatus: async (registrationId, checkIn, memberIndices = null) => {
+    const { data: current } = await supabase
+      .from('registrations')
+      .select('team_members, checked_in_at')
+      .eq('id', registrationId)
+      .single();
+
+    const timestamp = new Date().toISOString();
+    let updatedMembers = null;
+
+    if (current && Array.isArray(current.team_members) && current.team_members.length > 0) {
+      if (Array.isArray(memberIndices)) {
+        updatedMembers = current.team_members.map((m, idx) => ({
+          ...m,
+          checkedIn: memberIndices.includes(idx),
+          checkedInAt: memberIndices.includes(idx) ? (m.checkedInAt || timestamp) : null,
+        }));
+      } else {
+        updatedMembers = current.team_members.map((m) => ({
+          ...m,
+          checkedIn: checkIn,
+          checkedInAt: checkIn ? (m.checkedInAt || timestamp) : null,
+        }));
+      }
+    }
+
+    const allChecked = updatedMembers ? (updatedMembers.length > 0 && updatedMembers.every((m) => m.checkedIn)) : checkIn;
+    const anyChecked = updatedMembers ? updatedMembers.some((m) => m.checkedIn) : checkIn;
+    const overallStatus = allChecked ? 'Checked In' : anyChecked ? 'Partially Checked In' : 'Not Checked In';
+
+    const payload = {
+      check_in_status: overallStatus,
+      checked_in_at: anyChecked ? current?.checked_in_at || timestamp : null,
+    };
+    if (updatedMembers) {
+      payload.team_members = updatedMembers;
+    }
+
+    const { error } = await supabase
+      .from('registrations')
+      .update(payload)
+      .eq('id', registrationId);
+    return !error;
+  },
+
+  updateTeamCheckIn: async (registrationId, selectedMemberIndices) => {
+    const { data: current } = await supabase
+      .from('registrations')
+      .select('team_members, checked_in_at')
+      .eq('id', registrationId)
+      .single();
+
+    if (!current) return false;
+    const timestamp = new Date().toISOString();
+    const members = Array.isArray(current.team_members) ? [...current.team_members] : [];
+    const updatedMembers = members.map((m, idx) => ({
+      ...m,
+      checkedIn: selectedMemberIndices.includes(idx),
+      checkedInAt: selectedMemberIndices.includes(idx) ? (m.checkedInAt || timestamp) : null,
+    }));
+
+    const allChecked = updatedMembers.length > 0 && updatedMembers.every((m) => m.checkedIn);
+    const anyChecked = updatedMembers.some((m) => m.checkedIn);
+    const overallStatus = allChecked ? 'Checked In' : anyChecked ? 'Partially Checked In' : 'Not Checked In';
+
     const { error } = await supabase
       .from('registrations')
       .update({
-        check_in_status: checkIn ? 'Checked In' : 'Not Checked In',
-        checked_in_at: checkIn ? new Date().toISOString() : null,
+        team_members: updatedMembers,
+        check_in_status: overallStatus,
+        checked_in_at: anyChecked ? current.checked_in_at || timestamp : null,
       })
       .eq('id', registrationId);
     return !error;
@@ -322,12 +387,13 @@ const useEventStore = create((set, get) => ({
       .single();
 
     if (!current) return false;
+    const timestamp = new Date().toISOString();
     const members = Array.isArray(current.team_members) ? [...current.team_members] : [];
     if (members[memberIndex]) {
       members[memberIndex] = {
         ...members[memberIndex],
         checkedIn: checkIn,
-        checkedInAt: checkIn ? new Date().toISOString() : null,
+        checkedInAt: checkIn ? (members[memberIndex].checkedInAt || timestamp) : null,
       };
     }
     const allChecked = members.length > 0 && members.every((m) => m.checkedIn);
@@ -339,7 +405,7 @@ const useEventStore = create((set, get) => ({
       .update({
         team_members: members,
         check_in_status: overallStatus,
-        checked_in_at: anyChecked ? current.checked_in_at || new Date().toISOString() : null,
+        checked_in_at: anyChecked ? current.checked_in_at || timestamp : null,
       })
       .eq('id', registrationId);
     return !error;

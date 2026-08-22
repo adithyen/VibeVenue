@@ -10,13 +10,14 @@ import { supabase } from '../lib/supabase';
 import Avatar from '../components/ui/Avatar';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
 import { formatTimeAgo, formatDateTime } from '../utils/dateUtils';
 import { playSuccessChime, playWarningBeep, playErrorBuzz } from '../utils/audioUtils';
 import './CheckInScannerPage.css';
 
 const CheckInScannerPage = () => {
   const navigate = useNavigate();
-  const { events, getRecentRegistrations, updateCheckInStatus, updateAddonFulfillment } = useEventStore();
+  const { events, getRecentRegistrations, updateCheckInStatus, updateTeamCheckIn, updateAddonFulfillment } = useEventStore();
   const { addToast } = useUIStore();
 
   const [selectedEventId, setSelectedEventId] = useState('all');
@@ -27,7 +28,79 @@ const CheckInScannerPage = () => {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState(null);
   const [camerasList, setCamerasList] = useState([]);
-  const [selectedCameraId, setSelectedCameraId] = useState(null);
+  const [teamModalData, setTeamModalData] = useState(null); // { attendee, selectedIndices, rawCode }
+
+  const handleToggleMemberIndex = (idx) => {
+    if (!teamModalData) return;
+    const current = teamModalData.selectedIndices;
+    const next = current.includes(idx) ? current.filter((i) => i !== idx) : [...current, idx];
+    setTeamModalData({ ...teamModalData, selectedIndices: next });
+  };
+
+  const handleSelectAllMembers = () => {
+    if (!teamModalData?.attendee?.teamMembers) return;
+    const all = teamModalData.attendee.teamMembers.map((_, i) => i);
+    setTeamModalData({ ...teamModalData, selectedIndices: all });
+  };
+
+  const handleDeselectAllMembers = () => {
+    if (!teamModalData) return;
+    setTeamModalData({ ...teamModalData, selectedIndices: [] });
+  };
+
+  const handleConfirmTeamCheckIn = async () => {
+    if (!teamModalData?.attendee) return;
+    const { attendee, selectedIndices, rawCode } = teamModalData;
+    const scanTimestamp = new Date();
+
+    const ok = await updateTeamCheckIn(attendee.id, selectedIndices);
+    if (ok) {
+      playSuccessChime();
+      const updatedMembers = attendee.teamMembers.map((m, idx) => ({
+        ...m,
+        checkedIn: selectedIndices.includes(idx),
+        checkedInAt: selectedIndices.includes(idx) ? m.checkedInAt || scanTimestamp.toISOString() : null,
+      }));
+      const allChecked = updatedMembers.length > 0 && updatedMembers.every((m) => m.checkedIn);
+      const anyChecked = updatedMembers.some((m) => m.checkedIn);
+      const overallStatus = allChecked ? 'Checked In' : anyChecked ? 'Partially Checked In' : 'Not Checked In';
+
+      const updatedAttendee = {
+        ...attendee,
+        teamMembers: updatedMembers,
+        checkInStatus: overallStatus,
+        checkedInAt: anyChecked ? attendee.checkedInAt || scanTimestamp.toISOString() : null,
+      };
+
+      setAttendees((prev) => prev.map((a) => (a.id === attendee.id ? updatedAttendee : a)));
+      setLastScannedResult({
+        attendee: updatedAttendee,
+        status: 'success',
+        scannedCode: rawCode,
+        timestamp: scanTimestamp,
+      });
+
+      setRecentScans((prev) => [
+        {
+          id: attendee.id,
+          name: `${attendee.teamName || 'Team'} (${selectedIndices.length}/${attendee.teamMembers.length} Present)`,
+          ticketId: attendee.ticketId,
+          eventName: attendee.eventName || 'Event Pass',
+          time: scanTimestamp.toISOString(),
+          avatar: '👥',
+          tier: attendee.pricingTier || 'Team Pass',
+        },
+        ...prev.slice(0, 9),
+      ]);
+
+      addToast({
+        type: 'success',
+        title: 'Team Clearance Approved! 🎉',
+        message: `${selectedIndices.length} of ${attendee.teamMembers.length} members checked in for ${attendee.teamName || 'Team'}.`,
+      });
+    }
+    setTeamModalData(null);
+  };
   const [isProcessingScan, setIsProcessingScan] = useState(false);
   const [scannedFrameBox, setScannedFrameBox] = useState(null);
 
@@ -270,7 +343,20 @@ const CheckInScannerPage = () => {
       return;
     }
 
-    // Check if already checked in
+    // If Team Registration -> Open Interactive Team Member Selection Modal
+    if (match.registrationType === 'group' || (Array.isArray(match.teamMembers) && match.teamMembers.length > 0)) {
+      playSuccessChime();
+      const allIndices = (match.teamMembers || []).map((_, i) => i);
+      setTeamModalData({
+        attendee: match,
+        selectedIndices: allIndices,
+        rawCode,
+      });
+      setIsProcessingScan(false);
+      return;
+    }
+
+    // Individual Registration: Check if already checked in
     if (match.checkInStatus === 'Checked In') {
       playWarningBeep();
       setLastScannedResult({
@@ -288,7 +374,7 @@ const CheckInScannerPage = () => {
       return;
     }
 
-    // Successful Check-In
+    // Successful Individual Check-In
     playSuccessChime();
     const ok = await updateCheckInStatus(match.id, true);
     const updatedAttendee = {
@@ -768,6 +854,113 @@ const CheckInScannerPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Interactive Team Check-In Member Selection Modal */}
+      {teamModalData && (
+        <Modal
+          isOpen={!!teamModalData}
+          onClose={() => setTeamModalData(null)}
+          title={`👥 Team Gate Clearance: ${teamModalData.attendee.teamName || 'Team'}`}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ background: 'var(--surface-inset)', padding: '10px 14px', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span className="font-mono" style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>TICKET ID: </span>
+                <strong className="font-mono text-iris">{teamModalData.attendee.ticketId}</strong>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  {teamModalData.attendee.eventName || 'Event Pass'} • {teamModalData.attendee.pricingTier || 'Team Pass'}
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  type="button"
+                  className="font-mono copy-btn"
+                  onClick={handleSelectAllMembers}
+                  style={{ fontSize: '0.6875rem' }}
+                >
+                  ✓ Select All
+                </button>
+                <button
+                  type="button"
+                  className="font-mono copy-btn"
+                  onClick={handleDeselectAllMembers}
+                  style={{ fontSize: '0.6875rem' }}
+                >
+                  ○ Clear All
+                </button>
+              </div>
+            </div>
+
+            <p className="font-mono" style={{ fontSize: '0.8125rem', color: 'var(--text-primary)', margin: 0 }}>
+              Select present delegates who have arrived at the gate:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto' }}>
+              {teamModalData.attendee.teamMembers?.map((member, idx) => {
+                const isSelected = teamModalData.selectedIndices.includes(idx);
+                const isLeader = member.isLeader || idx === 0;
+
+                return (
+                  <label
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 14px',
+                      borderRadius: 8,
+                      background: isSelected ? 'rgba(99, 102, 241, 0.08)' : 'var(--surface-card)',
+                      border: isSelected ? '1px solid var(--accent-iris, #6366F1)' : '1px solid var(--border-subtle)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleMemberIndex(idx)}
+                        style={{ width: 18, height: 18, cursor: 'pointer' }}
+                      />
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <strong style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>{member.name}</strong>
+                          {isLeader && (
+                            <span className="font-mono" style={{ fontSize: '0.625rem', color: '#D97706', background: 'rgba(217, 119, 6, 0.1)', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>
+                              👑 Leader
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                          {member.rollNumber ? `${member.rollNumber} • ` : ''}{member.email || `Member ${idx + 1}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className="font-mono" style={{ fontSize: '0.75rem', fontWeight: 700, color: isSelected ? 'var(--accent-emerald, #059669)' : 'var(--text-muted)' }}>
+                      {isSelected ? '✓ Present' : '○ Absent'}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8, paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
+              <Button type="button" variant="secondary" onClick={() => setTeamModalData(null)}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleConfirmTeamCheckIn}
+                disabled={teamModalData.selectedIndices.length === 0}
+              >
+                ✓ Confirm Gate Check-In ({teamModalData.selectedIndices.length} / {teamModalData.attendee.teamMembers?.length || 0} Members) ↵
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
