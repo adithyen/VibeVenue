@@ -71,17 +71,41 @@ const useEventStore = create((set, get) => ({
     return { totalEvents: events.length, upcomingEvents: upcoming, totalRegistrations: totalRegs, availableSeats: available, avgOccupancy };
   },
 
-  getRecentRegistrations: async (limit = 10) => {
+  getRecentRegistrations: async (limit = 500) => {
     const { data, error } = await supabase
       .from('registrations')
-      .select(`*, events ( name, category, start_date )`)
+      .select(`*, events ( id, name, category, start_date )`)
       .order('registered_at', { ascending: false })
       .limit(limit);
     if (error) return [];
     return (data || []).map(r => ({
       ...r,
+      id: r.id,
+      userId: r.user_id,
+      eventId: r.event_id,
+      ticketId: r.ticket_id,
       name: r.full_name,
+      email: r.email,
+      phone: r.phone,
       studentId: r.student_id,
+      rollNumber: r.student_id,
+      college: r.college,
+      department: r.department,
+      year: r.year,
+      registrationType: r.registration_type,
+      teamName: r.team_name,
+      teamMembers: r.team_members || [],
+      pricingTier: r.pricing_tier,
+      membershipProof: r.membership_proof,
+      selectedAddOns: r.selected_addons || [],
+      addonsProvided: r.addons_provided || {},
+      totalPaid: r.total_paid,
+      txnId: r.txn_id,
+      screenshotUrl: r.screenshot_url,
+      status: r.status,
+      checkInStatus: r.check_in_status || 'Not Checked In',
+      checkedInAt: r.checked_in_at,
+      registeredAt: r.registered_at,
       eventName: r.events?.name,
       eventCategory: r.events?.category,
       eventDate: r.events?.start_date,
@@ -209,6 +233,9 @@ const useEventStore = create((set, get) => ({
         team_members:      formData.teamMembers || [],
         pricing_tier:      formData.pricingTier || null,
         membership_proof:  formData.membershipProof || null,
+        selected_addons:   formData.selectedAddOns || [],
+        addons_provided:   {},
+        screenshot_url:    formData.screenshotBase64 || null,
         total_paid:        formData.totalPaid || 0,
         txn_id:            formData.txnId || null,
         status:            'confirmed',
@@ -276,6 +303,20 @@ const useEventStore = create((set, get) => ({
     return !error;
   },
 
+  updateAddonFulfillment: async (registrationId, addonLabel, provided) => {
+    const { data: current } = await supabase
+      .from('registrations')
+      .select('addons_provided')
+      .eq('id', registrationId)
+      .single();
+    const updated = { ...(current?.addons_provided || {}), [addonLabel]: provided };
+    const { error } = await supabase
+      .from('registrations')
+      .update({ addons_provided: updated })
+      .eq('id', registrationId);
+    return !error;
+  },
+
   // Fetch all registrations for a single event (for the management detail page)
   fetchEventParticipants: async (eventId) => {
     const { data, error } = await supabase
@@ -286,12 +327,28 @@ const useEventStore = create((set, get) => ({
     if (error) return [];
     return (data || []).map(r => ({
       ...r,
+      id: r.id,
+      userId: r.user_id,
+      eventId: r.event_id,
       name: r.full_name,
+      email: r.email,
+      phone: r.phone,
       studentId: r.student_id,
+      rollNumber: r.student_id,
+      college: r.college,
+      department: r.department,
+      year: r.year,
       ticketId: r.ticket_id,
       pricingTier: r.pricing_tier,
       membershipProof: r.membership_proof,
-      checkInStatus: r.check_in_status,
+      selectedAddOns: r.selected_addons || [],
+      addonsProvided: r.addons_provided || {},
+      totalPaid: r.total_paid,
+      txnId: r.txn_id,
+      screenshotUrl: r.screenshot_url,
+      status: r.status,
+      checkInStatus: r.check_in_status || 'Not Checked In',
+      checkedInAt: r.checked_in_at,
       registeredAt: r.registered_at,
     }));
   },

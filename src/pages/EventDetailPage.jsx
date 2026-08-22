@@ -465,6 +465,9 @@ const EventDetailPage = () => {
               participants={participants}
               eventId={event.id}
               isLoading={participantsLoading}
+              onUpdateAttendee={(updated) => {
+                setParticipants(prev => prev.map(a => a.id === updated.id ? { ...a, ...updated } : a));
+              }}
             />
           </div>
         )}

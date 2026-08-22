@@ -219,6 +219,9 @@ const RegistrationsPage = () => {
           <ParticipantTable
             participants={pageAttendees}
             showEvent={true}
+            onUpdateAttendee={(updated) => {
+              setAllAttendees(prev => prev.map(a => a.id === updated.id ? { ...a, ...updated } : a));
+            }}
           />
 
           {/* Pagination */}

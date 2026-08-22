@@ -1,16 +1,16 @@
-// Tactile Attendee Manifest Data Table
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Avatar from '../ui/Avatar';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import Modal from '../ui/Modal';
+import RegistrationInspectModal from './RegistrationInspectModal';
 import { formatTimeAgo, formatDate } from '../../utils/dateUtils';
 import useEventStore from '../../store/useEventStore';
 import useUIStore from '../../store/useUIStore';
 import './ParticipantTable.css';
 
-const ParticipantTable = ({ participants, eventId, showEvent = false }) => {
+const ParticipantTable = ({ participants, eventId, showEvent = false, onUpdateAttendee }) => {
   const [inspectAttendee, setInspectAttendee] = useState(null);
   const [confirmRemove, setConfirmRemove] = useState(null);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -20,10 +20,9 @@ const ParticipantTable = ({ participants, eventId, showEvent = false }) => {
 
   const handleCancelPass = async (attendee) => {
     setIsRemoving(true);
-    // Simulate brief network delay
-    await new Promise((r) => setTimeout(r, 450));
+    await new Promise((r) => setTimeout(r, 350));
     
-    removeParticipant(eventId || attendee.eventId, attendee.id);
+    await removeParticipant(eventId || attendee.eventId, attendee.id);
     addToast({
       type: 'success',
       title: 'Registration Cancelled',
@@ -154,126 +153,16 @@ const ParticipantTable = ({ participants, eventId, showEvent = false }) => {
         </table>
       </div>
 
-      {/* Attendee Ticket Pass Inspection Modal */}
-      <Modal
+      {/* High-Craft Registration Inspection & Verification Modal */}
+      <RegistrationInspectModal
         open={!!inspectAttendee}
+        attendee={inspectAttendee}
         onClose={() => setInspectAttendee(null)}
-        title="Student Registration Pass"
-        subtitle="Official symposium entry credential & verification pass"
-        size="md"
-      >
-        {inspectAttendee && (
-          <div className="ticket-pass-card">
-            {/* Ticket Header Strip */}
-            <div className="pass-header">
-              <div className="pass-brand-row">
-                <span className="pass-fest font-mono">VIBEVENUE '26</span>
-                <span className="pass-id-badge font-mono">{inspectAttendee.ticketId}</span>
-              </div>
-              <h3 className="pass-event-title">{inspectAttendee.eventName || 'Symposium Track'}</h3>
-            </div>
-
-            {/* Pass Body */}
-            <div className="pass-body">
-              <div className="pass-student-info">
-                <Avatar name={inspectAttendee.name} initials={inspectAttendee.initials} size="lg" />
-                <div className="pass-name-col">
-                  <h4 className="pass-student-name">{inspectAttendee.name}</h4>
-                  <p className="pass-email font-mono">{inspectAttendee.email}</p>
-                </div>
-              </div>
-
-              <div className="pass-grid">
-                <div className="pass-grid-item">
-                  <span className="pass-lbl">Student Roll ID</span>
-                  <span className="pass-val font-mono">{inspectAttendee.studentId}</span>
-                </div>
-                <div className="pass-grid-item">
-                  <span className="pass-lbl">Engineering Dept</span>
-                  <span className="pass-val">{inspectAttendee.department}</span>
-                </div>
-                <div className="pass-grid-item">
-                  <span className="pass-lbl">Academic Year</span>
-                  <span className="pass-val">{inspectAttendee.year}</span>
-                </div>
-                <div className="pass-grid-item">
-                  <span className="pass-lbl">Contact Phone</span>
-                  <span className="pass-val font-mono">{inspectAttendee.phone}</span>
-                </div>
-                <div className="pass-grid-item">
-                  <span className="pass-lbl">Pass Status</span>
-                  <Badge status={inspectAttendee.status} dot size="sm">
-                    {inspectAttendee.status.toUpperCase()}
-                  </Badge>
-                </div>
-                <div className="pass-grid-item">
-                  <span className="pass-lbl">Gate Check-in</span>
-                  <span className="pass-val font-mono">{inspectAttendee.checkInStatus || 'Not Checked'}</span>
-                </div>
-                {inspectAttendee.pricingTier && (
-                  <div className="pass-grid-item" style={{ gridColumn: '1 / -1' }}>
-                    <span className="pass-lbl">Registration Category / Tier</span>
-                    <span className="pass-val">
-                      🏷️ <strong>{inspectAttendee.pricingTier}</strong>
-                    </span>
-                  </div>
-                )}
-                {inspectAttendee.membershipProof && (
-                  <div className="pass-grid-item" style={{ gridColumn: '1 / -1' }}>
-                    <span className="pass-lbl">Membership ID / Verification Proof</span>
-                    <span className="pass-val font-mono" style={{ color: '#F59E0B', fontWeight: 600 }}>
-                      🔒 {inspectAttendee.membershipProof}
-                    </span>
-                  </div>
-                )}
-                {inspectAttendee.teamName && (
-                  <div className="pass-grid-item" style={{ gridColumn: '1 / -1' }}>
-                    <span className="pass-lbl">Team Name</span>
-                    <span className="pass-val">👥 {inspectAttendee.teamName}</span>
-                  </div>
-                )}
-                {inspectAttendee.teamMembers && inspectAttendee.teamMembers.length > 0 && (
-                  <div className="pass-grid-item" style={{ gridColumn: '1 / -1' }}>
-                    <span className="pass-lbl">Team Members ({inspectAttendee.teamMembers.length})</span>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
-                      {inspectAttendee.teamMembers.map((m, idx) => {
-                        const name = typeof m === 'object' ? m.name : '';
-                        const email = typeof m === 'object' ? m.email : m;
-                        return (
-                          <div key={idx} style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                            • {name ? <strong>{name}</strong> : null} {email ? <span className="font-mono">({email})</span> : null}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Barcode Mock */}
-              <div className="pass-barcode-box">
-                <div className="barcode-lines" />
-                <span className="barcode-code font-mono">{inspectAttendee.ticketId}-SYMP-2026</span>
-              </div>
-            </div>
-
-            {/* Pass Actions */}
-            <div className="pass-actions">
-              <Button
-                variant="danger"
-                size="sm"
-                fullWidth
-                onClick={() => {
-                  setInspectAttendee(null);
-                  setConfirmRemove(inspectAttendee);
-                }}
-              >
-                Revoke / Cancel Registration
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
+        onUpdate={(updated) => {
+          setInspectAttendee(updated);
+          onUpdateAttendee?.(updated);
+        }}
+      />
 
       {/* Revocation Confirmation Dialog */}
       <Modal
