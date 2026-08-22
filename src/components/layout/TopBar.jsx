@@ -94,14 +94,6 @@ const TopBar = ({ onAddEvent }) => {
 
       {/* Right: Actions */}
       <div className="topbar-actions">
-        {/* Live Pulse Indicator — shows only for admin */}
-        {!isParticipant && (
-          <div className="telemetry-pill" title="Real-time data synced">
-            <span className="telemetry-dot" />
-            <span className="telemetry-label font-mono">LIVE</span>
-          </div>
-        )}
-
         {/* New Event CTA (Admins only) */}
         {!isParticipant && (
           <Button

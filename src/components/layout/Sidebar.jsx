@@ -96,7 +96,6 @@ const Sidebar = () => {
             >
               <div className="brand-name-row">
                 <span className="brand-name">VibeVenue</span>
-                <span className="brand-tag font-mono">v4.0</span>
               </div>
               <span className="brand-sub">Event Management Platform</span>
             </motion.div>

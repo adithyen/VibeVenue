@@ -4,10 +4,9 @@
   left: var(--sidebar-w);
   right: 0;
   height: var(--topbar-h);
-  background: var(--topbar-bg, var(--surface-panel));
-  border-bottom: 1px solid var(--topbar-border, var(--border-default));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--surface-panel, #FFFFFF);
+  border-bottom: 1px solid var(--border-default);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   z-index: 150;
   display: flex;
   align-items: center;
@@ -16,6 +15,11 @@
   gap: var(--sp-4);
   transition: left var(--dur-normal) var(--ease-spring);
   user-select: none;
+}
+
+[data-theme="dark"] .craft-topbar {
+  background: #10121B;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 .craft-topbar-collapsed {
@@ -93,18 +97,24 @@
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: 3px 8px 3px 6px;
+  padding: 3px 10px 3px 6px;
   border-radius: var(--radius-full);
-  background: var(--surface-card);
-  border: 1px solid var(--border-subtle);
+  background: var(--surface-card, #FFFFFF);
+  border: 1px solid var(--border-default);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   cursor: pointer;
   color: var(--text-primary);
   transition: all var(--dur-fast);
 }
 
 .convener-pill-interactive:hover {
-  background: var(--surface-card-hover);
-  border-color: var(--border-default);
+  background: var(--surface-card-hover, #F9F9FB);
+  border-color: var(--border-strong);
+}
+
+[data-theme="dark"] .convener-pill-interactive {
+  background: #181B26;
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .dropdown-chevron {
