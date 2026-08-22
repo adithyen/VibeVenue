@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage';
 import EventsPage from './pages/EventsPage';
 import EventDetailPage from './pages/EventDetailPage';
 import RegistrationsPage from './pages/RegistrationsPage';
+import RegistrationDetailPage from './pages/RegistrationDetailPage';
 import SettingsPage from './pages/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import LoginPage from './pages/LoginPage';
@@ -63,6 +64,16 @@ const App = () => {
           <GuardedRoute allowedRole="admin">
             <Layout>
               <RegistrationsPage />
+            </Layout>
+          </GuardedRoute>
+        }
+      />
+      <Route
+        path="/registrations/:id"
+        element={
+          <GuardedRoute allowedRole="admin">
+            <Layout>
+              <RegistrationDetailPage />
             </Layout>
           </GuardedRoute>
         }

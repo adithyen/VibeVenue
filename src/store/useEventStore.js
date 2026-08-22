@@ -103,6 +103,7 @@ const useEventStore = create((set, get) => ({
       txnId: r.txn_id,
       screenshotUrl: r.screenshot_url,
       status: r.status,
+      statusReason: r.status_reason || r.admin_notes || null,
       checkInStatus: r.check_in_status || 'Not Checked In',
       checkedInAt: r.checked_in_at,
       registeredAt: r.registered_at,
@@ -284,10 +285,15 @@ const useEventStore = create((set, get) => ({
     return true;
   },
 
-  updateParticipantStatus: async (registrationId, status) => {
+  updateParticipantStatus: async (registrationId, status, reason = null) => {
+    const payload = { status };
+    if (reason !== undefined) {
+      payload.status_reason = reason;
+      payload.admin_notes = reason;
+    }
     const { error } = await supabase
       .from('registrations')
-      .update({ status })
+      .update(payload)
       .eq('id', registrationId);
     return !error;
   },
@@ -347,6 +353,7 @@ const useEventStore = create((set, get) => ({
       txnId: r.txn_id,
       screenshotUrl: r.screenshot_url,
       status: r.status,
+      statusReason: r.status_reason || r.admin_notes || null,
       checkInStatus: r.check_in_status || 'Not Checked In',
       checkedInAt: r.checked_in_at,
       registeredAt: r.registered_at,

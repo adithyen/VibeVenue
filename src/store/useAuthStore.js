@@ -278,6 +278,12 @@ const useAuthStore = create((set, get) => ({
     return (data || []).map(r => ({
       ...r,
       ticketId: r.ticket_id,
+      name: r.full_name,
+      studentId: r.student_id,
+      pricingTier: r.pricing_tier,
+      membershipProof: r.membership_proof,
+      statusReason: r.status_reason || r.admin_notes || null,
+      checkInStatus: r.check_in_status || 'Not Checked In',
       eventName: r.events?.name,
       eventId: r.events?.id,
       eventCategory: r.events?.category,

@@ -184,8 +184,20 @@ const ParticipantPortal = () => {
           {/* Browse Available Registration Tracks */}
           <div className="portal-browse-section">
             <div className="section-title-row">
-              <h3 className="portal-section-title">Upcoming Tracks</h3>
-              <span className="section-pill font-mono">Registration Open</span>
+              <h3 className="portal-section-title">
+                {availableEvents.some(e => getComputedEventStatus(e) === 'ongoing') ? 'Live & Upcoming Tracks' : 'Available Tracks'}
+              </h3>
+              <span className={`section-pill font-mono ${availableEvents.some(e => getComputedEventStatus(e) === 'ongoing') ? 'pill-live' : ''}`}>
+                {availableEvents.length === 0
+                  ? 'No Tracks Available'
+                  : availableEvents.every(e => getRegistrationStatusInfo(e).isClosed)
+                    ? 'Registrations Closed'
+                    : availableEvents.some(e => getRegistrationStatusInfo(e).isSpot)
+                      ? '⚡ Spot Registration Active'
+                      : availableEvents.some(e => getComputedEventStatus(e) === 'ongoing')
+                        ? '🔴 Live Events Active'
+                        : 'Registration Open'}
+              </span>
             </div>
 
             <div className="recommended-grid">
@@ -391,6 +403,13 @@ const ParticipantPortal = () => {
                 <div className="tig-item" style={{ gridColumn: '1 / -1' }}>
                   <span className="tig-lbl">Membership Proof</span>
                   <span className="tig-val" style={{ color: '#F59E0B' }}>🔒 {inspectPass.membershipProof}</span>
+                </div>
+              )}
+
+              {inspectPass.statusReason && (
+                <div className="tig-item" style={{ gridColumn: '1 / -1', background: 'rgba(217, 119, 6, 0.08)', padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(217, 119, 6, 0.25)' }}>
+                  <span className="tig-lbl" style={{ color: '#D97706', fontWeight: 700 }}>⚠️ Organizer Feedback / Request:</span>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.8125rem', color: 'var(--text-primary)' }}>{inspectPass.statusReason}</p>
                 </div>
               )}
             </div>

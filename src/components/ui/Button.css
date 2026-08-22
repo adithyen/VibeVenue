@@ -77,7 +77,7 @@
 .craft-btn-secondary:hover:not(:disabled) {
   background: var(--surface-card-hover);
   border-color: var(--border-strong);
-  color: #FFFFFF;
+  color: var(--text-primary);
 }
 
 /* Ghost: Clean hover */

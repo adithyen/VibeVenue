@@ -217,6 +217,16 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+::selection {
+  background: rgba(99, 102, 241, 0.25);
+  color: var(--text-primary);
+}
+
+::-moz-selection {
+  background: rgba(99, 102, 241, 0.25);
+  color: var(--text-primary);
+}
+
 #root {
   min-height: 100vh;
   display: flex;
