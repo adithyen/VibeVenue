@@ -1,7 +1,8 @@
 // RegistrationDetailPage — Full-Screen Attendee Verification & Desk Management (2026 Impeccable Edition)
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../lib/supabase';
 import useEventStore from '../store/useEventStore';
 import useUIStore from '../store/useUIStore';
 import Avatar from '../components/ui/Avatar';
@@ -29,10 +30,40 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
   const [isUpdating, setIsUpdating] = useState(false);
   const [copiedKey, setCopiedKey] = useState(null);
   const [zoomImage, setZoomImage] = useState(false);
+  const receiptInputRef = useRef(null);
 
   // Notes & Action Dialogs
   const [activeAction, setActiveAction] = useState(null); // 'needs_info' | 'rejected' | 'delete' | null
   const [actionReason, setActionReason] = useState('');
+
+  const handleUploadReceipt = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !attendee) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const dataUrl = event.target.result;
+      const { error } = await supabase
+        .from('registrations')
+        .update({ payment_screenshot: dataUrl })
+        .eq('id', attendee.id);
+
+      if (!error) {
+        setAttendee({ ...attendee, screenshotUrl: dataUrl });
+        addToast({
+          type: 'success',
+          title: 'Payment Proof Updated ✓',
+          message: 'Real payment screenshot attached successfully.',
+        });
+      } else {
+        addToast({
+          type: 'error',
+          title: 'Update Failed',
+          message: error.message,
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Fetch attendee data
   useEffect(() => {
@@ -375,7 +406,17 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
 
               {attendee.screenshotUrl ? (
                 <div className="dossier-screenshot-box">
-                  <span className="dossier-field-lbl font-mono">PAYMENT RECEIPT SCREENSHOT</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <span className="dossier-field-lbl font-mono">PAYMENT RECEIPT SCREENSHOT</span>
+                    <button
+                      type="button"
+                      className="copy-btn font-mono"
+                      onClick={() => receiptInputRef.current?.click()}
+                      style={{ fontSize: '0.6875rem' }}
+                    >
+                      📁 Replace Image
+                    </button>
+                  </div>
                   <div className="receipt-preview-container" onClick={() => setZoomImage(true)}>
                     <img src={attendee.screenshotUrl} alt="Receipt" className="receipt-preview-img" />
                     <div className="receipt-zoom-hint font-mono">🔍 Click to Expand High-Res</div>
@@ -387,8 +428,23 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
                   <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
                     ℹ️ No receipt image attached by attendee. Verified via UTR / Transaction ID.
                   </span>
+                  <button
+                    type="button"
+                    className="copy-btn font-mono"
+                    onClick={() => receiptInputRef.current?.click()}
+                    style={{ marginTop: 8, alignSelf: 'center' }}
+                  >
+                    📁 Upload Payment Screenshot
+                  </button>
                 </div>
               )}
+              <input
+                ref={receiptInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleUploadReceipt}
+              />
             </div>
           </div>
 
