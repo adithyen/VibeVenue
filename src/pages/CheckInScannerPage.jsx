@@ -6,6 +6,7 @@ import jsQR from 'jsqr';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import useEventStore from '../store/useEventStore';
 import useUIStore from '../store/useUIStore';
+import { supabase } from '../lib/supabase';
 import Avatar from '../components/ui/Avatar';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -49,9 +50,8 @@ const CheckInScannerPage = () => {
   // Keep ref in sync to prevent duplicate trigger races
   isProcessingRef.current = isProcessingScan;
 
-  // 1. Fetch all registrations
+  // 1. Fetch all registrations (Live Sync)
   const fetchAttendees = useCallback(async () => {
-    setLoading(true);
     const data = await getRecentRegistrations(2000);
     setAttendees(data || []);
     setLoading(false);
@@ -59,6 +59,25 @@ const CheckInScannerPage = () => {
 
   useEffect(() => {
     fetchAttendees();
+
+    // Supabase Realtime channel for instant gate synchronization
+    const channel = supabase
+      .channel('scanner-live-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => {
+        fetchAttendees();
+      })
+      .subscribe();
+
+    const handleFocus = () => fetchAttendees();
+    window.addEventListener('focus', handleFocus);
+
+    const timer = setInterval(fetchAttendees, 4000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(timer);
+    };
   }, [fetchAttendees]);
 
   // Check WebHID devices on mount

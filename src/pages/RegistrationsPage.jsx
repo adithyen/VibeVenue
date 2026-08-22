@@ -1,7 +1,7 @@
-// Registrations & Pass Operations (Craft Standard v2.0)
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import useEventStore from '../store/useEventStore';
 import useUIStore from '../store/useUIStore';
+import { supabase } from '../lib/supabase';
 import ParticipantTable from '../components/participants/ParticipantTable';
 import SearchBar from '../components/ui/SearchBar';
 import Button from '../components/ui/Button';
@@ -22,10 +22,33 @@ const RegistrationsPage = () => {
 
   const [allAttendees, setAllAttendees] = useState([]);
 
-  // Fetch all registrations from Supabase (cross-account real data)
+  const loadRegistrations = useCallback(async () => {
+    const data = await store.getRecentRegistrations(1000);
+    setAllAttendees(data || []);
+  }, [store]);
+
+  // Live Sync: Supabase Realtime + Tab Focus + 5s Interval
   useEffect(() => {
-    store.getRecentRegistrations(500).then(data => setAllAttendees(data));
-  }, [store.events]);
+    loadRegistrations();
+
+    const channel = supabase
+      .channel('registrations-live-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => {
+        loadRegistrations();
+      })
+      .subscribe();
+
+    const handleFocus = () => loadRegistrations();
+    window.addEventListener('focus', handleFocus);
+
+    const timer = setInterval(loadRegistrations, 5000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(timer);
+    };
+  }, [loadRegistrations]);
 
   // Multi-facet filtering
   const filtered = useMemo(() => {

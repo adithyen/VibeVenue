@@ -246,7 +246,10 @@ const useEventStore = create((set, get) => ({
       .select()
       .single();
 
-    if (error) { console.error('registerParticipant error:', error); return null; }
+    if (error) {
+      console.error('registerParticipant error:', error);
+      throw new Error(error.message || 'Registration failed');
+    }
 
     // Insert selected add-ons
     if (formData.selectedAddOns?.length) {
