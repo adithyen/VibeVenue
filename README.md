@@ -1,8 +1,8 @@
 # 🎟️ VibeVenue — Next-Gen Event Management & Gate Check-In Suite
 
 > **Production Deployment:** [https://vibe-venue.vercel.app](https://vibe-venue.vercel.app)  
-> **Official CSI UPI ID:** \`adityenh@oksbi\`  
-> **Author & Lead:** Adithyen H
+>   
+> **Author :** Adithyen H
 
 ---
 
