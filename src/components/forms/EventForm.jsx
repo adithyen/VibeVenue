@@ -148,6 +148,16 @@ const EventForm = ({ event = null, onClose }) => {
   const removeContact = (idx) =>
     setFormData(prev => ({ ...prev, contacts: prev.contacts.filter((_, i) => i !== idx) }));
 
+  const [savedTemplates, setSavedTemplates] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('vibe_saved_pricing_templates') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [showSaveTplModal, setShowSaveTplModal] = useState(false);
+  const [newTplName, setNewTplName] = useState('');
+
   // ---- Pricing Tier helpers ----
   const addPricingTier = () =>
     setFormData(prev => ({
@@ -176,18 +186,50 @@ const EventForm = ({ event = null, onClose }) => {
         { id: 'tier-3', label: 'SCTians', price: '750', requiresProof: false, proofLabel: '' },
         { id: 'tier-4', label: 'Non-SCTians', price: '850', requiresProof: false, proofLabel: '' },
       ];
-    } else if (presetType === 'ieee') {
+    } else if (presetType === 'sctians') {
       presets = [
-        { id: 'tier-1', label: 'IEEE Student Member', price: '500', requiresProof: true, proofLabel: 'IEEE Membership Number' },
-        { id: 'tier-2', label: 'Non-IEEE Participant', price: '750', requiresProof: false, proofLabel: '' },
-      ];
-    } else if (presetType === 'college') {
-      presets = [
-        { id: 'tier-1', label: 'Internal College Student', price: '250', requiresProof: true, proofLabel: 'College Roll Number' },
-        { id: 'tier-2', label: 'External College Student', price: '450', requiresProof: false, proofLabel: '' },
+        { id: 'tier-1', label: 'SCTians', price: '750', requiresProof: false, proofLabel: '' },
+        { id: 'tier-2', label: 'Non-SCTians', price: '850', requiresProof: false, proofLabel: '' },
       ];
     }
     setFormData(prev => ({ ...prev, pricingType: 'tiered', pricingTiers: presets }));
+    addToast({ type: 'info', title: 'Template Loaded', message: 'Applied pricing tier template.' });
+  };
+
+  const applyCustomTemplate = (tiers) => {
+    if (!Array.isArray(tiers) || tiers.length === 0) return;
+    setFormData(prev => ({ ...prev, pricingType: 'tiered', pricingTiers: JSON.parse(JSON.stringify(tiers)) }));
+    addToast({ type: 'info', title: 'Custom Template Loaded', message: 'Applied your saved pricing tiers.' });
+  };
+
+  const handleSaveCustomTemplate = (e) => {
+    e?.preventDefault();
+    if (!newTplName.trim()) {
+      addToast({ type: 'warning', title: 'Missing Name', message: 'Please enter a name for the template.' });
+      return;
+    }
+    if (!formData.pricingTiers?.length) {
+      addToast({ type: 'warning', title: 'No Tiers', message: 'Please add at least one tier to save.' });
+      return;
+    }
+    const newTpl = {
+      id: `tpl-${Date.now()}`,
+      name: newTplName.trim(),
+      tiers: JSON.parse(JSON.stringify(formData.pricingTiers)),
+    };
+    const updated = [...savedTemplates, newTpl];
+    setSavedTemplates(updated);
+    localStorage.setItem('vibe_saved_pricing_templates', JSON.stringify(updated));
+    setNewTplName('');
+    setShowSaveTplModal(false);
+    addToast({ type: 'success', title: 'Template Saved! ⭐', message: `"${newTpl.name}" is now available in your templates.` });
+  };
+
+  const deleteSavedTemplate = (idx) => {
+    const updated = savedTemplates.filter((_, i) => i !== idx);
+    setSavedTemplates(updated);
+    localStorage.setItem('vibe_saved_pricing_templates', JSON.stringify(updated));
+    addToast({ type: 'info', title: 'Template Removed', message: 'Custom template deleted.' });
   };
 
   // ---- Add-on helpers ----
@@ -690,7 +732,7 @@ const EventForm = ({ event = null, onClose }) => {
                             if (!formData.pricingTiers?.length) applyTierPreset('csi');
                           }}
                         >
-                          📊 Dynamic Category Tiers (CSI / Members)
+                          📊 Dynamic Pricing
                         </button>
                       </div>
                     </div>
@@ -713,20 +755,78 @@ const EventForm = ({ event = null, onClose }) => {
                       </div>
                     )}
 
-                    {/* Dynamic Category / Membership Tiers Builder */}
+                    {/* Dynamic Pricing Tiers Builder */}
                     {formData.pricingType === 'tiered' && (
                       <div className="form-field-group">
                         <div className="form-label-row">
-                          <label className="craft-label">Dynamic Category & Membership Tiers</label>
-                          <Button type="button" variant="ghost" size="sm" onClick={addPricingTier}>+ Add Tier</Button>
+                          <label className="craft-label">Dynamic Pricing Tiers</label>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => setShowSaveTplModal(!showSaveTplModal)}>
+                              💾 Save as Template
+                            </Button>
+                            <Button type="button" variant="ghost" size="sm" onClick={addPricingTier}>
+                              + Add Tier
+                            </Button>
+                          </div>
                         </div>
+
+                        {/* Save Custom Template Input Box */}
+                        {showSaveTplModal && (
+                          <div className="save-template-box">
+                            <span className="save-template-title font-mono">Save Current Configuration as Template:</span>
+                            <div className="save-template-row">
+                              <input
+                                type="text"
+                                className="craft-input"
+                                placeholder="Template Name (e.g. Hackathon Tiers, Fest Special)"
+                                value={newTplName}
+                                onChange={e => setNewTplName(e.target.value)}
+                                autoFocus
+                              />
+                              <Button type="button" variant="primary" size="sm" onClick={handleSaveCustomTemplate}>
+                                Save
+                              </Button>
+                              <Button type="button" variant="ghost" size="sm" onClick={() => setShowSaveTplModal(false)}>
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                         
                         {/* Quick Presets */}
                         <div className="tier-presets-row">
-                          <span className="tier-presets-label font-mono">Quick Templates:</span>
-                          <button type="button" className="tier-preset-btn" onClick={() => applyTierPreset('csi')}>+ CSI Member Tiers</button>
-                          <button type="button" className="tier-preset-btn" onClick={() => applyTierPreset('ieee')}>+ IEEE Member Tiers</button>
-                          <button type="button" className="tier-preset-btn" onClick={() => applyTierPreset('college')}>+ College / External</button>
+                          <span className="tier-presets-label font-mono">Templates:</span>
+                          <button type="button" className="tier-preset-btn" onClick={() => applyTierPreset('csi')}>
+                            + CSI Member Tiers
+                          </button>
+                          <button type="button" className="tier-preset-btn" onClick={() => applyTierPreset('sctians')}>
+                            + SCTians / Non-SCTians
+                          </button>
+
+                          {/* Custom Saved Templates */}
+                          {savedTemplates.map((tpl, i) => (
+                            <div key={tpl.id || i} className="tier-preset-saved-pill">
+                              <button
+                                type="button"
+                                className="tier-preset-btn tier-preset-custom-btn"
+                                onClick={() => applyCustomTemplate(tpl.tiers)}
+                                title={`Apply "${tpl.name}" (${tpl.tiers?.length || 0} tiers)`}
+                              >
+                                ⭐ {tpl.name}
+                              </button>
+                              <button
+                                type="button"
+                                className="tier-preset-del-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteSavedTemplate(i);
+                                }}
+                                title="Delete saved template"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
                         </div>
 
                         <div className="pricing-tiers-list">
