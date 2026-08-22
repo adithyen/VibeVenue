@@ -12,11 +12,16 @@ export const formatDate = (dateStr) => {
 };
 
 export const formatDateTime = (dateStr, timeStr) => {
+  if (!dateStr) return '—';
   try {
-    const d = parseISO(dateStr);
-    return `${format(d, 'EEE, dd MMM yyyy')} • ${timeStr}`;
+    const d = typeof dateStr === 'string' ? parseISO(dateStr) : new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    if (timeStr) {
+      return `${format(d, 'EEE, dd MMM yyyy')} • ${timeStr}`;
+    }
+    return format(d, 'EEE, dd MMM yyyy, hh:mm a');
   } catch {
-    return `${dateStr} ${timeStr}`;
+    return dateStr ? String(dateStr) : '—';
   }
 };
 

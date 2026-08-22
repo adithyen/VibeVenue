@@ -346,39 +346,51 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
           </div>
 
           {/* Payment Verification Card */}
-          {(attendee.txnId || attendee.screenshotUrl) && (
-            <div className="dossier-card craft-card">
-              <h3 className="dossier-section-heading">Payment Verification & Proof</h3>
+          <div className="dossier-card craft-card">
+            <h3 className="dossier-section-heading">Payment Verification & Proof</h3>
 
-              <div className="dossier-payment-grid">
-                {attendee.txnId && (
-                  <div className="dossier-txn-box font-mono">
-                    <span className="dossier-field-lbl">TRANSACTION ID / UTR</span>
-                    <div className="txn-row">
-                      <span className="txn-str">{attendee.txnId}</span>
-                      <button
-                        type="button"
-                        className="copy-icon-btn"
-                        onClick={() => copyText(attendee.txnId, 'txn')}
-                      >
-                        {copiedKey === 'txn' ? '✓ Copied' : '📋 Copy'}
-                      </button>
-                    </div>
-                  </div>
-                )}
+            <div className="dossier-payment-grid">
+              <div className="dossier-txn-box font-mono">
+                <span className="dossier-field-lbl">TRANSACTION ID / UTR</span>
+                <div className="txn-row">
+                  <span className="txn-str">{attendee.txnId || 'Not provided'}</span>
+                  {attendee.txnId && (
+                    <button
+                      type="button"
+                      className="copy-icon-btn"
+                      onClick={() => copyText(attendee.txnId, 'txn')}
+                    >
+                      {copiedKey === 'txn' ? '✓ Copied' : '📋 Copy'}
+                    </button>
+                  )}
+                </div>
 
-                {attendee.screenshotUrl && (
-                  <div className="dossier-screenshot-box">
-                    <span className="dossier-field-lbl font-mono">PAYMENT RECEIPT SCREENSHOT</span>
-                    <div className="receipt-preview-container" onClick={() => setZoomImage(true)}>
-                      <img src={attendee.screenshotUrl} alt="Receipt" className="receipt-preview-img" />
-                      <div className="receipt-zoom-hint font-mono">🔍 Click to Expand High-Res</div>
-                    </div>
-                  </div>
-                )}
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>PAYMENT STATUS</span>
+                  <span style={{ color: 'var(--accent-emerald, #059669)', fontWeight: 700 }}>
+                    {attendee.totalPaid > 0 ? `₹${attendee.totalPaid} Paid` : 'Free Pass'}
+                  </span>
+                </div>
               </div>
+
+              {attendee.screenshotUrl ? (
+                <div className="dossier-screenshot-box">
+                  <span className="dossier-field-lbl font-mono">PAYMENT RECEIPT SCREENSHOT</span>
+                  <div className="receipt-preview-container" onClick={() => setZoomImage(true)}>
+                    <img src={attendee.screenshotUrl} alt="Receipt" className="receipt-preview-img" />
+                    <div className="receipt-zoom-hint font-mono">🔍 Click to Expand High-Res</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="dossier-txn-box font-mono" style={{ justifyContent: 'center', background: 'var(--surface-inset)', borderStyle: 'dashed' }}>
+                  <span className="dossier-field-lbl">PAYMENT RECEIPT ATTACHMENT</span>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                    ℹ️ No receipt image attached by attendee. Verified via UTR / Transaction ID.
+                  </span>
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Selected Add-ons Checklist */}
           {selectedAddOns.length > 0 && (

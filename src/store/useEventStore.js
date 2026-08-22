@@ -213,19 +213,23 @@ const useEventStore = create((set, get) => ({
     return true;
   },
 
-  // ── Registrations ────────────────────────────────────────────
-
   registerParticipant: async (eventId, formData) => {
+    let screenshotUrl = formData.screenshotUrl || formData.screenshotBase64 || null;
+    if (formData.screenshotBase64?.startsWith('data:')) {
+      const uploaded = await uploadBase64('receipts', `${formData.ticketId || Date.now()}-receipt`, formData.screenshotBase64);
+      if (uploaded) screenshotUrl = uploaded;
+    }
+
     const { data: reg, error } = await supabase
       .from('registrations')
       .insert({
         event_id:          eventId,
         user_id:           formData.userId || null,
         ticket_id:         formData.ticketId || undefined,
-        full_name:         formData.fullName,
+        full_name:         formData.fullName || formData.name,
         email:             formData.email,
         phone:             formData.phone,
-        student_id:        formData.rollNumber,
+        student_id:        formData.studentId || formData.rollNumber || null,
         college:           formData.college,
         department:        formData.department,
         year:              formData.year,
@@ -236,7 +240,7 @@ const useEventStore = create((set, get) => ({
         membership_proof:  formData.membershipProof || null,
         selected_addons:   formData.selectedAddOns || [],
         addons_provided:   {},
-        screenshot_url:    formData.screenshotBase64 || null,
+        screenshot_url:    screenshotUrl,
         total_paid:        formData.totalPaid || 0,
         txn_id:            formData.txnId || null,
         status:            'confirmed',
