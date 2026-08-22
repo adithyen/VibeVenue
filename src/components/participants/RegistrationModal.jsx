@@ -167,6 +167,7 @@ const RegistrationModal = ({ event, onClose }) => {
   };
 
   const currentVisibleIdx = visibleSteps.indexOf(step);
+  const isLastBeforeConfirm = currentVisibleIdx === visibleSteps.length - 2;
 
   const handleNext = () => {
     if (!validateStep(step)) return;
