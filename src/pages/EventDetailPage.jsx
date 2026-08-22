@@ -13,6 +13,7 @@ import Modal from '../components/ui/Modal';
 import EventForm from '../components/forms/EventForm';
 import ParticipantTable from '../components/participants/ParticipantTable';
 import EmptyState from '../components/ui/EmptyState';
+import MarkdownRenderer from '../components/common/MarkdownRenderer';
 import { formatDate, getDaysUntil, formatEventSchedule, getEventFeeDisplay } from '../utils/dateUtils';
 import './EventDetailPage.css';
 
@@ -25,7 +26,7 @@ const TABS = [
 const EventDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { events, isLoading, deleteEvent, fetchEventParticipants } = useEventStore();
+  const { events, isLoading, fetchEvents, deleteEvent, fetchEventParticipants } = useEventStore();
   const [activeTab, setActiveTab] = useState('overview');
   const [editOpen, setEditOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -36,7 +37,10 @@ const EventDetailPage = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [id]);
+    if (events.length === 0 && fetchEvents) {
+      fetchEvents();
+    }
+  }, [id, events.length, fetchEvents]);
 
   useEffect(() => {
     if (!id || !fetchEventParticipants) return;
@@ -80,9 +84,10 @@ const EventDetailPage = () => {
   }
 
   const cat = getCategoryById(event.category) || { label: event.category || 'General', icon: '⚡' };
-  const daysUntil = getDaysUntil(event.date);
+  const daysUntil = getDaysUntil(event.date || event.startDate);
+  const cleanHeroDesc = event.tagline || (event.description ? event.description.replace(/[#*`_>\[\]]/g, '').trim().slice(0, 160) + '...' : '');
   const occupancyPct = Math.round(
-    (event.registrationCount / (event.maxParticipants || 1)) * 100
+    ((event.registrationCount || 0) / (event.maxParticipants || 1)) * 100
   );
 
   // Telemetry breakdown data for charts
