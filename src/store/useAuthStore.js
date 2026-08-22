@@ -282,6 +282,7 @@ const useAuthStore = create((set, get) => ({
       studentId: r.student_id,
       pricingTier: r.pricing_tier,
       membershipProof: r.membership_proof,
+      screenshotUrl: r.payment_screenshot || r.screenshot_url || null,
       statusReason: r.status_reason || r.admin_notes || null,
       checkInStatus: r.check_in_status || 'Not Checked In',
       eventName: r.events?.name,
