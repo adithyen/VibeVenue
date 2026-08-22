@@ -36,13 +36,14 @@ const useEventStore = create((set, get) => ({
   // ── Fetch events with registration counts ───────────────────
   fetchEvents: async () => {
     const { data, error } = await supabase
-      .from('event_summary')    // our view: events + count(registrations)
+      .from('events')
       .select(`
         *,
         event_schedule ( id, sort_order, time, title, speaker, room, duration ),
         event_contacts ( id, sort_order, name, role, phone, email ),
         event_addons   ( id, label, price, required ),
-        event_links    ( id, link_type, label, url, sort_order )
+        event_links    ( id, link_type, label, url, sort_order ),
+        registrations  ( id, status, check_in_status )
       `)
       .order('start_date', { ascending: true });
 
@@ -497,9 +498,13 @@ function normaliseEvent(row) {
 
     fee: feeDisplay,
 
-    // Counts from the event_summary view
-    registrationCount: parseInt(row.registration_count, 10) || 0,
-    checkedInCount:    parseInt(row.checked_in_count,   10) || 0,
+    // Counts from direct registrations relation or view fallback
+    registrationCount: Array.isArray(row.registrations)
+      ? row.registrations.length
+      : (parseInt(row.registration_count, 10) || 0),
+    checkedInCount: Array.isArray(row.registrations)
+      ? row.registrations.filter(r => r.check_in_status === 'Checked In').length
+      : (parseInt(row.checked_in_count, 10) || 0),
 
     // Child rows
     schedule: (row.event_schedule || [])

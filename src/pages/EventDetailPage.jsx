@@ -311,9 +311,9 @@ const EventDetailPage = () => {
 
 
             {/* Dynamic Pricing Tiers */}
-            {event.pricingType === 'tiered' && event.pricingTiers?.length > 0 && (
+            {(event.pricingType === 'tiered' || (Array.isArray(event.pricingTiers) && event.pricingTiers.length > 0)) && event.pricingTiers?.length > 0 && (
               <div className="craft-card detail-tiers-card">
-                <h3 className="card-section-title">Membership & Category Pricing</h3>
+                <h3 className="card-section-title">Dynamic Pricing Tiers</h3>
                 <div className="detail-tiers-grid">
                   {event.pricingTiers.map((tier, idx) => (
                     <div key={idx} className="detail-tier-row">
