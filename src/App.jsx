@@ -10,6 +10,7 @@ import SettingsPage from './pages/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import LoginPage from './pages/LoginPage';
 import ParticipantPortal from './pages/ParticipantPortal';
+import EventRegistrationPage from './pages/EventRegistrationPage';
 import { GuardedRoute, AnonymousOnlyRoute } from './components/layout/GuardedRoute';
 
 const App = () => {
@@ -74,6 +75,18 @@ const App = () => {
           <GuardedRoute allowedRole="participant">
             <Layout>
               <ParticipantPortal />
+            </Layout>
+          </GuardedRoute>
+        }
+      />
+
+      {/* Full-Page Event Registration Flow */}
+      <Route
+        path="/portal/register/:id"
+        element={
+          <GuardedRoute allowedRole="participant">
+            <Layout>
+              <EventRegistrationPage />
             </Layout>
           </GuardedRoute>
         }

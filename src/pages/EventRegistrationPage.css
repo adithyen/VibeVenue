@@ -1,0 +1,835 @@
+/* EventRegistrationPage.css — Impeccable 2026 Full-Page Registration Flow */
+
+.full-reg-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--sp-4) var(--sp-4) var(--sp-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+/* Topbar */
+.full-reg-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.full-reg-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  transition: all var(--dur-fast);
+}
+
+.full-reg-back-btn:hover {
+  background: var(--surface-card-hover);
+  color: var(--text-primary);
+  transform: translateX(-2px);
+}
+
+.full-reg-event-pill {
+  font-size: 0.75rem;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+}
+
+/* Hero Banner */
+.full-reg-hero {
+  position: relative;
+  border-radius: var(--radius-2xl, 20px);
+  padding: var(--sp-6) var(--sp-8);
+  min-height: 140px;
+  background-size: cover;
+  background-position: center;
+  background-color: #141620;
+  display: flex;
+  align-items: flex-end;
+  color: #FFFFFF;
+  box-shadow: var(--shadow-card);
+}
+
+.full-reg-hero-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.full-reg-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.full-reg-hero-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-xl, 16px);
+  object-fit: cover;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  background: #FFFFFF;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+}
+
+.full-reg-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.full-reg-category-badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(99, 102, 241, 0.85);
+  color: #FFFFFF;
+}
+
+.full-reg-price-badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  color: #FFFFFF;
+}
+
+.full-reg-hero-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin: 0 0 4px 0;
+  line-height: 1.2;
+}
+
+.full-reg-hero-meta {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+}
+
+/* Stepper Bar */
+.full-reg-stepper-container {
+  padding: 14px 24px;
+  border-radius: var(--radius-xl, 16px);
+}
+
+.full-reg-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.full-reg-step-node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.step-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface-inset);
+  border: 1.5px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.step-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.step-active {
+  color: var(--accent-iris, #6366F1);
+}
+
+.step-active .step-circle {
+  background: var(--accent-iris, #6366F1);
+  border-color: var(--accent-iris, #6366F1);
+  color: #FFFFFF;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.45);
+}
+
+.step-active .step-title {
+  font-weight: 700;
+}
+
+.step-done {
+  color: var(--accent-emerald, #059669);
+}
+
+.step-done .step-circle {
+  background: var(--accent-emerald, #059669);
+  border-color: var(--accent-emerald, #059669);
+  color: #FFFFFF;
+}
+
+.full-reg-step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border-default);
+  transition: background 0.2s ease;
+  min-width: 20px;
+}
+
+.line-done {
+  background: var(--accent-emerald, #059669);
+}
+
+/* Content Card */
+.full-reg-content-card {
+  padding: 32px 36px;
+  border-radius: var(--radius-2xl, 20px);
+}
+
+.full-reg-step-box {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.full-reg-step-header {
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 14px;
+}
+
+.step-heading {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.step-subheading {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.full-reg-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.field-error-msg {
+  font-size: 0.75rem;
+  color: var(--accent-rose, #E11D48);
+  margin-top: 3px;
+}
+
+/* Group section */
+.full-reg-group-section {
+  padding: 16px;
+  background: var(--surface-inset);
+  border-radius: var(--radius-xl, 16px);
+  border: 1px solid var(--border-subtle);
+}
+
+.full-reg-toggle-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.full-reg-toggle-btn {
+  padding: 10px 16px;
+  background: var(--surface-card);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-lg, 12px);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.full-reg-toggle-btn.active {
+  border-color: var(--accent-iris, #6366F1);
+  background: var(--accent-iris-dim, rgba(99, 102, 241, 0.08));
+  color: var(--accent-iris, #6366F1);
+}
+
+/* Category Step (Tiers Grid) */
+.full-reg-section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.full-reg-tiers-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.full-reg-tier-card {
+  padding: 16px 20px;
+  background: var(--surface-card);
+  border: 2px solid var(--border-default);
+  border-radius: var(--radius-xl, 16px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.full-reg-tier-card:hover {
+  border-color: var(--accent-iris, #6366F1);
+  transform: translateY(-2px);
+}
+
+.tier-card-active {
+  border-color: var(--accent-iris, #6366F1) !important;
+  background: var(--accent-iris-dim, rgba(99, 102, 241, 0.08)) !important;
+  box-shadow: 0 0 0 1px var(--accent-iris, #6366F1);
+}
+
+.tier-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tier-card-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tier-card-price {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--accent-iris, #6366F1);
+}
+
+.tier-card-proof-tag {
+  font-size: 0.6875rem;
+  color: #D97706;
+  background: rgba(217, 119, 6, 0.1);
+  padding: 3px 8px;
+  border-radius: var(--radius-xs, 4px);
+  align-self: flex-start;
+  font-weight: 600;
+}
+
+.tier-card-radio {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.tier-card-active .tier-card-radio {
+  color: var(--accent-iris, #6366F1);
+  font-weight: 700;
+}
+
+.full-reg-proof-box {
+  background: rgba(217, 119, 6, 0.04);
+  border: 1.5px dashed rgba(217, 119, 6, 0.35);
+  border-radius: var(--radius-xl, 16px);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.proof-hint {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+/* Add-ons List */
+.full-reg-addons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.addon-row-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg, 12px);
+  cursor: pointer;
+}
+
+.addon-name {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.addon-price {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--accent-iris, #6366F1);
+}
+
+/* Price summary */
+.full-reg-summary-banner {
+  background: var(--surface-inset);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl, 16px);
+  padding: 16px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.summary-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1.5px solid var(--border-default);
+  margin-top: 4px;
+}
+
+.total-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.total-val {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--accent-iris, #6366F1);
+}
+
+/* Step 2: Payment Layout */
+.full-reg-payment-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+
+.payment-qr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px;
+  background: var(--surface-inset);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-2xl, 20px);
+  text-align: center;
+}
+
+.qr-badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent-emerald, #059669);
+  background: rgba(5, 150, 105, 0.1);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+}
+
+.qr-box-inner {
+  padding: 14px;
+  background: #FFFFFF;
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1.5px solid var(--border-default);
+}
+
+.qr-details-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qr-data-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-card);
+  padding: 8px 12px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.75rem;
+  gap: 8px;
+}
+
+.data-lbl {
+  color: var(--text-muted);
+}
+
+.data-val {
+  font-weight: 700;
+  color: var(--accent-iris, #6366F1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copy-btn {
+  background: var(--surface-inset);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm, 6px);
+  padding: 3px 8px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.copy-btn:hover {
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+}
+
+.payable-amount-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--accent-iris-dim, rgba(99, 102, 241, 0.1));
+  border: 1px solid var(--accent-iris-border, rgba(99, 102, 241, 0.25));
+  border-radius: var(--radius-lg, 12px);
+  margin-top: 4px;
+}
+
+.payable-lbl {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.payable-num {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--accent-iris, #6366F1);
+}
+
+.payment-form-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.field-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Upload dropzone */
+.full-reg-upload-dropzone {
+  border: 2px dashed var(--border-default);
+  border-radius: var(--radius-xl, 16px);
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: var(--surface-inset);
+  transition: all 0.15s ease;
+  overflow: hidden;
+  padding: 16px;
+}
+
+.full-reg-upload-dropzone:hover {
+  border-color: var(--accent-iris, #6366F1);
+  background: var(--surface-card-hover);
+}
+
+.upload-error {
+  border-color: var(--accent-rose, #E11D48) !important;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.upload-icon {
+  font-size: 2rem;
+}
+
+.upload-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.upload-sub {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.screenshot-uploaded-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.uploaded-thumb {
+  max-height: 120px;
+  border-radius: var(--radius-md, 8px);
+  object-fit: contain;
+  box-shadow: var(--shadow-sm);
+}
+
+.uploaded-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.uploaded-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-emerald, #059669);
+}
+
+.uploaded-action {
+  font-size: 0.6875rem;
+  color: var(--accent-iris, #6366F1);
+  text-decoration: underline;
+}
+
+/* Step 3: Confirmed Gate Pass */
+.full-reg-confirmed-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 20px 0;
+  text-align: center;
+}
+
+.celebration-icon {
+  font-size: 3.5rem;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.confirmed-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 6px 0;
+}
+
+.confirmed-sub {
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* Pass Ticket Card */
+.full-reg-pass-ticket {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  padding: 24px 30px;
+  background: var(--surface-card);
+  border: 2px solid var(--border-default);
+  border-radius: var(--radius-2xl, 20px);
+  text-align: left;
+  max-width: 640px;
+  width: 100%;
+  box-shadow: var(--shadow-elevated);
+}
+
+.ticket-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.ticket-brand {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--accent-iris, #6366F1);
+}
+
+.ticket-category-tag {
+  font-size: 0.625rem;
+  background: var(--surface-inset);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+}
+
+.ticket-event-name {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 6px 0;
+}
+
+.ticket-venue-meta,
+.ticket-date-meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin: 2px 0;
+}
+
+.ticket-delegate-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border-default);
+}
+
+.t-lbl {
+  display: block;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.t-val {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pass-ticket-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-left: 1.5px dashed var(--border-default);
+  padding-left: 24px;
+}
+
+.ticket-qr-box {
+  padding: 8px;
+  background: #FFFFFF;
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border-default);
+}
+
+.ticket-id-code {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--accent-iris, #6366F1);
+  letter-spacing: 0.06em;
+}
+
+.ticket-status-pill {
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--accent-emerald, #059669);
+  background: rgba(5, 150, 105, 0.1);
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+}
+
+.confirmed-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.full-reg-whatsapp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  background: #25D366;
+  color: white;
+  border-radius: var(--radius-lg, 12px);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: opacity var(--dur-fast);
+}
+
+.full-reg-whatsapp-btn:hover {
+  opacity: 0.88;
+}
+
+/* Footer Navigation */
+.full-reg-footer-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 10px;
+}
+
+@media (max-width: 768px) {
+  .full-reg-form-grid,
+  .full-reg-tiers-grid,
+  .full-reg-payment-layout,
+  .full-reg-pass-ticket {
+    grid-template-columns: 1fr;
+  }
+  .pass-ticket-right {
+    border-left: none;
+    border-top: 1.5px dashed var(--border-default);
+    padding-left: 0;
+    padding-top: 16px;
+  }
+  .full-reg-stepper .step-text-col {
+    display: none;
+  }
+}

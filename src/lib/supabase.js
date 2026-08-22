@@ -19,6 +19,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+export default supabase;
+
 // ── Storage helpers ──────────────────────────────────────────────
 
 /**

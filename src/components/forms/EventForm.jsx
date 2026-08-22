@@ -41,6 +41,7 @@ const freshData = () => ({
   // Step 3
   registrationType: 'individual', // 'individual' | 'group' | 'both'
   pricingType: 'flat', // 'flat' | 'tiered'
+  openTo: ['All'],
   pricingTiers: [
     { id: 'tier-1', label: 'CSI Member (SCTians)', price: '600', requiresProof: true, proofLabel: 'CSI Membership ID' },
     { id: 'tier-2', label: 'CSI Member (Non-SCTians)', price: '700', requiresProof: true, proofLabel: 'CSI Membership ID' },
@@ -81,6 +82,7 @@ const EventForm = ({ event = null, onClose }) => {
           ...event,
           pricingType: event.pricingType || (event.pricingTiers?.length ? 'tiered' : 'flat'),
           pricingTiers: event.pricingTiers?.length ? event.pricingTiers : freshData().pricingTiers,
+          openTo: event.openTo?.length ? event.openTo : ['All'],
           bannerBase64: event.bannerUrl || null,
           bannerName: event.bannerUrl ? 'Current Banner' : '',
           logoBase64: event.logoUrl || null,
@@ -109,6 +111,24 @@ const EventForm = ({ event = null, onClose }) => {
   const set = (key, val) => {
     setFormData(prev => ({ ...prev, [key]: val }));
     if (errors[key]) setErrors(prev => { const n = { ...prev }; delete n[key]; return n; });
+  };
+
+  const toggleOpenToYear = (yr) => {
+    let current = Array.isArray(formData.openTo) ? [...formData.openTo] : ['All'];
+    if (yr === 'All') {
+      set('openTo', ['All']);
+      return;
+    }
+    current = current.filter(y => y !== 'All');
+    if (current.includes(yr)) {
+      current = current.filter(y => y !== yr);
+    } else {
+      current.push(yr);
+    }
+    if (current.length === 0) {
+      current = ['All'];
+    }
+    set('openTo', current);
   };
 
   const setNested = (key, subKey, val) => {
@@ -541,6 +561,41 @@ const EventForm = ({ event = null, onClose }) => {
                     value={formData.tags}
                     onChange={e => set('tags', e.target.value)}
                   />
+                </div>
+
+                {/* Open To / Eligibility */}
+                <div className="form-field-group">
+                  <div className="form-label-row">
+                    <label className="craft-label">Open To / Eligibility</label>
+                    <span className="form-field-hint font-mono">Select target batch(es)</span>
+                  </div>
+                  <div className="open-to-pills-row">
+                    {[
+                      { id: 'All', label: '🌟 All Students' },
+                      { id: '1st Year', label: '1st Year' },
+                      { id: '2nd Year', label: '2nd Year' },
+                      { id: '3rd Year', label: '3rd Year' },
+                      { id: '4th Year', label: '4th Year' },
+                      { id: 'Postgraduate', label: 'Postgraduate' },
+                    ].map((opt) => {
+                      const isSelected = (formData.openTo || ['All']).includes(opt.id);
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          className={`open-to-pill-btn ${isSelected ? 'open-to-pill-active' : ''}`}
+                          onClick={() => toggleOpenToYear(opt.id)}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="field-hint-text font-mono" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    {(formData.openTo || []).includes('All')
+                      ? '✓ Open to all registered students across all academic years'
+                      : `🔒 Visible only to students in: ${(formData.openTo || []).join(', ')}`}
+                  </p>
                 </div>
               </div>
             )}

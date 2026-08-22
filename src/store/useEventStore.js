@@ -325,6 +325,7 @@ function buildEventPayload(f, userId) {
     is_paid:               f.isPaid || false,
     pricing_type:          f.pricingType || 'flat',
     pricing_tiers:         f.pricingTiers || [],
+    open_to:               f.openTo || ['All'],
     individual_price:      f.individualPrice ? parseFloat(f.individualPrice) : null,
     group_price:           f.groupPrice       ? parseFloat(f.groupPrice)       : null,
     group_min_size:        parseInt(f.groupMinSize, 10) || 2,
@@ -363,6 +364,7 @@ function formDataToRow(f, bannerUrl, logoUrl) {
     is_paid:               f.isPaid || false,
     pricing_type:          f.pricingType || (f.pricingTiers?.length ? 'tiered' : 'flat'),
     pricing_tiers:         f.pricingTiers || [],
+    open_to:               f.openTo || ['All'],
     individual_price:      f.individualPrice ? parseFloat(f.individualPrice) : null,
     group_price:           f.groupPrice       ? parseFloat(f.groupPrice)       : null,
     group_min_size:        parseInt(f.groupMinSize, 10) || 2,
@@ -440,6 +442,18 @@ function normaliseEvent(row) {
     }
   }
 
+  let openTo = row.open_to;
+  if (typeof openTo === 'string') {
+    try {
+      openTo = JSON.parse(openTo);
+    } catch {
+      openTo = [openTo];
+    }
+  }
+  if (!Array.isArray(openTo) || openTo.length === 0) {
+    openTo = ['All'];
+  }
+
   const isTiered = (row.pricing_type === 'tiered' || pricingTiers.length > 0) && pricingTiers.length > 0;
   const minTierPrice = isTiered
     ? Math.min(...pricingTiers.map(t => parseFloat(t.price) || 0))
@@ -482,6 +496,7 @@ function normaliseEvent(row) {
     isPaid:            row.is_paid,
     pricingType:       isTiered ? 'tiered' : (row.pricing_type || 'flat'),
     pricingTiers:      pricingTiers,
+    openTo:            openTo,
     individualPrice:   row.individual_price,
     groupPrice:        row.group_price,
     groupMinSize:      row.group_min_size,

@@ -252,7 +252,8 @@ const useAuthStore = create((set, get) => ({
   getParticipantPasses: async () => {
     const { user } = get();
     if (!user || user.role !== 'participant') return [];
-    const { data, error } = await supabase
+
+    let query = supabase
       .from('registrations')
       .select(`
         *,
@@ -260,9 +261,17 @@ const useAuthStore = create((set, get) => ({
           id, name, category, start_date, start_time, end_time,
           venue, meeting_link, status, is_online
         )
-      `)
-      .eq('user_id', user.id)
-      .order('registered_at', { ascending: false });
+      `);
+
+    if (user.id && user.email) {
+      query = query.or(`user_id.eq.${user.id},email.eq.${user.email}`);
+    } else if (user.id) {
+      query = query.eq('user_id', user.id);
+    } else if (user.email) {
+      query = query.eq('email', user.email);
+    }
+
+    const { data, error } = await query.order('registered_at', { ascending: false });
 
     if (error) { console.error('getParticipantPasses error:', error); return []; }
 

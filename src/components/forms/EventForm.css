@@ -539,6 +539,41 @@
   color: var(--text-muted);
 }
 
+/* Open To Eligibility Pills */
+.open-to-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.open-to-pill-btn {
+  padding: 6px 12px;
+  background: var(--surface-card, #FFFFFF);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-full, 9999px);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.open-to-pill-btn:hover {
+  border-color: var(--accent-iris, #6366F1);
+  color: var(--text-primary);
+  background: var(--surface-card-hover);
+}
+
+.open-to-pill-active {
+  border-color: var(--accent-iris, #6366F1) !important;
+  background: var(--accent-iris-dim, rgba(99, 102, 241, 0.1)) !important;
+  color: var(--accent-iris, #6366F1) !important;
+  font-weight: 700;
+  box-shadow: 0 0 0 1px var(--accent-iris, #6366F1);
+}
+
 /* Save Template Box */
 .save-template-box {
   background: rgba(99, 102, 241, 0.08);

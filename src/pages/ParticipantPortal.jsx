@@ -1,6 +1,6 @@
-// Student Participant Dashboard Portal (v4.0)
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import supabase from '../lib/supabase';
 import useAuthStore from '../store/useAuthStore';
 import useEventStore from '../store/useEventStore';
 import useUIStore from '../store/useUIStore';
@@ -9,7 +9,6 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import ProgressBar from '../components/ui/ProgressBar';
 import Modal from '../components/ui/Modal';
-import RegistrationModal from '../components/participants/RegistrationModal';
 import EditProfileModal from '../components/profile/EditProfileModal';
 import { formatDate, formatEventSchedule, getEventFeeDisplay } from '../utils/dateUtils';
 import './ParticipantPortal.css';
@@ -23,31 +22,53 @@ const ParticipantPortal = () => {
   const [inspectPass, setInspectPass] = useState(null);
   const [confirmCancel, setConfirmCancel] = useState(null);
   const [isRevoking, setIsRevoking] = useState(false);
-  const [registeringEvent, setRegisteringEvent] = useState(null);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [passes, setPasses] = useState([]);
   const [passesLoading, setPassesLoading] = useState(true);
 
-  // Fetch passes from Supabase (shows registrations created in any session/account)
-  useEffect(() => {
+  // Fetch passes from Supabase
+  const refreshPasses = useCallback(async () => {
     setPassesLoading(true);
-    getParticipantPasses().then(data => {
-      setPasses(data);
-      setPassesLoading(false);
-    });
-  }, [user?.id]);
+    const data = await getParticipantPasses();
+    setPasses(data || []);
+    setPassesLoading(false);
+  }, [getParticipantPasses]);
+
+  useEffect(() => {
+    refreshPasses();
+  }, [user?.id, refreshPasses]);
+
+  // Realtime subscription — any pass change refreshes dashboard instantly
+  useEffect(() => {
+    const channel = supabase
+      .channel('participant-passes-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => {
+        refreshPasses();
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refreshPasses]);
 
   // Compute upcoming events available for registration
-  // An event is available if user has no pass for it yet
+  // Filter out registered events AND filter by target academic year if restricted
   const registeredEventIds = new Set(passes.map(p => p.eventId));
+  const studentYear = user?.year || '';
+
   const availableEvents = useMemo(() => {
     return events
       .filter(evt => evt.status === 'upcoming')
       .filter(evt => !registeredEventIds.has(evt.id))
-      .slice(0, 3);
-  }, [events, passes]);
+      .filter(evt => {
+        const openTo = Array.isArray(evt.openTo) ? evt.openTo : ['All'];
+        if (openTo.includes('All') || openTo.length === 0) return true;
+        if (!studentYear) return true;
+        return openTo.includes(studentYear);
+      });
+  }, [events, passes, studentYear]);
 
-  // Handle new self-registration — opens Registration Modal
+  // Handle new self-registration — navigates to full-page registration view
   const handleSelfRegister = (event) => {
     if (event.registrationCount >= event.maxParticipants && !event.isOnline) {
       addToast({
@@ -57,7 +78,7 @@ const ParticipantPortal = () => {
       });
       return;
     }
-    setRegisteringEvent(event);
+    navigate(`/portal/register/${event.id}`);
   };
 
 
@@ -159,7 +180,7 @@ const ParticipantPortal = () => {
           {/* Browse Available Registration Tracks */}
           <div className="portal-browse-section">
             <div className="section-title-row">
-              <h3 className="portal-section-title">Recommended Upcoming Tracks</h3>
+              <h3 className="portal-section-title">Upcoming Tracks</h3>
               <span className="section-pill font-mono">Registration Open</span>
             </div>
 
@@ -408,14 +429,6 @@ const ParticipantPortal = () => {
         )}
       </Modal>
 
-      {/* Registration Modal for participants */}
-      {registeringEvent && (
-        <RegistrationModal
-          event={registeringEvent}
-          onClose={() => setRegisteringEvent(null)}
-        />
-      )}
-
       {/* Edit Profile Modal */}
       <EditProfileModal
         open={editProfileOpen}
@@ -424,6 +437,5 @@ const ParticipantPortal = () => {
     </div>
   );
 };
-
 
 export default ParticipantPortal;
