@@ -573,7 +573,6 @@ const EventRegistrationPage = () => {
               {/* Left Column: QR & UPI details */}
               <div className="payment-qr-col">
                 <div className="payment-qr-card">
-                  <span className="qr-badge font-mono">OFFICIAL NPCI QR</span>
                   {upiPayload ? (
                     <div className="qr-box-inner">
                       <QRCodeSVG value={upiPayload} size={180} level="M" />
