@@ -23,9 +23,13 @@ const SessionLoader = () => (
 export const GuardedRoute = ({ children, allowedRole }) => {
   const { user, isLoading } = useAuthStore();
 
-  // While Supabase is resolving the persisted session, show spinner
-  // (avoids flash-redirect to /login on hard refresh)
-  if (isLoading) return <SessionLoader />;
+  const isProcessingOAuth = typeof window !== 'undefined' && (
+    window.location.hash.includes('access_token=') ||
+    window.location.search.includes('code=')
+  );
+
+  // While Supabase is resolving the persisted session or parsing OAuth tokens from URL, show spinner
+  if (isLoading || isProcessingOAuth) return <SessionLoader />;
 
   if (!user) return <Navigate to="/login" replace />;
 
@@ -43,7 +47,12 @@ export const GuardedRoute = ({ children, allowedRole }) => {
 export const AnonymousOnlyRoute = ({ children }) => {
   const { user, isLoading } = useAuthStore();
 
-  if (isLoading) return <SessionLoader />;
+  const isProcessingOAuth = typeof window !== 'undefined' && (
+    window.location.hash.includes('access_token=') ||
+    window.location.search.includes('code=')
+  );
+
+  if (isLoading || isProcessingOAuth) return <SessionLoader />;
 
   if (user) {
     return user.role === 'admin'

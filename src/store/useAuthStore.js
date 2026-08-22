@@ -15,6 +15,11 @@ const useAuthStore = create((set, get) => ({
   init: async () => {
     set({ isLoading: true });
 
+    const hasAuthHash = typeof window !== 'undefined' && (
+      window.location.hash.includes('access_token=') ||
+      window.location.search.includes('code=')
+    );
+
     // Listen for auth state changes (OAuth callback, token refresh, sign-in/out)
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
@@ -30,12 +35,14 @@ const useAuthStore = create((set, get) => ({
       if (session?.user) {
         const profile = await get()._fetchProfile(session.user.id, session.user);
         set({ session, user: profile, isLoading: false });
-      } else {
+      } else if (!hasAuthHash) {
         set({ session: null, user: null, isLoading: false });
       }
     } catch (err) {
       console.warn('Session check error:', err);
-      set({ session: null, user: null, isLoading: false });
+      if (!hasAuthHash) {
+        set({ session: null, user: null, isLoading: false });
+      }
     }
   },
 
@@ -171,7 +178,7 @@ const useAuthStore = create((set, get) => ({
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: `${window.location.origin}/login`,
         queryParams: { access_type: 'offline', prompt: 'select_account' },
         data: { role },
       },

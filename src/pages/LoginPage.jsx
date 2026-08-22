@@ -13,7 +13,7 @@ const LoginPage = () => {
   const { addToast } = useUIStore();
 
   const [mode, setMode]       = useState('login');  // 'login' | 'signup'
-  const [role, setRole]       = useState('participant');
+  const [role, setRole]       = useState('admin');  // 'admin' | 'participant'
   const [email, setEmail]     = useState('');
   const [password, setPassword] = useState('');
   const [name, setName]       = useState('');
@@ -45,7 +45,6 @@ const LoginPage = () => {
       const success = await login(email, password);
       if (success) {
         addToast({ type: 'success', title: 'Welcome back!', message: 'Redirecting...' });
-        // role is determined by the profile in DB
         const { user } = useAuthStore.getState();
         navigate(user?.role === 'admin' ? '/' : '/portal');
       }
@@ -90,28 +89,17 @@ const LoginPage = () => {
           <p className="login-subtitle">Event Management Platform</p>
         </div>
 
+        {/* Role switcher */}
+        <div className="segmented-control role-switcher" style={{ marginBottom: '0.75rem' }}>
+          <button className={`segmented-option ${role === 'admin' ? 'active' : ''}`} onClick={() => setRole('admin')} type="button">Event Organizer</button>
+          <button className={`segmented-option ${role === 'participant' ? 'active' : ''}`} onClick={() => setRole('participant')} type="button">Student Participant</button>
+        </div>
+
         {/* Mode tabs */}
-        <div className="segmented-control role-switcher" style={{ marginBottom: '0.5rem' }}>
+        <div className="segmented-control mode-switcher" style={{ marginBottom: '1rem' }}>
           <button className={`segmented-option ${mode === 'login' ? 'active' : ''}`} onClick={() => switchMode('login')} type="button">Sign In</button>
           <button className={`segmented-option ${mode === 'signup' ? 'active' : ''}`} onClick={() => switchMode('signup')} type="button">Create Account</button>
         </div>
-
-        {/* Role selector — only meaningful for sign-up */}
-        <AnimatePresence mode="wait">
-          {mode === 'signup' && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              style={{ overflow: 'hidden', marginBottom: '1rem' }}
-            >
-              <div className="segmented-control role-switcher">
-                <button className={`segmented-option ${role === 'participant' ? 'active' : ''}`} onClick={() => setRole('participant')} type="button">Student Participant</button>
-                <button className={`segmented-option ${role === 'admin' ? 'active' : ''}`} onClick={() => setRole('admin')} type="button">Event Organizer</button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Form */}
         <form className="login-form" onSubmit={handleSubmit}>
