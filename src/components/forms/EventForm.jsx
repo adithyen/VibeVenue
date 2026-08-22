@@ -1087,7 +1087,7 @@ const EventForm = ({ event = null, onClose }) => {
                         id="upi-id"
                         type="text"
                         className={`craft-input font-mono ${errors.upiId ? 'input-error' : ''}`}
-                        placeholder="yourname@upi or 9876543210@paytm"
+                        placeholder="adityenh@oksbi"
                         value={formData.upiId}
                         onChange={e => set('upiId', e.target.value)}
                       />

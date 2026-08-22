@@ -60,7 +60,7 @@ NEURALHACK is South India's premier autonomous agent and Generative AI hackathon
   max_participants: 120,
 
   // Payment Setup
-  upi_id: "vibevenue.hackathon@upi",
+  upi_id: "adityenh@oksbi",
   has_bank_transfer: true,
   account_no: "987654321098",
   ifsc_code: "SBIN0070123",
