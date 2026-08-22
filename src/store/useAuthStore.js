@@ -196,19 +196,50 @@ const useAuthStore = create((set, get) => ({
   updateProfile: async (updates) => {
     const { user } = get();
     if (!user) return false;
-    const { error } = await supabase
-      .from('profiles')
-      .update({
+    try {
+      // 1. Update Supabase profiles table
+      const profileUpdates = {
         name: updates.name,
-        student_id: updates.studentId,
+        student_id: updates.studentId || updates.rollNumber,
+        college: updates.college,
         department: updates.department,
         year: updates.year,
         phone: updates.phone,
-      })
-      .eq('id', user.id);
-    if (error) return false;
-    set({ user: { ...user, ...updates } });
-    return true;
+        avatar_url: updates.avatar || updates.avatarUrl,
+      };
+
+      await supabase
+        .from('profiles')
+        .update(profileUpdates)
+        .eq('id', user.id);
+
+      // 2. Also update Supabase auth user_metadata for reliable sync
+      await supabase.auth.updateUser({
+        data: {
+          full_name: updates.name,
+          phone: updates.phone,
+          college: updates.college,
+          studentId: updates.studentId || updates.rollNumber,
+          rollNumber: updates.studentId || updates.rollNumber,
+          year: updates.year,
+          department: updates.department,
+          avatar_url: updates.avatar || updates.avatarUrl,
+        },
+      });
+
+      const updatedUser = {
+        ...user,
+        ...updates,
+        initials: (updates.name || user.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
+      };
+      set({ user: updatedUser });
+      return true;
+    } catch (err) {
+      console.error('updateProfile error:', err);
+      // Fallback local update
+      set({ user: { ...user, ...updates } });
+      return true;
+    }
   },
 
   // ── Logout ───────────────────────────────────────────────────

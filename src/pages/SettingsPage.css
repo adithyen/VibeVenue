@@ -45,6 +45,114 @@
   margin-top: 2px;
 }
 
+/* Profile Form */
+.settings-profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.settings-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--surface-inset, #F4F4F6);
+  border-radius: var(--radius-xl, 16px);
+  border: 1px solid var(--border-subtle);
+}
+
+[data-theme="dark"] .settings-avatar-row {
+  background: #0E1017;
+}
+
+.settings-avatar-box {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+
+.settings-avatar-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent-iris, #6366F1);
+}
+
+.settings-avatar-upload-btn {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent-iris, #6366F1);
+  border: 2px solid #FFFFFF;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease;
+}
+
+.settings-avatar-upload-btn:hover {
+  transform: scale(1.1);
+}
+
+.settings-avatar-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-avatar-name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.settings-avatar-role {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--accent-iris, #6366F1);
+}
+
+.settings-avatar-remove {
+  background: none;
+  border: none;
+  color: var(--accent-rose, #E11D48);
+  font-size: 0.6875rem;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  margin-top: 4px;
+  text-decoration: underline;
+}
+
+.settings-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .settings-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settings-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--sp-2);
+}
+
 /* Theme Picker */
 .theme-picker-grid {
   display: grid;

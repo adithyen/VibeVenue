@@ -6,6 +6,7 @@ import useUIStore from '../../store/useUIStore';
 import useAuthStore from '../../store/useAuthStore';
 import Button from '../ui/Button';
 import Avatar from '../ui/Avatar';
+import EditProfileModal from '../profile/EditProfileModal';
 import './TopBar.css';
 
 
@@ -24,6 +25,7 @@ const TopBar = ({ onAddEvent }) => {
   const navigate = useNavigate();
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   const isDetail = location.pathname.startsWith('/events/') && location.pathname !== '/events';
@@ -159,6 +161,21 @@ const TopBar = ({ onAddEvent }) => {
                 </div>
                 
                 <div className="dropdown-divider" />
+
+                <button
+                  className="dropdown-action-item font-mono"
+                  onClick={() => { setDropdownOpen(false); setEditProfileOpen(true); }}
+                  type="button"
+                  id="dropdown-edit-profile-btn"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                  Edit Profile Details
+                </button>
+                
+                <div className="dropdown-divider" />
                 
                 <button
                   className="dropdown-action-item font-mono text-rose"
@@ -178,6 +195,11 @@ const TopBar = ({ onAddEvent }) => {
           </AnimatePresence>
         </div>
       </div>
+
+      <EditProfileModal
+        open={editProfileOpen}
+        onClose={() => setEditProfileOpen(false)}
+      />
     </header>
   );
 };
