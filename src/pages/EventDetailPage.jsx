@@ -93,49 +93,57 @@ const EventDetailPage = () => {
         {event.bannerUrl && (
           <div className="detail-hero-banner" style={{ backgroundImage: `url(${event.bannerUrl})` }}>
             <div className="detail-hero-banner-overlay" />
-            {event.logoUrl && (
-              <img src={event.logoUrl} alt={event.name} className="detail-hero-logo" />
-            )}
           </div>
         )}
 
         <div className="detail-hero-inner">
-          <div className="detail-hero-top">
-            <div className="detail-hero-badges">
-              {!event.bannerUrl && event.logoUrl && (
-                <img src={event.logoUrl} alt={event.name} className="detail-hero-logo-inline" />
-              )}
-              <Badge category={event.category} size="sm" icon={cat.icon}>
-                {cat.label}
-              </Badge>
-              <Badge status={event.status} dot size="sm">
-                {event.status.toUpperCase()}
-              </Badge>
-              {event.status === 'upcoming' && daysUntil !== null && (
-                <span className="days-chip font-mono">
-                  {daysUntil > 0 ? `T-${daysUntil} Days` : daysUntil === 0 ? 'Today' : 'Past'}
-                </span>
-              )}
+          <div className="detail-hero-header-row">
+            {event.logoUrl && (
+              <img
+                src={event.logoUrl}
+                alt={event.name}
+                className={`detail-hero-logo ${event.bannerUrl ? 'detail-hero-logo-overlap' : ''}`}
+              />
+            )}
+
+            <div className="detail-hero-header-content">
+              <div className="detail-hero-top">
+                <div className="detail-hero-badges">
+                  <Badge category={event.category} size="sm" icon={cat.icon}>
+                    {cat.label}
+                  </Badge>
+                  <Badge status={event.status} dot size="sm">
+                    {event.status.toUpperCase()}
+                  </Badge>
+                  {event.status === 'upcoming' && daysUntil !== null && (
+                    <span className="days-chip font-mono">
+                      {daysUntil > 0 ? `T-${daysUntil} Days` : daysUntil === 0 ? 'Today' : 'Past'}
+                    </span>
+                  )}
+                </div>
+
+                <Button
+                  id="detail-edit-btn"
+                  variant="secondary"
+                  size="sm"
+                  icon={
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  }
+                  onClick={() => setEditOpen(true)}
+                >
+                  Edit Specification
+                </Button>
+              </div>
+
+              <h1 className="detail-hero-title">{event.name}</h1>
+              {event.tagline && <p className="detail-hero-tagline">{event.tagline}</p>}
             </div>
+          </div>
 
-          <Button
-            id="detail-edit-btn"
-            variant="secondary"
-            size="sm"
-            icon={
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-            }
-            onClick={() => setEditOpen(true)}
-          >
-            Edit Specification
-          </Button>
-        </div>
-
-        <h1 className="detail-hero-title">{event.name}</h1>
-        <p className="detail-hero-desc">{event.description}</p>
+          <p className="detail-hero-desc">{event.description}</p>
 
         {/* Quick Logistics Strip */}
         <div className="detail-hero-logistics">
