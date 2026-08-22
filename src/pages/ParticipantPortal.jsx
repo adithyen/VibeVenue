@@ -10,7 +10,7 @@ import Button from '../components/ui/Button';
 import ProgressBar from '../components/ui/ProgressBar';
 import Modal from '../components/ui/Modal';
 import RegistrationModal from '../components/participants/RegistrationModal';
-import { formatDate } from '../utils/dateUtils';
+import { formatDate, formatEventSchedule } from '../utils/dateUtils';
 import './ParticipantPortal.css';
 
 const ParticipantPortal = () => {
@@ -190,7 +190,7 @@ const ParticipantPortal = () => {
                     </div>
                     <p className="rec-desc">{event.shortDescription || event.description}</p>
                     <div className="rec-logistics font-mono">
-                      <span>📅 {formatDate(event.date)}</span>
+                      <span>📅 {formatEventSchedule(event.date || event.startDate, event.time || event.startTime, event.endTime)}</span>
                       <span>📍 {event.venue}</span>
                       <span className="rec-fee-tag">🎟️ {event.fee}</span>
                     </div>

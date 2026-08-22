@@ -68,3 +68,23 @@ export const formatMonthYear = (dateStr) => {
     return dateStr;
   }
 };
+
+export const formatEventSchedule = (dateStr, startTime, endTime) => {
+  const dateFormatted = dateStr ? formatDate(dateStr) : '';
+  const start = (startTime || '').trim();
+  const end = (endTime || '').trim();
+
+  let timeFormatted = '';
+  if (start && end) {
+    timeFormatted = `${start} – ${end}`;
+  } else if (start) {
+    timeFormatted = start;
+  } else if (end) {
+    timeFormatted = `Until ${end}`;
+  }
+
+  if (dateFormatted && timeFormatted) {
+    return `${dateFormatted} · ${timeFormatted}`;
+  }
+  return dateFormatted || timeFormatted || 'Date TBA';
+};

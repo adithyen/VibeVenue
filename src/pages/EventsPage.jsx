@@ -181,7 +181,11 @@ const EventsPage = () => {
                     <td>
                       <div className="table-time-cell">
                         <span className="table-date">{formatDate(evt.date)}</span>
-                        <span className="table-time font-mono">{evt.time}</span>
+                        <span className="table-time font-mono">
+                          {evt.time && evt.endTime
+                            ? `${evt.time} – ${evt.endTime}`
+                            : evt.time || evt.endTime || '—'}
+                        </span>
                       </div>
                     </td>
                     <td>

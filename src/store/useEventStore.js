@@ -437,10 +437,11 @@ function normaliseEvent(row) {
     status:            row.status,
 
     startDate:         row.start_date,
-    startTime:         row.start_time,
-    endDate:           row.end_date,
-    endTime:           row.end_time,
+    startTime:         row.start_time || '',
+    endDate:           row.end_date || '',
+    endTime:           row.end_time || '',
     date:              row.start_date,
+    time:              row.start_time || '',
 
     venue:             row.venue,
     meetingLink:       row.meeting_link,

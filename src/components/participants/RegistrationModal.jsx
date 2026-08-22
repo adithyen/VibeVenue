@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import useAuthStore from '../../store/useAuthStore';
 import useEventStore from '../../store/useEventStore';
 import useUIStore from '../../store/useUIStore';
+import { formatDate, formatEventSchedule } from '../../utils/dateUtils';
 import './RegistrationModal.css';
 
 const STEPS = ['Personal Details', 'Preferences', 'Payment', 'Confirmed'];
@@ -189,7 +190,7 @@ const RegistrationModal = ({ event, onClose }) => {
             <div className="reg-header-meta">
               <span className="reg-event-badge font-mono">{event.category?.toUpperCase() || 'EVENT'}</span>
               <h2 className="reg-event-title">{event.name}</h2>
-              <p className="reg-event-sub font-mono">📅 {formatDate(event.date || event.startDate)} • 📍 {event.venue || (event.isOnline ? 'Online Event' : 'Campus Venue')}</p>
+              <p className="reg-event-sub font-mono">📅 {formatEventSchedule(event.date || event.startDate, event.time || event.startTime, event.endTime)} • 📍 {event.venue || (event.isOnline ? 'Online Event' : 'Campus Venue')}</p>
             </div>
             <button className="reg-close-btn" onClick={onClose} aria-label="Close modal">✕</button>
           </div>

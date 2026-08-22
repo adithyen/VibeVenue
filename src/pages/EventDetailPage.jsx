@@ -13,7 +13,7 @@ import Modal from '../components/ui/Modal';
 import EventForm from '../components/forms/EventForm';
 import ParticipantTable from '../components/participants/ParticipantTable';
 import EmptyState from '../components/ui/EmptyState';
-import { formatDate, getDaysUntil } from '../utils/dateUtils';
+import { formatDate, getDaysUntil, formatEventSchedule } from '../utils/dateUtils';
 import './EventDetailPage.css';
 
 const TABS = [
@@ -25,68 +25,71 @@ const TABS = [
 const EventDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const store = useEventStore();
-
-  const event = store.getEventById(id);
+  const { events, deleteEvent } = useEventStore();
   const [activeTab, setActiveTab] = useState('overview');
   const [editOpen, setEditOpen] = useState(false);
-  const [participants, setParticipants] = useState([]);
-  const [participantsLoading, setParticipantsLoading] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
-  // Fetch real participants from Supabase
+  const event = events.find((e) => e.id === id);
+
   useEffect(() => {
-    if (!id) return;
-    setParticipantsLoading(true);
-    store.fetchEventParticipants(id).then(data => {
-      setParticipants(data);
-      setParticipantsLoading(false);
-    });
+    window.scrollTo(0, 0);
   }, [id]);
 
   if (!event) {
     return (
-      <div className="event-not-found-wrapper">
+      <div className="event-detail-container">
         <EmptyState
-          preset="noEvents"
-          title="Event Record Not Found"
-          description="The event specification you requested does not exist or has been removed from the registry."
-          action={
-            <Button variant="primary" onClick={() => navigate('/events')}>
-              Back to Events Directory
-            </Button>
+          icon={
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
           }
+          title="Event Not Found"
+          description="The event you are looking for does not exist or has been removed from the registry."
+          actionLabel="Back to Events"
+          onAction={() => navigate('/events')}
         />
       </div>
     );
   }
 
-  const cat = getCategoryById(event.category);
+  const cat = getCategoryById(event.category) || { label: event.category || 'General', icon: '⚡' };
   const daysUntil = getDaysUntil(event.date);
   const occupancyPct = Math.round(
     (event.registrationCount / event.maxParticipants) * 100
   );
 
-  // Telemetry breakdown data for charts — from real fetched participants
-  const confirmedCount = participants.filter(p => p.status === 'confirmed').length;
-  const pendingCount   = participants.filter(p => p.status === 'pending').length;
-  const availableSeats = Math.max(0, event.maxParticipants - event.registrationCount);
+  // Status breakdown data for the Donut Chart
+  const statusData = [
+    { name: 'Confirmed', value: event.statusBreakdown?.confirmed || 0, color: '#10B981' },
+    { name: 'Pending',   value: event.statusBreakdown?.pending   || 0, color: '#F59E0B' },
+    { name: 'Cancelled', value: event.statusBreakdown?.cancelled || 0, color: '#F43F5E' },
+  ].filter((d) => d.value > 0);
 
-  const chartData = [
-    { name: 'Confirmed Attendees', value: confirmedCount, color: '#10B981' },
-    { name: 'Pending Approvals',  value: pendingCount,   color: '#F59E0B' },
-    { name: 'Available Slots',    value: availableSeats, color: '#26282E' },
-  ];
+  const handleDelete = () => {
+    deleteEvent(event.id);
+    navigate('/events');
+  };
 
   return (
-    <div className="event-detail-view">
-      {/* Back Button */}
-      <button
-        className="craft-back-link font-mono"
-        onClick={() => navigate('/events')}
-        type="button"
-      >
-        ← Back to Events Directory
-      </button>
+    <div className="event-detail-container">
+      {/* Top Breadcrumb Bar */}
+      <div className="detail-breadcrumb-bar">
+        <button
+          className="back-btn"
+          onClick={() => navigate('/events')}
+          aria-label="Back to Events"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back to Events
+        </button>
+        <span className="breadcrumb-separator">/</span>
+        <span className="breadcrumb-current">{event.name}</span>
+      </div>
 
       {/* Hero Specification Header */}
       <div className="craft-card detail-hero-card">
@@ -150,8 +153,7 @@ const EventDetailPage = () => {
           <div className="detail-log-chip">
             <span className="log-chip-icon">📅</span>
             <span className="font-mono">
-              {formatDate(event.date)} · {event.time}
-              {event.endTime ? ` – ${event.endTime}` : ''}
+              {formatEventSchedule(event.date || event.startDate, event.time || event.startTime, event.endTime)}
             </span>
           </div>
 

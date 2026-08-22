@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { getCategoryById } from '../../data/mockData';
 import Badge from '../ui/Badge';
 import ProgressBar from '../ui/ProgressBar';
-import { formatDate } from '../../utils/dateUtils';
+import { formatDate, formatEventSchedule } from '../../utils/dateUtils';
 import './EventCard.css';
 
 const EventCard = ({ event, delay = 0 }) => {
@@ -121,7 +121,7 @@ const EventCard = ({ event, delay = 0 }) => {
             <line x1="8" y1="2" x2="8" y2="6"/>
             <line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
-          <span>{formatDate(event.date)} · {event.time}</span>
+          <span>{formatEventSchedule(event.date || event.startDate, event.time || event.startTime, event.endTime)}</span>
         </div>
 
         <div className="logistic-item" title={isOnline ? 'Online Event' : 'Venue'}>
