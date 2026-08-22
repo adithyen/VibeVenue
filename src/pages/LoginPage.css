@@ -110,8 +110,50 @@
   width: 100%;
 }
 
-.google-btn-wrapper iframe {
-  border-radius: var(--radius-md) !important;
+.google-oauth-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 44px;
+  background: var(--surface-card, #FFFFFF);
+  border: 1.5px solid var(--border-default, rgba(0, 0, 0, 0.14));
+  border-radius: var(--radius-lg, 12px);
+  color: var(--text-primary, #111827);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: all 0.18s ease;
+}
+
+.google-oauth-btn:hover {
+  background: var(--surface-card-hover, #F9F9FB);
+  border-color: var(--accent-iris, #6366F1);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+  transform: translateY(-1px);
+}
+
+.google-oauth-btn:active {
+  transform: translateY(0);
+}
+
+.google-oauth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+[data-theme="dark"] .google-oauth-btn {
+  background: #181B26;
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #F3F4F6;
+}
+
+[data-theme="dark"] .google-oauth-btn:hover {
+  background: #202434;
+  border-color: var(--accent-iris, #818CF8);
 }
 
 /* Demo box */
