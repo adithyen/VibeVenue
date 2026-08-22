@@ -48,6 +48,37 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  {
+    id: 'nav-scanner',
+    path: '/scanner',
+    label: 'Check-In Scanner',
+    badge: 'LIVE',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+        <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+        <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+        <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+        <line x1="7" y1="12" x2="17" y2="12" stroke="#6366F1" strokeWidth="2.2"/>
+        <rect x="7" y="7" width="3" height="3" fill="currentColor"/>
+        <rect x="14" y="7" width="3" height="3" fill="currentColor"/>
+        <rect x="7" y="14" width="3" height="3" fill="currentColor"/>
+        <rect x="14" y="14" width="3" height="3" fill="currentColor"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'nav-attendance',
+    path: '/attendance',
+    label: 'Attendance',
+    badge: null,
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 11l3 3L22 4"/>
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+      </svg>
+    ),
+  },
 ];
 
 const BOTTOM_NAV_ITEMS = [
@@ -140,7 +171,7 @@ const Sidebar = () => {
               </AnimatePresence>
 
               {!sidebarCollapsed && item.badge && (
-                <span className={`nav-badge font-mono ${item.badge === 'Live' ? 'nav-badge-live' : ''}`}>
+                <span className={`nav-badge font-mono ${item.badge.toLowerCase() === 'live' ? 'nav-badge-live' : ''}`}>
                   {item.badge}
                 </span>
               )}

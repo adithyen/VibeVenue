@@ -7,6 +7,8 @@ import EventsPage from './pages/EventsPage';
 import EventDetailPage from './pages/EventDetailPage';
 import RegistrationsPage from './pages/RegistrationsPage';
 import RegistrationDetailPage from './pages/RegistrationDetailPage';
+import CheckInScannerPage from './pages/CheckInScannerPage';
+import AttendancePage from './pages/AttendancePage';
 import SettingsPage from './pages/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import LoginPage from './pages/LoginPage';
@@ -74,6 +76,26 @@ const App = () => {
           <GuardedRoute allowedRole="admin">
             <Layout>
               <RegistrationDetailPage />
+            </Layout>
+          </GuardedRoute>
+        }
+      />
+      <Route
+        path="/scanner"
+        element={
+          <GuardedRoute allowedRole="admin">
+            <Layout>
+              <CheckInScannerPage />
+            </Layout>
+          </GuardedRoute>
+        }
+      />
+      <Route
+        path="/attendance"
+        element={
+          <GuardedRoute allowedRole="admin">
+            <Layout>
+              <AttendancePage />
             </Layout>
           </GuardedRoute>
         }
