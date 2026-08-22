@@ -13,7 +13,7 @@ import Modal from '../components/ui/Modal';
 import EventForm from '../components/forms/EventForm';
 import ParticipantTable from '../components/participants/ParticipantTable';
 import EmptyState from '../components/ui/EmptyState';
-import { formatDate, getDaysUntil, formatEventSchedule } from '../utils/dateUtils';
+import { formatDate, getDaysUntil, formatEventSchedule, getEventFeeDisplay } from '../utils/dateUtils';
 import './EventDetailPage.css';
 
 const TABS = [
@@ -192,7 +192,7 @@ const EventDetailPage = () => {
 
           <div className="detail-log-chip">
             <span className="log-chip-icon">🎟️</span>
-            <span className="font-mono">{event.fee || 'Free'}</span>
+            <span className="font-mono">{getEventFeeDisplay(event)}</span>
           </div>
 
           <div className="detail-log-chip">

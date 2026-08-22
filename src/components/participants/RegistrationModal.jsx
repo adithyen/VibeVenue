@@ -7,7 +7,12 @@ import useUIStore from '../../store/useUIStore';
 import { formatDate, formatEventSchedule } from '../../utils/dateUtils';
 import './RegistrationModal.css';
 
-const STEPS = ['Personal Details', 'Preferences', 'Payment', 'Confirmed'];
+const STEP_LABELS = {
+  0: 'Personal Details',
+  1: 'Category & Preferences',
+  2: 'Payment',
+  3: 'Confirmed',
+};
 
 const RegistrationModal = ({ event, onClose }) => {
   const { user } = useAuthStore();
@@ -21,13 +26,19 @@ const RegistrationModal = ({ event, onClose }) => {
   const isPaid = event.isPaid || (event.fee && event.fee !== 'Free' && event.fee !== '');
   const hasGroup = event.registrationType === 'group' || event.registrationType === 'both';
   const hasIndividual = event.registrationType === 'individual' || event.registrationType === 'both';
-  const hasTiers = isPaid && event.pricingType === 'tiered' && Array.isArray(event.pricingTiers) && event.pricingTiers.length > 0;
+  const hasTiers = isPaid && (event.pricingType === 'tiered' || (Array.isArray(event.pricingTiers) && event.pricingTiers.length > 0)) && Array.isArray(event.pricingTiers) && event.pricingTiers.length > 0;
   const defaultTier = hasTiers ? (event.pricingTiers[0]?.label || '') : '';
   const needsPreferences = hasGroup || (event.addOns && event.addOns.length > 0) || hasTiers;
 
-  // Determine starting step — if no preferences and free event, may skip to confirm
-  const firstUsefulStep = 0;
-  const [step, setStep] = useState(firstUsefulStep);
+  const visibleSteps = useMemo(() => {
+    const steps = [0];
+    if (needsPreferences) steps.push(1);
+    if (isPaid) steps.push(2);
+    steps.push(3);
+    return steps;
+  }, [needsPreferences, isPaid]);
+
+  const [step, setStep] = useState(0);
 
   const [form, setForm] = useState({
     fullName: user?.name || '',

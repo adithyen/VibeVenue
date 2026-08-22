@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { getCategoryById } from '../../data/mockData';
 import Badge from '../ui/Badge';
 import ProgressBar from '../ui/ProgressBar';
-import { formatDate, formatEventSchedule } from '../../utils/dateUtils';
+import { formatDate, formatEventSchedule, getEventFeeDisplay } from '../../utils/dateUtils';
 import './EventCard.css';
 
 const EventCard = ({ event, delay = 0 }) => {
@@ -147,7 +147,7 @@ const EventCard = ({ event, delay = 0 }) => {
       {/* Card Footer */}
       <div className="event-card-footer">
         <span className="event-fee font-mono">
-          {isPaid ? event.fee : 'Free Entry'}
+          {getEventFeeDisplay(event)}
         </span>
         <span className="event-arrow font-mono">View Details →</span>
       </div>

@@ -88,3 +88,30 @@ export const formatEventSchedule = (dateStr, startTime, endTime) => {
   }
   return dateFormatted || timeFormatted || 'Date TBA';
 };
+
+export const getEventFeeDisplay = (event) => {
+  if (!event) return 'Free';
+  if (!event.isPaid) return 'Free';
+
+  let tiers = event.pricingTiers;
+  if (typeof tiers === 'string') {
+    try { tiers = JSON.parse(tiers); } catch { tiers = []; }
+  }
+  if (!Array.isArray(tiers)) tiers = [];
+
+  const isTiered = (event.pricingType === 'tiered' || tiers.length > 0) && tiers.length > 0;
+
+  if (isTiered) {
+    const prices = tiers.map(t => parseFloat(t.price) || 0).filter(p => !isNaN(p));
+    if (prices.length > 0) {
+      const min = Math.min(...prices);
+      const max = Math.max(...prices);
+      return min === max ? `₹${min}` : `₹${min} – ₹${max}`;
+    }
+  }
+
+  if (event.fee && event.fee !== '') return event.fee;
+  if (event.registrationType === 'group' && event.groupPrice) return `₹${event.groupPrice}/team`;
+  if (event.individualPrice) return `₹${event.individualPrice}`;
+  return 'Free';
+};
