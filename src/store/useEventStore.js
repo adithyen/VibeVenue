@@ -346,7 +346,7 @@ function formDataToRow(f, bannerUrl, logoUrl) {
     tagline:               f.tagline || null,
     description:           f.description,
     category:              f.category,
-    tags:                  f.tags ? f.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+    tags:                  f.tags ? (typeof f.tags === 'string' ? f.tags.split(',').map(t => t.trim()).filter(Boolean) : f.tags) : [],
     is_online:             f.isOnline || false,
     banner_url:            bannerUrl,
     logo_url:              logoUrl,
@@ -360,7 +360,7 @@ function formDataToRow(f, bannerUrl, logoUrl) {
     whatsapp_link:         f.whatsappLink || null,
     registration_type:     f.registrationType || 'individual',
     is_paid:               f.isPaid || false,
-    pricing_type:          f.pricingType || 'flat',
+    pricing_type:          f.pricingType || (f.pricingTiers?.length ? 'tiered' : 'flat'),
     pricing_tiers:         f.pricingTiers || [],
     individual_price:      f.individualPrice ? parseFloat(f.individualPrice) : null,
     group_price:           f.groupPrice       ? parseFloat(f.groupPrice)       : null,
@@ -417,11 +417,41 @@ async function insertChildRows(eventId, f) {
 }
 
 function normaliseEvent(row) {
-  // Flatten the DB snake_case row back to the camelCase shape pages expect
-  const isTiered = row.pricing_type === 'tiered' && Array.isArray(row.pricing_tiers) && row.pricing_tiers.length > 0;
+  // Safe parsing of JSON/array pricing_tiers
+  let pricingTiers = row.pricing_tiers;
+  if (typeof pricingTiers === 'string') {
+    try {
+      pricingTiers = JSON.parse(pricingTiers);
+    } catch {
+      pricingTiers = [];
+    }
+  }
+  if (!Array.isArray(pricingTiers)) {
+    pricingTiers = [];
+  }
+
+  let amenities = row.amenities;
+  if (typeof amenities === 'string') {
+    try {
+      amenities = JSON.parse(amenities);
+    } catch {
+      amenities = {};
+    }
+  }
+
+  const isTiered = (row.pricing_type === 'tiered' || pricingTiers.length > 0) && pricingTiers.length > 0;
   const minTierPrice = isTiered
-    ? Math.min(...row.pricing_tiers.map(t => parseFloat(t.price) || 0))
+    ? Math.min(...pricingTiers.map(t => parseFloat(t.price) || 0))
     : 0;
+  const maxTierPrice = isTiered
+    ? Math.max(...pricingTiers.map(t => parseFloat(t.price) || 0))
+    : 0;
+
+  const feeDisplay = !row.is_paid
+    ? 'Free'
+    : isTiered
+      ? (minTierPrice === maxTierPrice ? `₹${minTierPrice}` : `₹${minTierPrice} – ₹${maxTierPrice}`)
+      : (row.registration_type === 'group' ? `₹${row.group_price}/team` : `₹${row.individual_price}`);
 
   return {
     id:                row.id,
@@ -449,15 +479,15 @@ function normaliseEvent(row) {
 
     registrationType:  row.registration_type,
     isPaid:            row.is_paid,
-    pricingType:       row.pricing_type || 'flat',
-    pricingTiers:      Array.isArray(row.pricing_tiers) ? row.pricing_tiers : [],
+    pricingType:       isTiered ? 'tiered' : (row.pricing_type || 'flat'),
+    pricingTiers:      pricingTiers,
     individualPrice:   row.individual_price,
     groupPrice:        row.group_price,
     groupMinSize:      row.group_min_size,
     groupMaxSize:      row.group_max_size,
     hasCapacityLimit:  row.has_capacity_limit,
     maxParticipants:   row.max_participants,
-    amenities:         row.amenities || {},
+    amenities:         amenities || {},
     upiId:             row.upi_id,
     hasBankTransfer:   row.has_bank_transfer,
     accountNo:         row.account_no,
@@ -465,11 +495,7 @@ function normaliseEvent(row) {
     paymentVerification: row.payment_verification,
     confirmationMessage: row.confirmation_message,
 
-    fee: !row.is_paid
-      ? 'Free'
-      : isTiered
-        ? `From ₹${minTierPrice}`
-        : (row.registration_type === 'group' ? `₹${row.group_price}/team` : `₹${row.individual_price}`),
+    fee: feeDisplay,
 
     // Counts from the event_summary view
     registrationCount: parseInt(row.registration_count, 10) || 0,
