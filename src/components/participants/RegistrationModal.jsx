@@ -43,11 +43,11 @@ const RegistrationModal = ({ event, onClose }) => {
   const [form, setForm] = useState({
     fullName: user?.name || '',
     email: user?.email || '',
-    phone: '',
-    college: '',
-    department: '',
-    year: '',
-    rollNumber: '',
+    phone: user?.phone || '',
+    college: user?.college || '',
+    department: user?.department || '',
+    year: user?.year || '',
+    rollNumber: user?.studentId || user?.rollNumber || '',
     registrationType: hasIndividual ? 'individual' : 'group',
     teamName: '',
     teamMembers: [{ name: '', email: '' }],
@@ -58,6 +58,21 @@ const RegistrationModal = ({ event, onClose }) => {
     screenshotBase64: null,
     screenshotName: '',
   });
+
+  React.useEffect(() => {
+    if (user) {
+      setForm(prev => ({
+        ...prev,
+        fullName: prev.fullName || user.name || '',
+        email: prev.email || user.email || '',
+        phone: prev.phone || user.phone || '',
+        college: prev.college || user.college || '',
+        department: prev.department || user.department || '',
+        year: prev.year || user.year || '',
+        rollNumber: prev.rollNumber || user.studentId || user.rollNumber || '',
+      }));
+    }
+  }, [user]);
 
   const [errors, setErrors] = useState({});
 

@@ -257,17 +257,27 @@ const ParticipantPortal = () => {
             <div className="profile-hero">
               <Avatar name={user.name} initials={user.initials} size="xl" />
               <h4 className="profile-student-name">{user.name}</h4>
-              <p className="profile-student-dept">{user.department}</p>
+              <p className="profile-student-dept">{user.department || user.college || 'Student Delegate'}</p>
             </div>
             <div className="profile-meta-rows font-mono">
               <div className="meta-row">
                 <span className="meta-lbl">Student ID</span>
-                <span className="meta-val">{user.studentId || '21CS108'}</span>
+                <span className="meta-val">{user.studentId || user.rollNumber || '—'}</span>
               </div>
               <div className="meta-row">
                 <span className="meta-lbl">Year Group</span>
-                <span className="meta-val">{user.year || '3rd Year'}</span>
+                <span className="meta-val">{user.year || '—'}</span>
               </div>
+              <div className="meta-row">
+                <span className="meta-lbl">College</span>
+                <span className="meta-val">{user.college || '—'}</span>
+              </div>
+              {user.phone && (
+                <div className="meta-row">
+                  <span className="meta-lbl">Phone</span>
+                  <span className="meta-val">{user.phone}</span>
+                </div>
+              )}
               <div className="meta-row">
                 <span className="meta-lbl">Primary Email</span>
                 <span className="meta-val">{user.email}</span>

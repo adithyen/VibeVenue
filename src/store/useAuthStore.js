@@ -101,10 +101,11 @@ const useAuthStore = create((set, get) => ({
         email: authUser.email,
         avatar,
         role,
-        studentId: profile?.student_id || '',
-        department: profile?.department || '',
-        year: profile?.year || '',
-        phone: profile?.phone || '',
+        studentId: profile?.student_id || meta.studentId || meta.student_id || meta.rollNumber || '',
+        college: profile?.college || meta.college || '',
+        department: profile?.department || meta.department || '',
+        year: profile?.year || meta.year || '',
+        phone: profile?.phone || meta.phone || '',
         initials: (name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
       };
     } catch (err) {
@@ -121,10 +122,11 @@ const useAuthStore = create((set, get) => ({
         email: authUser.email,
         avatar: meta.avatar_url || meta.picture || null,
         role: meta.role || localStorage.getItem('vibe_intended_role') || 'participant',
-        studentId: '',
-        department: '',
-        year: '',
-        phone: '',
+        studentId: meta.studentId || meta.student_id || meta.rollNumber || '',
+        college: meta.college || '',
+        department: meta.department || '',
+        year: meta.year || '',
+        phone: meta.phone || '',
         initials: 'U',
       };
     }

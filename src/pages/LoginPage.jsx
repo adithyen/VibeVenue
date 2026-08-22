@@ -17,6 +17,11 @@ const LoginPage = () => {
   const [email, setEmail]     = useState('');
   const [password, setPassword] = useState('');
   const [name, setName]       = useState('');
+  const [phone, setPhone]     = useState('');
+  const [college, setCollege] = useState('');
+  const [studentId, setStudentId] = useState('');
+  const [year, setYear]       = useState('1st Year');
+  const [department, setDepartment] = useState('');
   const [formError, setFormError] = useState('');
 
   // Auto-redirect if session is active (e.g. from Google OAuth redirect)
@@ -55,9 +60,25 @@ const LoginPage = () => {
       setFormError('Please enter both email and password.');
       return;
     }
-    if (mode === 'signup' && !name.trim()) {
-      setFormError('Please enter your name.');
-      return;
+    if (mode === 'signup') {
+      if (!name.trim()) {
+        setFormError('Please enter your full name.');
+        return;
+      }
+      if (role === 'participant') {
+        if (!phone.trim()) {
+          setFormError('Please enter your phone number.');
+          return;
+        }
+        if (!college.trim()) {
+          setFormError('Please enter your college name.');
+          return;
+        }
+        if (!studentId.trim()) {
+          setFormError('Please enter your roll number / student ID.');
+          return;
+        }
+      }
     }
 
     if (mode === 'login') {
@@ -68,7 +89,15 @@ const LoginPage = () => {
         navigate(user?.role === 'admin' ? '/' : '/portal');
       }
     } else {
-      const result = await signUp(email, password, role, { name });
+      const result = await signUp(email, password, role, {
+        name,
+        phone,
+        college,
+        studentId,
+        rollNumber: studentId,
+        year,
+        department,
+      });
       if (result === true) {
         addToast({ type: 'success', title: 'Account Created!', message: 'Welcome to VibeVenue 🎉' });
         const { user } = useAuthStore.getState();
@@ -136,28 +165,100 @@ const LoginPage = () => {
           <AnimatePresence mode="wait">
             {mode === 'signup' && (
               <motion.div
-                key="name-field"
-                className="form-field-group"
+                key="signup-fields"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 style={{ overflow: 'hidden' }}
               >
-                <label htmlFor="login-name" className="craft-label">Full Name</label>
-                <input
-                  id="login-name"
-                  type="text"
-                  className="craft-input"
-                  placeholder="Aarav Sharma"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                />
+                <div className="form-field-group" style={{ marginBottom: '0.75rem' }}>
+                  <label htmlFor="login-name" className="craft-label">Full Name <span style={{ color: 'var(--accent-rose)' }}>*</span></label>
+                  <input
+                    id="login-name"
+                    type="text"
+                    className="craft-input"
+                    placeholder="Adithyan H"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                  />
+                </div>
+
+                {role === 'participant' && (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                      <div className="form-field-group">
+                        <label htmlFor="login-phone" className="craft-label">Phone Number <span style={{ color: 'var(--accent-rose)' }}>*</span></label>
+                        <input
+                          id="login-phone"
+                          type="tel"
+                          className="craft-input font-mono"
+                          placeholder="+91 98765 43210"
+                          value={phone}
+                          onChange={e => setPhone(e.target.value)}
+                        />
+                      </div>
+                      <div className="form-field-group">
+                        <label htmlFor="login-roll" className="craft-label">Roll No / Student ID <span style={{ color: 'var(--accent-rose)' }}>*</span></label>
+                        <input
+                          id="login-roll"
+                          type="text"
+                          className="craft-input font-mono"
+                          placeholder="21CS001"
+                          value={studentId}
+                          onChange={e => setStudentId(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-field-group" style={{ marginBottom: '0.75rem' }}>
+                      <label htmlFor="login-college" className="craft-label">College / Institution <span style={{ color: 'var(--accent-rose)' }}>*</span></label>
+                      <input
+                        id="login-college"
+                        type="text"
+                        className="craft-input"
+                        placeholder="SCT College of Engineering"
+                        value={college}
+                        onChange={e => setCollege(e.target.value)}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                      <div className="form-field-group">
+                        <label htmlFor="login-year" className="craft-label">Year of Study</label>
+                        <select
+                          id="login-year"
+                          className="craft-input"
+                          value={year}
+                          onChange={e => setYear(e.target.value)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <option value="1st Year">1st Year</option>
+                          <option value="2nd Year">2nd Year</option>
+                          <option value="3rd Year">3rd Year</option>
+                          <option value="4th Year">4th Year</option>
+                          <option value="Postgraduate">Postgraduate</option>
+                        </select>
+                      </div>
+                      <div className="form-field-group">
+                        <label htmlFor="login-dept" className="craft-label">Department</label>
+                        <input
+                          id="login-dept"
+                          type="text"
+                          className="craft-input"
+                          placeholder="Computer Science"
+                          value={department}
+                          onChange={e => setDepartment(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
 
           <div className="form-field-group">
-            <label htmlFor="login-email" className="craft-label">Email Address</label>
+            <label htmlFor="login-email" className="craft-label">Email Address <span style={{ color: 'var(--accent-rose)' }}>*</span></label>
             <input
               id="login-email"
               type="email"
@@ -169,7 +270,7 @@ const LoginPage = () => {
           </div>
 
           <div className="form-field-group">
-            <label htmlFor="login-password" className="craft-label">Password</label>
+            <label htmlFor="login-password" className="craft-label">Password <span style={{ color: 'var(--accent-rose)' }}>*</span></label>
             <input
               id="login-password"
               type="password"
