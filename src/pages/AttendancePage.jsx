@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useEventStore from '../store/useEventStore';
 import useUIStore from '../store/useUIStore';
+import { supabase } from '../lib/supabase';
 import Avatar from '../components/ui/Avatar';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -19,6 +20,7 @@ const AttendancePage = () => {
     events,
     getRecentRegistrations,
     updateCheckInStatus,
+    updateMemberCheckIn,
     updateAddonFulfillment,
     registerParticipant,
   } = useEventStore();
@@ -27,9 +29,14 @@ const AttendancePage = () => {
   const [selectedEventId, setSelectedEventId] = useState('all');
   const [attendees, setAttendees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'present' | 'absent' | 'spot'
+  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'present' | 'absent' | 'spot' | 'teams'
   const [searchQuery, setSearchQuery] = useState('');
   const [isUpdatingId, setIsUpdatingId] = useState(null);
+  const [expandedTeams, setExpandedTeams] = useState({});
+
+  // Quick Check-In Bar state
+  const [quickScanCode, setQuickScanCode] = useState('');
+  const [quickCheckInSuccess, setQuickCheckInSuccess] = useState(null);
 
   // Spot walk-in modal
   const [showWalkInModal, setShowWalkInModal] = useState(false);
@@ -47,9 +54,8 @@ const AttendancePage = () => {
   });
   const [isSubmittingWalkIn, setIsSubmittingWalkIn] = useState(false);
 
-  // 1. Fetch registrations
+  // 1. Fetch registrations with live Realtime Sync + Focus Sync
   const fetchAttendees = useCallback(async () => {
-    setLoading(true);
     const data = await getRecentRegistrations(2000);
     setAttendees(data || []);
     setLoading(false);
@@ -57,6 +63,25 @@ const AttendancePage = () => {
 
   useEffect(() => {
     fetchAttendees();
+
+    // Supabase Realtime channel
+    const channel = supabase
+      .channel('attendance-live-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => {
+        fetchAttendees();
+      })
+      .subscribe();
+
+    const handleFocus = () => fetchAttendees();
+    window.addEventListener('focus', handleFocus);
+
+    const timer = setInterval(fetchAttendees, 4000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(timer);
+    };
   }, [fetchAttendees]);
 
   const activeEvent = useMemo(() => {
@@ -72,15 +97,19 @@ const AttendancePage = () => {
 
   // 3. Tab breakdown
   const presentAttendees = useMemo(() => {
-    return eventAttendees.filter((a) => a.checkInStatus === 'Checked In');
+    return eventAttendees.filter((a) => a.checkInStatus === 'Checked In' || a.checkInStatus === 'Partially Checked In');
   }, [eventAttendees]);
 
   const absentAttendees = useMemo(() => {
-    return eventAttendees.filter((a) => a.checkInStatus !== 'Checked In');
+    return eventAttendees.filter((a) => a.checkInStatus !== 'Checked In' && a.checkInStatus !== 'Partially Checked In');
   }, [eventAttendees]);
 
   const spotAttendees = useMemo(() => {
     return eventAttendees.filter((a) => a.pricingTier?.toLowerCase().includes('spot') || a.ticketId?.startsWith('SPT-'));
+  }, [eventAttendees]);
+
+  const teamAttendees = useMemo(() => {
+    return eventAttendees.filter((a) => a.registrationType === 'group' || (Array.isArray(a.teamMembers) && a.teamMembers.length > 0));
   }, [eventAttendees]);
 
   // Current view list
@@ -89,6 +118,7 @@ const AttendancePage = () => {
     if (activeTab === 'present') list = presentAttendees;
     if (activeTab === 'absent') list = absentAttendees;
     if (activeTab === 'spot') list = spotAttendees;
+    if (activeTab === 'teams') list = teamAttendees;
 
     if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase();
@@ -98,18 +128,76 @@ const AttendancePage = () => {
         a.studentId?.toLowerCase().includes(q) ||
         a.ticketId?.toLowerCase().includes(q) ||
         a.department?.toLowerCase().includes(q) ||
-        a.email?.toLowerCase().includes(q)
+        a.email?.toLowerCase().includes(q) ||
+        a.teamName?.toLowerCase().includes(q) ||
+        (Array.isArray(a.teamMembers) && a.teamMembers.some((m) => m.name?.toLowerCase().includes(q) || m.rollNumber?.toLowerCase().includes(q)))
     );
-  }, [activeTab, eventAttendees, presentAttendees, absentAttendees, spotAttendees, searchQuery]);
+  }, [activeTab, eventAttendees, presentAttendees, absentAttendees, spotAttendees, teamAttendees, searchQuery]);
 
   // Turnout stats
   const totalCount = eventAttendees.length;
   const presentCount = presentAttendees.length;
   const absentCount = absentAttendees.length;
   const spotCount = spotAttendees.length;
+  const teamCount = teamAttendees.length;
   const turnoutPercent = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
 
-  // 4. Manual Check-in toggle
+  // 4. Quick Check-In Bar by Ticket ID / Roll No / Scanner
+  const handleQuickCheckIn = async (e) => {
+    e.preventDefault();
+    if (!quickScanCode.trim()) return;
+    const cleanCode = quickScanCode.trim().toUpperCase();
+
+    const match = eventAttendees.find((a) => {
+      const ticket = a.ticketId?.toUpperCase();
+      const ticketMatch = ticket && (cleanCode === ticket || cleanCode.includes(ticket) || ticket.includes(cleanCode));
+      const studentMatch = (a.studentId && cleanCode.includes(a.studentId.toUpperCase())) || (a.rollNumber && cleanCode.includes(a.rollNumber.toUpperCase()));
+      const nameMatch = a.name && a.name.toUpperCase().includes(cleanCode);
+      return ticketMatch || studentMatch || nameMatch;
+    });
+
+    if (!match) {
+      addToast({
+        type: 'error',
+        title: 'Attendee Not Found',
+        message: `No attendee matched "${quickScanCode}" in active event track.`,
+      });
+      return;
+    }
+
+    if (match.checkInStatus === 'Checked In') {
+      addToast({
+        type: 'warning',
+        title: 'Already Checked In',
+        message: `${match.name} was already marked as present.`,
+      });
+      setQuickScanCode('');
+      return;
+    }
+
+    setIsUpdatingId(match.id);
+    const ok = await updateCheckInStatus(match.id, true);
+    if (ok) {
+      playSuccessChime();
+      const updated = {
+        ...match,
+        checkInStatus: 'Checked In',
+        checkedInAt: new Date().toISOString(),
+      };
+      setAttendees((prev) => prev.map((a) => (a.id === match.id ? updated : a)));
+      setQuickCheckInSuccess(updated);
+      setTimeout(() => setQuickCheckInSuccess(null), 3500);
+      addToast({
+        type: 'success',
+        title: 'Gate Entry Approved ✓',
+        message: `Welcome, ${match.name}! (Ticket: ${match.ticketId})`,
+      });
+      setQuickScanCode('');
+    }
+    setIsUpdatingId(null);
+  };
+
+  // 5. Manual Check-in toggle
   const handleToggleCheckIn = async (attendee) => {
     setIsUpdatingId(attendee.id);
     const newStatus = attendee.checkInStatus !== 'Checked In';
@@ -131,7 +219,49 @@ const AttendancePage = () => {
     setIsUpdatingId(null);
   };
 
-  // 5. Toggle Add-on
+  // 6. Individual Team Member Attendance Check-In Toggle
+  const handleToggleMemberCheckIn = async (attendee, memberIndex) => {
+    const members = Array.isArray(attendee.teamMembers) ? attendee.teamMembers : [];
+    const member = members[memberIndex];
+    if (!member) return;
+
+    const nextVal = !member.checkedIn;
+    setIsUpdatingId(`${attendee.id}-member-${memberIndex}`);
+    const ok = await updateMemberCheckIn(attendee.id, memberIndex, nextVal);
+    if (ok) {
+      if (nextVal) playSuccessChime();
+      const updatedMembers = [...members];
+      updatedMembers[memberIndex] = {
+        ...member,
+        checkedIn: nextVal,
+        checkedInAt: nextVal ? new Date().toISOString() : null,
+      };
+      const allChecked = updatedMembers.length > 0 && updatedMembers.every((m) => m.checkedIn);
+      const anyChecked = updatedMembers.some((m) => m.checkedIn);
+      const overallStatus = allChecked ? 'Checked In' : anyChecked ? 'Partially Checked In' : 'Not Checked In';
+
+      const updatedAttendee = {
+        ...attendee,
+        teamMembers: updatedMembers,
+        checkInStatus: overallStatus,
+        checkedInAt: anyChecked ? attendee.checkedInAt || new Date().toISOString() : null,
+      };
+
+      setAttendees((prev) => prev.map((a) => (a.id === attendee.id ? updatedAttendee : a)));
+      addToast({
+        type: nextVal ? 'success' : 'info',
+        title: nextVal ? 'Team Member Present ✓' : 'Member Marked Absent',
+        message: `${member.name} (${attendee.teamName || 'Team'}) marked as ${nextVal ? 'Present' : 'Absent'}.`,
+      });
+    }
+    setIsUpdatingId(null);
+  };
+
+  const toggleExpandTeam = (attendeeId) => {
+    setExpandedTeams((prev) => ({ ...prev, [attendeeId]: !prev[attendeeId] }));
+  };
+
+  // 7. Toggle Add-on
   const handleToggleAddon = async (attendee, addonLabel) => {
     const currentProvided = attendee.addonsProvided || {};
     const nextVal = !currentProvided[addonLabel];
@@ -149,7 +279,7 @@ const AttendancePage = () => {
     }
   };
 
-  // 6. Submit Walk-In / Spot Registration
+  // 8. Submit Walk-In / Spot Registration
   const handleSubmitWalkIn = async (e) => {
     e.preventDefault();
     if (!walkInForm.name.trim()) {
@@ -207,17 +337,19 @@ const AttendancePage = () => {
     }
   };
 
-  // 7. Export Attendance CSV
+  // 9. Export Attendance CSV
   const handleExportCSV = () => {
     if (currentTabList.length === 0) {
       addToast({ type: 'warning', title: 'Nothing to Export', message: 'No attendee records in this view.' });
       return;
     }
 
-    const headers = ['Ticket ID', 'Name', 'Roll No', 'Department', 'Year', 'College', 'Email', 'Phone', 'Category Tier', 'Paid Amount', 'Status', 'Gate Check-In', 'Checked-In Timestamp'];
+    const headers = ['Ticket ID', 'Name', 'Team Name', 'Role/Type', 'Roll No', 'Department', 'Year', 'College', 'Email', 'Phone', 'Category Tier', 'Paid Amount', 'Status', 'Gate Check-In', 'Checked-In Timestamp'];
     const rows = currentTabList.map((a) => [
       `"${a.ticketId || ''}"`,
       `"${a.name || ''}"`,
+      `"${a.teamName || ''}"`,
+      `"${a.registrationType || 'individual'}"`,
       `"${a.studentId || a.rollNumber || ''}"`,
       `"${a.department || ''}"`,
       `"${a.year || ''}"`,
@@ -250,11 +382,11 @@ const AttendancePage = () => {
       <div className="attendance-topbar">
         <div>
           <div className="attendance-title-row">
-            <h1 className="attendance-page-title">📋 Attendance & Delegate Hub</h1>
+            <h1 className="attendance-page-title">📋 Attendance & Turnout Hub</h1>
             <span className="attendance-pill font-mono">{presentCount} Present</span>
           </div>
           <p className="attendance-page-sub">
-            Track delegate arrivals, view absent registrants, and issue on-desk spot passes.
+            Track delegate arrivals, manage individual team member check-ins, and issue spot passes.
           </p>
         </div>
 
@@ -266,7 +398,7 @@ const AttendancePage = () => {
             icon={<span>⚡</span>}
             onClick={() => navigate('/scanner')}
           >
-            Launch Scanner
+            Launch Camera Scanner
           </Button>
 
           {/* Quick Walk-In Spot Pass */}
@@ -291,9 +423,38 @@ const AttendancePage = () => {
         </div>
       </div>
 
+      {/* Quick Check-In Bar by Ticket ID / Scanner */}
+      <div className="craft-card attendance-quick-scan-container">
+        <form onSubmit={handleQuickCheckIn} className="attendance-quick-scan-form">
+          <div className="quick-scan-input-wrapper">
+            <span className="quick-scan-icon">⚡</span>
+            <input
+              type="text"
+              className="craft-input font-mono quick-scan-input"
+              placeholder="Instant Check-In: Scan barcode or enter Ticket ID (e.g. TCK-163318 / Roll No)..."
+              value={quickScanCode}
+              onChange={(e) => setQuickScanCode(e.target.value)}
+            />
+          </div>
+          <Button type="submit" variant="primary" size="md">
+            ✓ Check In Present ↵
+          </Button>
+        </form>
+
+        {quickCheckInSuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="quick-scan-success-banner font-mono"
+          >
+            ✓ <strong>{quickCheckInSuccess.name}</strong> ({quickCheckInSuccess.ticketId}) marked present for {quickCheckInSuccess.eventName || 'Event'}.
+          </motion.div>
+        )}
+      </div>
+
       {/* Event Selector Strip */}
       <div className="attendance-event-strip craft-card font-mono">
-        <span className="strip-label">EVENT TRACK:</span>
+        <span className="strip-label">GATE TRACK:</span>
         <div className="event-pills-row">
           <button
             type="button"
@@ -339,9 +500,9 @@ const AttendancePage = () => {
         </div>
 
         <div className="craft-card att-stat-card">
-          <span className="att-stat-label font-mono">SPOT PASSES ISSUED</span>
-          <span className="att-stat-val text-amber font-mono">{spotCount}</span>
-          <span className="att-stat-sub font-mono">On-desk walk-ins</span>
+          <span className="att-stat-label font-mono">TEAMS & SPOT PASSES</span>
+          <span className="att-stat-val text-amber font-mono">{teamCount} Teams • {spotCount} Spot</span>
+          <span className="att-stat-sub font-mono">Group & walk-in passes</span>
         </div>
       </div>
 
@@ -362,14 +523,21 @@ const AttendancePage = () => {
               className={`att-tab-btn ${activeTab === 'present' ? 'active' : ''}`}
               onClick={() => setActiveTab('present')}
             >
-              ✓ Present & Checked In ({presentCount})
+              ✓ Present ({presentCount})
             </button>
             <button
               type="button"
               className={`att-tab-btn ${activeTab === 'absent' ? 'active' : ''}`}
               onClick={() => setActiveTab('absent')}
             >
-              ⏳ Absent / Not Arrived ({absentCount})
+              ⏳ Absent ({absentCount})
+            </button>
+            <button
+              type="button"
+              className={`att-tab-btn ${activeTab === 'teams' ? 'active' : ''}`}
+              onClick={() => setActiveTab('teams')}
+            >
+              👥 Teams ({teamCount})
             </button>
             <button
               type="button"
@@ -385,7 +553,7 @@ const AttendancePage = () => {
             <input
               type="text"
               className="craft-input font-mono att-search-input"
-              placeholder="Search name, roll no, ticket ID, department..."
+              placeholder="Search name, team, roll no, ticket ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -397,7 +565,7 @@ const AttendancePage = () => {
           <table className="att-table">
             <thead>
               <tr className="font-mono">
-                <th>DELEGATE & ROLL NO</th>
+                <th>DELEGATE / TEAM ROSTER</th>
                 <th>EVENT & CATEGORY</th>
                 <th>ACADEMIC DETAILS</th>
                 <th>ATTENDANCE STATUS</th>
@@ -415,101 +583,188 @@ const AttendancePage = () => {
               ) : (
                 currentTabList.map((a) => {
                   const isPresent = a.checkInStatus === 'Checked In';
+                  const isPartial = a.checkInStatus === 'Partially Checked In';
                   const addons = a.selectedAddOns || [];
                   const addonsProvided = a.addonsProvided || {};
+                  const isGroup = a.registrationType === 'group' || (Array.isArray(a.teamMembers) && a.teamMembers.length > 0);
+                  const members = Array.isArray(a.teamMembers) ? a.teamMembers : [];
+                  const checkedMembersCount = members.filter((m) => m.checkedIn).length;
+                  const isExpanded = !!expandedTeams[a.id];
 
                   return (
-                    <tr key={a.id} className={`att-row ${isPresent ? 'row-present' : 'row-absent'}`}>
-                      {/* Delegate */}
-                      <td>
-                        <div className="att-user-col">
-                          <Avatar name={a.name} initials={a.initials} size="sm" />
-                          <div>
-                            <span className="att-name">{a.name}</span>
-                            <div className="att-sub font-mono">
-                              <span className="att-ticket">{a.ticketId}</span>
-                              {a.studentId && <span>• {a.studentId}</span>}
+                    <React.Fragment key={a.id}>
+                      <tr className={`att-row ${isPresent ? 'row-present' : isPartial ? 'row-partial' : 'row-absent'}`}>
+                        {/* Delegate / Team Info */}
+                        <td>
+                          <div className="att-user-col">
+                            <Avatar name={a.name} initials={a.initials} size="sm" />
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span className="att-name">{a.name}</span>
+                                {isGroup && (
+                                  <span className="font-mono" style={{ fontSize: '0.625rem', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-iris, #6366F1)', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                                    👥 {a.teamName || 'Team'}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="att-sub font-mono">
+                                <span className="att-ticket">{a.ticketId}</span>
+                                {a.studentId && <span>• {a.studentId}</span>}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Event & Category */}
-                      <td>
-                        <div className="att-event-col font-mono">
-                          <span className="att-event-name">{a.eventName || 'Event Program'}</span>
-                          <span className="att-tier-pill">🏷️ {a.pricingTier || 'Individual'}</span>
-                        </div>
-                      </td>
-
-                      {/* Academic */}
-                      <td>
-                        <div className="att-academic-col font-mono">
-                          <span>{a.department || '—'} • {a.year || '—'}</span>
-                          <span className="text-muted">{a.college || '—'}</span>
-                        </div>
-                      </td>
-
-                      {/* Status */}
-                      <td>
-                        <div className="att-status-col font-mono">
-                          <span className={`att-status-badge ${isPresent ? 'badge-present' : 'badge-absent'}`}>
-                            {isPresent ? '✓ PRESENT' : '○ ABSENT'}
-                          </span>
-                          {isPresent && a.checkedInAt && (
-                            <span className="att-checkin-time">{formatTimeAgo(a.checkedInAt)}</span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Add-ons Checklist */}
-                      <td>
-                        {addons.length === 0 ? (
-                          <span className="font-mono text-muted" style={{ fontSize: '0.75rem' }}>—</span>
-                        ) : (
-                          <div className="att-addons-row">
-                            {addons.map((addon) => {
-                              const isGiven = !!addonsProvided[addon];
-                              return (
-                                <button
-                                  key={addon}
-                                  type="button"
-                                  className={`att-addon-toggle font-mono ${isGiven ? 'given' : 'pending'}`}
-                                  onClick={() => handleToggleAddon(a, addon)}
-                                  title={isGiven ? 'Provided at desk (click to reset)' : 'Pending (click to mark provided)'}
-                                >
-                                  {isGiven ? `✓ ${addon}` : `○ ${addon}`}
-                                </button>
-                              );
-                            })}
+                        {/* Event & Category */}
+                        <td>
+                          <div className="att-event-col font-mono">
+                            <span className="att-event-name">{a.eventName || 'Event Program'}</span>
+                            <span className="att-tier-pill">🏷️ {a.pricingTier || 'Individual'}</span>
                           </div>
-                        )}
-                      </td>
+                        </td>
 
-                      {/* Actions */}
-                      <td style={{ textAlign: 'right' }}>
-                        <div className="att-actions-row">
-                          <Button
-                            type="button"
-                            variant={isPresent ? 'secondary' : 'primary'}
-                            size="xs"
-                            loading={isUpdatingId === a.id}
-                            onClick={() => handleToggleCheckIn(a)}
-                          >
-                            {isPresent ? '↺ Reset' : '✓ Check In'}
-                          </Button>
+                        {/* Academic */}
+                        <td>
+                          <div className="att-academic-col font-mono">
+                            <span>{a.department || '—'} • {a.year || '—'}</span>
+                            <span className="text-muted">{a.college || '—'}</span>
+                          </div>
+                        </td>
 
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="xs"
-                            onClick={() => navigate(`/registrations/${a.id}`)}
-                          >
-                            Inspect
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
+                        {/* Status */}
+                        <td>
+                          <div className="att-status-col font-mono">
+                            <span className={`att-status-badge ${isPresent ? 'badge-present' : isPartial ? 'badge-partial' : 'badge-absent'}`}>
+                              {isPresent ? '✓ FULLY PRESENT' : isPartial ? `🟡 PARTIAL (${checkedMembersCount}/${members.length})` : '○ ABSENT'}
+                            </span>
+                            {isPresent && a.checkedInAt && (
+                              <span className="att-checkin-time">{formatTimeAgo(a.checkedInAt)}</span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Add-ons Checklist */}
+                        <td>
+                          {addons.length === 0 ? (
+                            <span className="font-mono text-muted" style={{ fontSize: '0.75rem' }}>—</span>
+                          ) : (
+                            <div className="att-addons-row">
+                              {addons.map((addon) => {
+                                const isGiven = !!addonsProvided[addon];
+                                return (
+                                  <button
+                                    key={addon}
+                                    type="button"
+                                    className={`att-addon-toggle font-mono ${isGiven ? 'given' : 'pending'}`}
+                                    onClick={() => handleToggleAddon(a, addon)}
+                                    title={isGiven ? 'Provided at desk (click to reset)' : 'Pending (click to mark provided)'}
+                                  >
+                                    {isGiven ? `✓ ${addon}` : `○ ${addon}`}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td style={{ textAlign: 'right' }}>
+                          <div className="att-actions-row">
+                            {isGroup && (
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="xs"
+                                onClick={() => toggleExpandTeam(a.id)}
+                              >
+                                {isExpanded ? 'Hide Roster ▲' : `Team Roster (${members.length}) ▼`}
+                              </Button>
+                            )}
+
+                            <Button
+                              type="button"
+                              variant={isPresent ? 'secondary' : 'primary'}
+                              size="xs"
+                              loading={isUpdatingId === a.id}
+                              onClick={() => handleToggleCheckIn(a)}
+                            >
+                              {isPresent ? '↺ Reset' : '✓ Check In'}
+                            </Button>
+
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="xs"
+                              onClick={() => navigate(`/registrations/${a.id}`)}
+                            >
+                              Inspect
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* Expandable Individual Team Members Roster Row */}
+                      {isGroup && isExpanded && (
+                        <tr className="team-roster-expanded-row">
+                          <td colSpan={6} style={{ padding: '12px 24px', background: 'var(--surface-inset, #F8F9FA)', borderBottom: '1px solid var(--border-subtle)' }}>
+                            <div className="team-members-attendance-grid">
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                <span className="font-mono" style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
+                                  👥 INDIVIDUAL TEAM MEMBER ATTENDANCE — {a.teamName?.toUpperCase() || 'TEAM'} ({checkedMembersCount} / {members.length} Present)
+                                </span>
+                              </div>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
+                                {members.map((member, mIdx) => {
+                                  const isMemberChecked = !!member.checkedIn;
+                                  return (
+                                    <div
+                                      key={mIdx}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '10px 14px',
+                                        background: 'var(--surface-card, #FFFFFF)',
+                                        border: isMemberChecked ? '1px solid rgba(5, 150, 105, 0.3)' : '1px solid var(--border-subtle)',
+                                        borderRadius: 8,
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <Avatar name={member.name} size="xs" />
+                                        <div>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <strong style={{ fontSize: '0.8125rem', color: 'var(--text-primary)' }}>{member.name}</strong>
+                                            {member.isLeader && (
+                                              <span className="font-mono" style={{ fontSize: '0.625rem', color: '#D97706', background: 'rgba(217, 119, 6, 0.1)', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>
+                                                👑 Leader
+                                              </span>
+                                            )}
+                                          </div>
+                                          <span className="font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                                            {member.rollNumber || member.email || `Member ${mIdx + 1}`}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      <button
+                                        type="button"
+                                        className={`att-addon-toggle font-mono ${isMemberChecked ? 'given' : 'pending'}`}
+                                        disabled={isUpdatingId === `${a.id}-member-${mIdx}`}
+                                        onClick={() => handleToggleMemberCheckIn(a, mIdx)}
+                                        style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                                      >
+                                        {isMemberChecked ? '✓ Present' : '○ Mark Present'}
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })
               )}
@@ -518,147 +773,109 @@ const AttendancePage = () => {
         </div>
       </div>
 
-      {/* Quick Walk-In Spot Pass Modal */}
-      <Modal
-        open={showWalkInModal}
-        onClose={() => setShowWalkInModal(false)}
-        title="⚡ Issue On-Desk Spot Pass"
-        subtitle="Quickly register a walk-in delegate at the gate desk and mark them present"
-        size="md"
-      >
-        <form onSubmit={handleSubmitWalkIn} className="walkin-form">
-          <div className="form-row-2">
-            <div className="form-field-group">
-              <label className="craft-label">Delegate Full Name <span className="req-star">*</span></label>
-              <input
-                type="text"
-                className="craft-input"
-                placeholder="e.g. John Doe"
-                required
-                value={walkInForm.name}
-                onChange={(e) => setWalkInForm({ ...walkInForm, name: e.target.value })}
-                autoFocus
-              />
-            </div>
-            <div className="form-field-group">
-              <label className="craft-label">Roll Number / Student ID</label>
-              <input
-                type="text"
-                className="craft-input font-mono"
-                placeholder="e.g. SCT24AM009"
-                value={walkInForm.rollNumber}
-                onChange={(e) => setWalkInForm({ ...walkInForm, rollNumber: e.target.value })}
-              />
-            </div>
-          </div>
+      {/* Spot Walk-In Pass Modal */}
+      {showWalkInModal && (
+        <Modal
+          isOpen={showWalkInModal}
+          onClose={() => setShowWalkInModal(false)}
+          title="⚡ Issue On-Desk Spot Registration Pass"
+        >
+          <form onSubmit={handleSubmitWalkIn} className="spot-walkin-form">
+            <p className="font-mono spot-form-sub">
+              Register a walk-in delegate on the spot and immediately issue entry badge clearance.
+            </p>
 
-          <div className="form-row-2">
-            <div className="form-field-group">
-              <label className="craft-label">Email Address</label>
-              <input
-                type="email"
-                className="craft-input font-mono"
-                placeholder="student@college.edu"
-                value={walkInForm.email}
-                onChange={(e) => setWalkInForm({ ...walkInForm, email: e.target.value })}
-              />
-            </div>
-            <div className="form-field-group">
-              <label className="craft-label">Phone Number</label>
-              <input
-                type="tel"
-                className="craft-input font-mono"
-                placeholder="9876543210"
-                value={walkInForm.phone}
-                onChange={(e) => setWalkInForm({ ...walkInForm, phone: e.target.value })}
-              />
-            </div>
-          </div>
+            <div className="spot-form-grid">
+              <div className="form-field-group">
+                <label className="craft-label">Delegate Full Name <span className="req-star">*</span></label>
+                <input
+                  type="text"
+                  className="craft-input"
+                  placeholder="e.g. Rahul Sharma"
+                  value={walkInForm.name}
+                  onChange={(e) => setWalkInForm({ ...walkInForm, name: e.target.value })}
+                  required
+                />
+              </div>
 
-          <div className="form-row-3">
-            <div className="form-field-group">
-              <label className="craft-label">Academic Year</label>
-              <select
-                className="craft-input"
-                value={walkInForm.year}
-                onChange={(e) => setWalkInForm({ ...walkInForm, year: e.target.value })}
-              >
-                <option value="1st Year">1st Year</option>
-                <option value="2nd Year">2nd Year</option>
-                <option value="3rd Year">3rd Year</option>
-                <option value="4th Year">4th Year</option>
-                <option value="Postgraduate">Postgraduate</option>
-              </select>
-            </div>
-            <div className="form-field-group">
-              <label className="craft-label">Department</label>
-              <input
-                type="text"
-                className="craft-input"
-                placeholder="CSE / ECE / MECH"
-                value={walkInForm.department}
-                onChange={(e) => setWalkInForm({ ...walkInForm, department: e.target.value })}
-              />
-            </div>
-            <div className="form-field-group">
-              <label className="craft-label">College / Institution</label>
-              <input
-                type="text"
-                className="craft-input"
-                placeholder="SCTCE / CET / etc."
-                value={walkInForm.college}
-                onChange={(e) => setWalkInForm({ ...walkInForm, college: e.target.value })}
-              />
-            </div>
-          </div>
+              <div className="form-field-group">
+                <label className="craft-label">Roll Number / Student ID</label>
+                <input
+                  type="text"
+                  className="craft-input font-mono"
+                  placeholder="e.g. 21CS088"
+                  value={walkInForm.rollNumber}
+                  onChange={(e) => setWalkInForm({ ...walkInForm, rollNumber: e.target.value })}
+                />
+              </div>
 
-          <div className="form-row-2">
-            <div className="form-field-group">
-              <label className="craft-label">Pass Category Tier</label>
-              <input
-                type="text"
-                className="craft-input font-mono"
-                placeholder="Spot Pass / Walk-in"
-                value={walkInForm.pricingTier}
-                onChange={(e) => setWalkInForm({ ...walkInForm, pricingTier: e.target.value })}
-              />
-            </div>
-            <div className="form-field-group">
-              <label className="craft-label">Spot Fee Collected (₹)</label>
-              <input
-                type="number"
-                className="craft-input font-mono"
-                placeholder="100"
-                value={walkInForm.totalPaid}
-                onChange={(e) => setWalkInForm({ ...walkInForm, totalPaid: e.target.value })}
-              />
-            </div>
-          </div>
+              <div className="form-field-group">
+                <label className="craft-label">Email Address</label>
+                <input
+                  type="email"
+                  className="craft-input font-mono"
+                  placeholder="delegate@college.edu"
+                  value={walkInForm.email}
+                  onChange={(e) => setWalkInForm({ ...walkInForm, email: e.target.value })}
+                />
+              </div>
 
-          <div className="walkin-auto-checkin-row">
-            <label className="toggle-switch-label">
-              <input
-                type="checkbox"
-                checked={walkInForm.autoCheckIn}
-                onChange={(e) => setWalkInForm({ ...walkInForm, autoCheckIn: e.target.checked })}
-              />
-              <span className="toggle-switch-track" />
-              <span className="toggle-switch-text font-mono">
-                Automatically mark attendee as PRESENT & CHECKED IN immediately
-              </span>
-            </label>
-          </div>
+              <div className="form-field-group">
+                <label className="craft-label">Phone Number</label>
+                <input
+                  type="tel"
+                  className="craft-input font-mono"
+                  placeholder="+91 98765 43210"
+                  value={walkInForm.phone}
+                  onChange={(e) => setWalkInForm({ ...walkInForm, phone: e.target.value })}
+                />
+              </div>
 
-          <div className="walkin-actions-row">
-            <Button type="button" variant="ghost" onClick={() => setShowWalkInModal(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" loading={isSubmittingWalkIn}>
-              Issue Spot Pass & Check-In ⚡
-            </Button>
-          </div>
-        </form>
-      </Modal>
+              <div className="form-field-group">
+                <label className="craft-label">College / Institution</label>
+                <input
+                  type="text"
+                  className="craft-input"
+                  placeholder="College Name"
+                  value={walkInForm.college}
+                  onChange={(e) => setWalkInForm({ ...walkInForm, college: e.target.value })}
+                />
+              </div>
+
+              <div className="form-field-group">
+                <label className="craft-label">Spot Pass Fee Collected (₹)</label>
+                <input
+                  type="number"
+                  className="craft-input font-mono"
+                  placeholder="100"
+                  value={walkInForm.totalPaid}
+                  onChange={(e) => setWalkInForm({ ...walkInForm, totalPaid: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="spot-auto-checkin-row">
+              <label className="spot-checkbox-label font-mono">
+                <input
+                  type="checkbox"
+                  checked={walkInForm.autoCheckIn}
+                  onChange={(e) => setWalkInForm({ ...walkInForm, autoCheckIn: e.target.checked })}
+                />
+                <span>✓ Automatically mark as Checked-In immediately upon creation</span>
+              </label>
+            </div>
+
+            <div className="spot-form-actions">
+              <Button type="button" variant="secondary" onClick={() => setShowWalkInModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" loading={isSubmittingWalkIn}>
+                ⚡ Issue Spot Pass & Print Badge
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 };

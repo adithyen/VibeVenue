@@ -312,18 +312,52 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
 
             {/* Team Details if group registration */}
             {attendee.teamName && (
-              <div className="dossier-team-box">
-                <span className="team-badge font-mono">👥 TEAM: {attendee.teamName}</span>
+              <div className="dossier-team-box" style={{ marginTop: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span className="team-badge font-mono">👥 TEAM: {attendee.teamName}</span>
+                  <span className="font-mono" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {attendee.teamMembers?.length || 0} Registered Delegates
+                  </span>
+                </div>
                 {attendee.teamMembers?.length > 0 && (
-                  <div className="team-members-grid font-mono">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '8px' }}>
                     {attendee.teamMembers.map((m, idx) => {
-                      const mName = typeof m === 'object' ? m.name : '';
-                      const mEmail = typeof m === 'object' ? m.email : m;
+                      const isObj = typeof m === 'object';
+                      const mName = isObj ? m.name : '';
+                      const mEmail = isObj ? m.email : m;
+                      const mRoll = isObj ? m.rollNumber : '';
+                      const isLeader = isObj ? m.isLeader : idx === 0;
+                      const isChecked = isObj ? m.checkedIn : false;
+
                       return (
-                        <div key={idx} className="team-member-chip">
-                          <span className="m-num">#{idx + 1}</span>
-                          <span className="m-name">{mName || 'Member'}</span>
-                          {mEmail && <span className="m-email font-mono">({mEmail})</span>}
+                        <div
+                          key={idx}
+                          style={{
+                            padding: '10px 12px',
+                            background: 'var(--surface-card)',
+                            border: isChecked ? '1px solid rgba(5, 150, 105, 0.3)' : '1px solid var(--border-subtle)',
+                            borderRadius: 8,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <strong style={{ fontSize: '0.8125rem' }}>{mName || `Member ${idx + 1}`}</strong>
+                              {isLeader && (
+                                <span className="font-mono" style={{ fontSize: '0.625rem', color: '#D97706', background: 'rgba(217, 119, 6, 0.1)', padding: '1px 4px', borderRadius: 4, fontWeight: 700 }}>
+                                  👑 Leader
+                                </span>
+                              )}
+                            </div>
+                            <div className="font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                              {mRoll ? `${mRoll} • ` : ''}{mEmail}
+                            </div>
+                          </div>
+                          <span className={`font-mono ${isChecked ? 'text-emerald' : 'text-muted'}`} style={{ fontSize: '0.6875rem', fontWeight: 700 }}>
+                            {isChecked ? '✓ Present' : '○ Absent'}
+                          </span>
                         </div>
                       );
                     })}

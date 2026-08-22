@@ -314,6 +314,37 @@ const useEventStore = create((set, get) => ({
     return !error;
   },
 
+  updateMemberCheckIn: async (registrationId, memberIndex, checkIn) => {
+    const { data: current } = await supabase
+      .from('registrations')
+      .select('team_members, check_in_status, checked_in_at')
+      .eq('id', registrationId)
+      .single();
+
+    if (!current) return false;
+    const members = Array.isArray(current.team_members) ? [...current.team_members] : [];
+    if (members[memberIndex]) {
+      members[memberIndex] = {
+        ...members[memberIndex],
+        checkedIn: checkIn,
+        checkedInAt: checkIn ? new Date().toISOString() : null,
+      };
+    }
+    const allChecked = members.length > 0 && members.every((m) => m.checkedIn);
+    const anyChecked = members.some((m) => m.checkedIn);
+    const overallStatus = allChecked ? 'Checked In' : anyChecked ? 'Partially Checked In' : 'Not Checked In';
+
+    const { error } = await supabase
+      .from('registrations')
+      .update({
+        team_members: members,
+        check_in_status: overallStatus,
+        checked_in_at: anyChecked ? current.checked_in_at || new Date().toISOString() : null,
+      })
+      .eq('id', registrationId);
+    return !error;
+  },
+
   updateAddonFulfillment: async (registrationId, addonLabel, provided) => {
     const { data: current } = await supabase
       .from('registrations')

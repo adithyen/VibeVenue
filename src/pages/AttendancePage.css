@@ -312,14 +312,81 @@
   background: rgba(5, 150, 105, 0.12);
 }
 
+.badge-partial {
+  color: #D97706;
+  background: rgba(217, 119, 6, 0.12);
+  border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
 .badge-absent {
   color: var(--text-muted);
   background: var(--surface-inset);
 }
 
+.row-partial td {
+  background: rgba(217, 119, 6, 0.02);
+}
+
 .att-checkin-time {
   font-size: 0.625rem;
   color: var(--text-muted);
+}
+
+/* Quick Check-In Bar */
+.attendance-quick-scan-container {
+  padding: 14px 18px;
+  background: var(--surface-card);
+  border-radius: var(--radius-xl, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attendance-quick-scan-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.quick-scan-input-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.quick-scan-icon {
+  position: absolute;
+  left: 14px;
+  font-size: 1rem;
+  color: var(--accent-iris, #6366F1);
+}
+
+.quick-scan-input {
+  width: 100%;
+  padding-left: 40px !important;
+  font-size: 0.875rem;
+}
+
+.quick-scan-success-banner {
+  font-size: 0.75rem;
+  color: var(--accent-emerald, #059669);
+  background: rgba(5, 150, 105, 0.1);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(5, 150, 105, 0.2);
+}
+
+/* Team Roster Expanded Row */
+.team-roster-expanded-row td {
+  background: var(--surface-inset, #F9FAFB) !important;
+  padding: 14px 20px !important;
+}
+
+.team-members-attendance-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* Add-ons toggle button */
@@ -358,20 +425,41 @@
 }
 
 /* Walk-in Form Modal */
-.walkin-form {
+.spot-walkin-form {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-.walkin-auto-checkin-row {
+.spot-form-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.spot-form-grid {
+  display: grid;
+  grid-templateColumns: 1fr 1fr;
+  gap: 12px;
+}
+
+.spot-auto-checkin-row {
   padding: 10px 14px;
   background: rgba(5, 150, 105, 0.08);
   border: 1px solid rgba(5, 150, 105, 0.2);
   border-radius: var(--radius-md);
 }
 
-.walkin-actions-row {
+.spot-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.spot-form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;

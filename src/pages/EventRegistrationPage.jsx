@@ -163,6 +163,38 @@ const EventRegistrationPage = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleAddMember = () => {
+    const maxMembers = event?.groupMaxSize || 4;
+    if (form.teamMembers.length < maxMembers - 1) {
+      setForm(p => ({
+        ...p,
+        teamMembers: [...p.teamMembers, { name: '', email: '', phone: '', rollNumber: '', department: '' }]
+      }));
+    }
+  };
+
+  const handleRemoveMember = (idx) => {
+    setForm(p => ({
+      ...p,
+      teamMembers: p.teamMembers.filter((_, i) => i !== idx)
+    }));
+  };
+
+  const handleMemberChange = (idx, field, value) => {
+    setForm(p => {
+      const next = [...p.teamMembers];
+      next[idx] = { ...next[idx], [field]: value };
+      return { ...p, teamMembers: next };
+    });
+    if (errors[`member_${idx}_${field}`]) {
+      setErrors(prev => {
+        const n = { ...prev };
+        delete n[`member_${idx}_${field}`];
+        return n;
+      });
+    }
+  };
+
   const validateStep = (s) => {
     const e = {};
     if (s === 0) {
@@ -171,8 +203,21 @@ const EventRegistrationPage = () => {
       if (!form.phone?.trim()) e.phone = 'Phone number is required';
       if (!form.college?.trim()) e.college = 'College name is required';
       if (!form.rollNumber?.trim()) e.rollNumber = 'Roll number / Student ID is required';
-      if (form.registrationType === 'group' && !form.teamName?.trim()) {
-        e.teamName = 'Team name is required for group registration';
+      if (form.registrationType === 'group') {
+        if (!form.teamName?.trim()) e.teamName = 'Team name is required for group registration';
+        const totalMembers = 1 + (form.teamMembers?.length || 0);
+        const minMembers = event?.groupMinSize || 2;
+        const maxMembers = event?.groupMaxSize || 4;
+        if (totalMembers < minMembers) {
+          e.teamRoster = `Minimum ${minMembers} team members required (including Team Leader). Please add more members.`;
+        }
+        if (totalMembers > maxMembers) {
+          e.teamRoster = `Maximum ${maxMembers} team members allowed.`;
+        }
+        (form.teamMembers || []).forEach((m, idx) => {
+          if (!m.name?.trim()) e[`member_${idx}_name`] = `Member ${idx + 2} name is required`;
+          if (!m.email?.trim()) e[`member_${idx}_email`] = `Member ${idx + 2} email is required`;
+        });
       }
     } else if (s === 1) {
       if (hasTiers && selectedTierObj?.requiresProof && !form.membershipProof?.trim()) {
@@ -212,8 +257,32 @@ const EventRegistrationPage = () => {
     if (!validateStep(step)) return;
     setIsSubmitting(true);
     try {
+      const fullTeamMembers = form.registrationType === 'group' ? [
+        {
+          name: form.fullName,
+          email: form.email,
+          phone: form.phone,
+          rollNumber: form.rollNumber,
+          department: form.department,
+          college: form.college,
+          isLeader: true,
+          checkedIn: false,
+        },
+        ...(form.teamMembers || []).map((m) => ({
+          name: m.name,
+          email: m.email,
+          phone: m.phone || '',
+          rollNumber: m.rollNumber || '',
+          department: m.department || form.department,
+          college: m.college || form.college,
+          isLeader: false,
+          checkedIn: false,
+        })),
+      ] : [];
+
       await registerParticipant(event.id, {
         ...form,
+        teamMembers: fullTeamMembers,
         ticketId: tempTicketId,
         userId: user?.id,
         totalPaid: totalAmount,
@@ -436,16 +505,142 @@ const EventRegistrationPage = () => {
                 </div>
 
                 {form.registrationType === 'group' && (
-                  <div className="form-field-group" style={{ marginTop: '1rem' }}>
-                    <label className="craft-label">Team Name <span style={{ color: 'var(--accent-rose)' }}>*</span></label>
-                    <input
-                      type="text"
-                      className={`craft-input ${errors.teamName ? 'input-error' : ''}`}
-                      placeholder="e.g. CodeStorm"
-                      value={form.teamName}
-                      onChange={e => setF('teamName', e.target.value)}
-                    />
-                    {errors.teamName && <span className="field-error-msg">{errors.teamName}</span>}
+                  <div className="team-roster-builder" style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="form-field-group">
+                      <label className="craft-label">Team Name <span style={{ color: 'var(--accent-rose)' }}>*</span></label>
+                      <input
+                        type="text"
+                        className={`craft-input ${errors.teamName ? 'input-error' : ''}`}
+                        placeholder="e.g. NeuralKnights"
+                        value={form.teamName}
+                        onChange={e => setF('teamName', e.target.value)}
+                      />
+                      {errors.teamName && <span className="field-error-msg">{errors.teamName}</span>}
+                    </div>
+
+                    {/* Team Members Roster Container */}
+                    <div className="team-roster-container craft-card" style={{ padding: '16px 20px', background: 'var(--surface-inset, #F8F9FA)', border: '1px solid var(--border-default)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                        <div>
+                          <strong style={{ fontSize: '0.9375rem', color: 'var(--text-primary)' }}>👥 Team Roster Specification</strong>
+                          <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            Min: {event.groupMinSize || 2} members • Max: {event.groupMaxSize || 4} members (including Leader)
+                          </p>
+                        </div>
+                        <span className="font-mono" style={{ fontSize: '0.75rem', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-iris, #6366F1)', padding: '3px 8px', borderRadius: 6, fontWeight: 700 }}>
+                          {1 + form.teamMembers.length} / {event.groupMaxSize || 4} Delegates
+                        </span>
+                      </div>
+
+                      {errors.teamRoster && (
+                        <div style={{ background: 'rgba(225, 29, 72, 0.1)', color: 'var(--accent-rose)', padding: '8px 12px', borderRadius: 8, fontSize: '0.8125rem', marginBottom: 12 }}>
+                          ⚠️ {errors.teamRoster}
+                        </div>
+                      )}
+
+                      {/* Member 1: Team Leader */}
+                      <div className="team-member-card" style={{ padding: '12px 16px', background: 'var(--surface-card, #FFFFFF)', borderRadius: 10, border: '1px solid var(--border-subtle)', marginBottom: 12 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--text-primary)' }}>👑 Member 1 — Team Leader</span>
+                          <span className="font-mono" style={{ fontSize: '0.6875rem', color: 'var(--accent-emerald, #059669)', background: 'rgba(5, 150, 105, 0.1)', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                            Primary Delegate (You)
+                          </span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                          <strong>{form.fullName || 'Leader Name'}</strong> • {form.email || 'leader@email.com'} • {form.rollNumber || 'Roll No'} • {form.phone || 'Phone'}
+                        </p>
+                      </div>
+
+                      {/* Additional Team Members */}
+                      {form.teamMembers.map((member, idx) => (
+                        <div key={idx} className="team-member-card" style={{ padding: '14px 16px', background: 'var(--surface-card, #FFFFFF)', borderRadius: 10, border: '1px solid var(--border-subtle)', marginBottom: 12 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                            <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                              👤 Member {idx + 2} Details
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMember(idx)}
+                              style={{ background: 'none', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                            >
+                              ✕ Remove Member
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                            <div>
+                              <label className="craft-label" style={{ fontSize: '0.75rem' }}>Full Name <span style={{ color: 'var(--accent-rose)' }}>*</span></label>
+                              <input
+                                type="text"
+                                className={`craft-input ${errors[`member_${idx}_name`] ? 'input-error' : ''}`}
+                                placeholder="Member full name"
+                                value={member.name}
+                                onChange={e => handleMemberChange(idx, 'name', e.target.value)}
+                              />
+                              {errors[`member_${idx}_name`] && <span className="field-error-msg">{errors[`member_${idx}_name`]}</span>}
+                            </div>
+
+                            <div>
+                              <label className="craft-label" style={{ fontSize: '0.75rem' }}>Email Address <span style={{ color: 'var(--accent-rose)' }}>*</span></label>
+                              <input
+                                type="email"
+                                className={`craft-input font-mono ${errors[`member_${idx}_email`] ? 'input-error' : ''}`}
+                                placeholder="member@campus.edu"
+                                value={member.email}
+                                onChange={e => handleMemberChange(idx, 'email', e.target.value)}
+                              />
+                              {errors[`member_${idx}_email`] && <span className="field-error-msg">{errors[`member_${idx}_email`]}</span>}
+                            </div>
+
+                            <div>
+                              <label className="craft-label" style={{ fontSize: '0.75rem' }}>Phone Number</label>
+                              <input
+                                type="tel"
+                                className="craft-input font-mono"
+                                placeholder="+91 98765 00000"
+                                value={member.phone}
+                                onChange={e => handleMemberChange(idx, 'phone', e.target.value)}
+                              />
+                            </div>
+
+                            <div>
+                              <label className="craft-label" style={{ fontSize: '0.75rem' }}>Roll No / Student ID</label>
+                              <input
+                                type="text"
+                                className="craft-input font-mono"
+                                placeholder="e.g. 21CS042"
+                                value={member.rollNumber}
+                                onChange={e => handleMemberChange(idx, 'rollNumber', e.target.value)}
+                              />
+                            </div>
+
+                            <div>
+                              <label className="craft-label" style={{ fontSize: '0.75rem' }}>Department / Branch</label>
+                              <input
+                                type="text"
+                                className="craft-input"
+                                placeholder="e.g. CSE / ECE"
+                                value={member.department}
+                                onChange={e => handleMemberChange(idx, 'department', e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Add Member Button */}
+                      {1 + form.teamMembers.length < (event.groupMaxSize || 4) && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleAddMember}
+                          style={{ width: '100%', marginTop: 4 }}
+                        >
+                          + Add Team Member {form.teamMembers.length + 2}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
