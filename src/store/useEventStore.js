@@ -393,17 +393,19 @@ function buildEventPayload(f, userId) {
     is_paid:               f.isPaid || false,
     pricing_type:          f.pricingType || 'flat',
     pricing_tiers:         f.pricingTiers || [],
-    open_to:               f.openTo || ['All'],
-    allow_registrations_until: f.allowRegistrationsUntil || null,
-    enable_spot_registrations: f.enableSpotRegistrations || false,
-    allow_spot_registrations_until: f.allowSpotRegistrationsUntil || null,
     individual_price:      f.individualPrice ? parseFloat(f.individualPrice) : null,
     group_price:           f.groupPrice       ? parseFloat(f.groupPrice)       : null,
     group_min_size:        parseInt(f.groupMinSize, 10) || 2,
     group_max_size:        parseInt(f.groupMaxSize, 10) || 5,
     has_capacity_limit:    f.hasCapacityLimit || false,
     max_participants:      f.hasCapacityLimit ? (parseInt(f.maxParticipants, 10) || 9999) : 9999,
-    amenities:             f.amenities || {},
+    amenities:             {
+      ...(f.amenities || {}),
+      openTo: f.openTo || ['All'],
+      allowRegistrationsUntil: f.allowRegistrationsUntil || null,
+      enableSpotRegistrations: f.enableSpotRegistrations || false,
+      allowSpotRegistrationsUntil: f.allowSpotRegistrationsUntil || null,
+    },
     upi_id:                f.upiId    || null,
     has_bank_transfer:     f.hasBankTransfer || false,
     account_no:            f.accountNo || null,
@@ -435,17 +437,19 @@ function formDataToRow(f, bannerUrl, logoUrl) {
     is_paid:               f.isPaid || false,
     pricing_type:          f.pricingType || (f.pricingTiers?.length ? 'tiered' : 'flat'),
     pricing_tiers:         f.pricingTiers || [],
-    open_to:               f.openTo || ['All'],
-    allow_registrations_until: f.allowRegistrationsUntil || null,
-    enable_spot_registrations: f.enableSpotRegistrations || false,
-    allow_spot_registrations_until: f.allowSpotRegistrationsUntil || null,
     individual_price:      f.individualPrice ? parseFloat(f.individualPrice) : null,
     group_price:           f.groupPrice       ? parseFloat(f.groupPrice)       : null,
     group_min_size:        parseInt(f.groupMinSize, 10) || 2,
     group_max_size:        parseInt(f.groupMaxSize, 10) || 5,
     has_capacity_limit:    f.hasCapacityLimit || false,
     max_participants:      f.hasCapacityLimit ? (parseInt(f.maxParticipants, 10) || 9999) : 9999,
-    amenities:             f.amenities || {},
+    amenities:             {
+      ...(f.amenities || {}),
+      openTo: f.openTo || ['All'],
+      allowRegistrationsUntil: f.allowRegistrationsUntil || null,
+      enableSpotRegistrations: f.enableSpotRegistrations || false,
+      allowSpotRegistrationsUntil: f.allowSpotRegistrationsUntil || null,
+    },
     upi_id:                f.upiId    || null,
     has_bank_transfer:     f.hasBankTransfer || false,
     account_no:            f.accountNo || null,
@@ -516,7 +520,7 @@ function normaliseEvent(row) {
     }
   }
 
-  let openTo = row.open_to;
+  let openTo = row.open_to || amenities?.openTo;
   if (typeof openTo === 'string') {
     try {
       openTo = JSON.parse(openTo);
