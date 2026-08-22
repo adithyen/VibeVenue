@@ -463,29 +463,46 @@ const AttendancePage = () => {
           >
             ⚡ All Events ({attendees.length})
           </button>
-          {events.map((evt) => (
-            <button
-              key={evt.id}
-              type="button"
-              className={`event-pill-btn ${selectedEventId === evt.id ? 'active' : ''}`}
-              onClick={() => setSelectedEventId(evt.id)}
-            >
-              {evt.name} ({evt.registrationCount || 0})
-            </button>
-          ))}
+          {events.map((evt) => {
+            const count = attendees.filter((a) => a.eventId === evt.id).length;
+            return (
+              <button
+                key={evt.id}
+                type="button"
+                className={`event-pill-btn ${selectedEventId === evt.id ? 'active' : ''}`}
+                onClick={() => setSelectedEventId(evt.id)}
+              >
+                {evt.name} ({count})
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Key Turnout Statistics Cards */}
+      {/* Key Turnout Statistics Cards — Clickable to Filter Table */}
       <div className="attendance-stats-grid">
-        <div className="craft-card att-stat-card">
-          <span className="att-stat-label font-mono">TOTAL REGISTERED</span>
+        <div
+          className={`craft-card att-stat-card ${activeTab === 'all' ? 'card-active' : ''}`}
+          onClick={() => setActiveTab('all')}
+          title="Click to filter table to All Registered Delegates"
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="att-stat-label font-mono">TOTAL REGISTERED</span>
+            {activeTab === 'all' && <span className="font-mono" style={{ fontSize: '0.625rem', color: 'var(--accent-iris, #6366F1)', fontWeight: 700 }}>● ACTIVE</span>}
+          </div>
           <span className="att-stat-val text-iris font-mono">{totalCount}</span>
-          <span className="att-stat-sub">Registered delegates</span>
+          <span className="att-stat-sub font-mono">Click to view all {totalCount} records</span>
         </div>
 
-        <div className="craft-card att-stat-card">
-          <span className="att-stat-label font-mono">ATTENDED & PRESENT</span>
+        <div
+          className={`craft-card att-stat-card ${activeTab === 'present' ? 'card-active' : ''}`}
+          onClick={() => setActiveTab('present')}
+          title="Click to filter table to Present Delegates"
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="att-stat-label font-mono">ATTENDED & PRESENT</span>
+            {activeTab === 'present' && <span className="font-mono" style={{ fontSize: '0.625rem', color: 'var(--accent-emerald, #059669)', fontWeight: 700 }}>● ACTIVE</span>}
+          </div>
           <span className="att-stat-val text-emerald font-mono">{presentCount}</span>
           <div className="att-progress-box">
             <ProgressBar current={presentCount} total={totalCount || 1} height={6} showLabel={false} />
@@ -493,16 +510,30 @@ const AttendancePage = () => {
           </div>
         </div>
 
-        <div className="craft-card att-stat-card">
-          <span className="att-stat-label font-mono">ABSENT / NOT ARRIVED</span>
+        <div
+          className={`craft-card att-stat-card ${activeTab === 'absent' ? 'card-active' : ''}`}
+          onClick={() => setActiveTab('absent')}
+          title="Click to filter table to Absent Registrants"
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="att-stat-label font-mono">ABSENT / NOT ARRIVED</span>
+            {activeTab === 'absent' && <span className="font-mono" style={{ fontSize: '0.625rem', color: 'var(--accent-rose, #E11D48)', fontWeight: 700 }}>● ACTIVE</span>}
+          </div>
           <span className="att-stat-val text-rose font-mono">{absentCount}</span>
           <span className="att-stat-sub font-mono">{100 - turnoutPercent}% Pending arrival</span>
         </div>
 
-        <div className="craft-card att-stat-card">
-          <span className="att-stat-label font-mono">TEAMS & SPOT PASSES</span>
+        <div
+          className={`craft-card att-stat-card ${activeTab === 'teams' ? 'card-active' : ''}`}
+          onClick={() => setActiveTab('teams')}
+          title="Click to filter table to Team Rosters"
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="att-stat-label font-mono">TEAMS & SPOT PASSES</span>
+            {activeTab === 'teams' && <span className="font-mono" style={{ fontSize: '0.625rem', color: '#D97706', fontWeight: 700 }}>● ACTIVE</span>}
+          </div>
           <span className="att-stat-val text-amber font-mono">{teamCount} Teams • {spotCount} Spot</span>
-          <span className="att-stat-sub font-mono">Group & walk-in passes</span>
+          <span className="att-stat-sub font-mono">Click to view team rosters</span>
         </div>
       </div>
 
