@@ -191,20 +191,27 @@ const RegistrationModal = ({ event, onClose }) => {
   return (
     <AnimatePresence>
       <motion.div className="reg-modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={step !== 3 ? onClose : undefined}>
-        <motion.div className="reg-modal-container" initial={{ opacity: 0, y: 40, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.97 }} transition={{ type: 'spring', stiffness: 320, damping: 32 }} onClick={e => e.stopPropagation()}>
+        <motion.div className="reg-modal-container" initial={{ opacity: 0, y: 30, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.98 }} transition={{ type: 'spring', stiffness: 350, damping: 30 }} onClick={e => e.stopPropagation()}>
           {event.bannerUrl && (
             <div className="reg-modal-banner" style={{ backgroundImage: `url(${event.bannerUrl})` }}>
               <div className="reg-modal-banner-overlay" />
-              {event.logoUrl && <img src={event.logoUrl} alt={event.name} className="reg-modal-banner-logo" />}
+              <button className="reg-modal-close-btn banner-close" onClick={onClose} aria-label="Close modal" type="button">✕</button>
             </div>
           )}
           <div className="reg-modal-header">
+            {event.logoUrl && (
+              <img src={event.logoUrl} alt={event.name} className="reg-modal-header-logo" />
+            )}
             <div className="reg-header-meta">
-              <span className="reg-event-badge font-mono">{event.category?.toUpperCase() || 'EVENT'}</span>
+              <div className="reg-header-top-row">
+                <span className="reg-event-badge font-mono">{event.category?.toUpperCase() || 'EVENT'}</span>
+                {!event.bannerUrl && (
+                  <button className="reg-modal-close-btn" onClick={onClose} aria-label="Close modal" type="button">✕</button>
+                )}
+              </div>
               <h2 className="reg-event-title">{event.name}</h2>
               <p className="reg-event-sub font-mono">📅 {formatEventSchedule(event.date || event.startDate, event.time || event.startTime, event.endTime)} • 📍 {event.venue || (event.isOnline ? 'Online Event' : 'Campus Venue')}</p>
             </div>
-            <button className="reg-close-btn" onClick={onClose} aria-label="Close modal">✕</button>
           </div>
           <div className="reg-stepper-bar">
             {visibleSteps.map((s, idx) => {
