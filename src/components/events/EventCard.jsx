@@ -47,23 +47,8 @@ const EventCard = ({ event, delay = 0 }) => {
         </div>
       )}
 
-      {/* Top: Category + Status */}
-      <div className="event-card-top">
-        <Badge category={event.category} size="xs" icon={cat?.icon}>
-          {cat?.label || event.category}
-        </Badge>
-
-        <div className="event-card-status-box">
-          <Badge status={event.status} dot size="xs">
-            {event.status === 'upcoming' ? 'Upcoming'
-              : event.status === 'ongoing' ? 'Live Now'
-              : 'Ended'}
-          </Badge>
-        </div>
-      </div>
-
-      {/* Main Info: Logo on Left, Title on Right */}
-      <div className="event-card-main-row">
+      {/* Main Info: Logo on Left, Badges & Title on Right */}
+      <div className={`event-card-main-row ${event.bannerUrl ? 'has-banner' : 'no-banner'}`}>
         {event.logoUrl && (
           <img
             src={event.logoUrl}
@@ -72,7 +57,22 @@ const EventCard = ({ event, delay = 0 }) => {
           />
         )}
         <div className="event-card-main">
+          <div className="event-card-meta-line">
+            <Badge category={event.category} size="xs" icon={cat?.icon}>
+              {cat?.label || event.category}
+            </Badge>
+
+            <Badge status={event.status} dot size="xs">
+              {event.status === 'upcoming' ? 'Upcoming'
+                : event.status === 'ongoing' ? 'Live Now'
+                : 'Ended'}
+            </Badge>
+          </div>
+
           <h3 className="event-card-title">{event.name}</h3>
+          {event.tagline && (
+            <p className="event-card-tagline">{event.tagline}</p>
+          )}
           <p className="event-card-desc">
             {event.shortDescription || event.description}
           </p>
