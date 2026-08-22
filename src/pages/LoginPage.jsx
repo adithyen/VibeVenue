@@ -9,7 +9,7 @@ import './LoginPage.css';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login, signUp, loginWithGoogle, isLoading, error, clearError } = useAuthStore();
+  const { user, login, signUp, loginWithGoogle, isLoading, error, clearError } = useAuthStore();
   const { addToast } = useUIStore();
 
   const [mode, setMode]       = useState('login');  // 'login' | 'signup'
@@ -18,6 +18,13 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [name, setName]       = useState('');
   const [formError, setFormError] = useState('');
+
+  // Auto-redirect if session is active (e.g. from Google OAuth redirect)
+  React.useEffect(() => {
+    if (user) {
+      navigate(user.role === 'admin' ? '/' : '/portal', { replace: true });
+    }
+  }, [user, navigate]);
 
   const switchMode = (m) => { setMode(m); setFormError(''); clearError(); };
 

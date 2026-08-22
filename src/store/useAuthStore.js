@@ -14,10 +14,21 @@ const useAuthStore = create((set, get) => ({
   // ── Boot: restore session from Supabase ─────────────────────
   init: async () => {
     set({ isLoading: true });
+
+    // Listen for auth state changes (OAuth callback, token refresh, sign-in/out)
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const profile = await get()._fetchProfile(session.user.id, session.user);
+        set({ session, user: profile, isLoading: false });
+      } else if (event === 'SIGNED_OUT') {
+        set({ session: null, user: null, isLoading: false });
+      }
+    });
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        const profile = await get()._fetchProfile(session.user.id);
+        const profile = await get()._fetchProfile(session.user.id, session.user);
         set({ session, user: profile, isLoading: false });
       } else {
         set({ session: null, user: null, isLoading: false });
@@ -26,23 +37,16 @@ const useAuthStore = create((set, get) => ({
       console.warn('Session check error:', err);
       set({ session: null, user: null, isLoading: false });
     }
-
-    // Listen for auth state changes (login/logout from any tab or OAuth callback)
-    supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const profile = await get()._fetchProfile(session.user.id);
-        set({ session, user: profile, isLoading: false });
-      } else {
-        set({ session: null, user: null, isLoading: false });
-      }
-    });
   },
 
   // ── Internal: fetch or auto-create profile row ─────────────
-  _fetchProfile: async (userId) => {
+  _fetchProfile: async (userId, passedUser = null) => {
     try {
-      const { data: authData } = await supabase.auth.getUser();
-      const authUser = authData?.user;
+      let authUser = passedUser;
+      if (!authUser) {
+        const { data: authData } = await supabase.auth.getUser();
+        authUser = authData?.user;
+      }
       if (!authUser) return null;
 
       const meta = authUser.user_metadata || {};
