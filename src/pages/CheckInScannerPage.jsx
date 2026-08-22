@@ -32,6 +32,7 @@ const CheckInScannerPage = () => {
 
   // Manual / Keyboard Barcode Scanner input
   const [manualInput, setManualInput] = useState('');
+  const [barcodeReaderDetected, setBarcodeReaderDetected] = useState(false);
   const [recentScans, setRecentScans] = useState([]);
   const [lastScannedResult, setLastScannedResult] = useState(null);
 
@@ -60,6 +61,15 @@ const CheckInScannerPage = () => {
     fetchAttendees();
   }, [fetchAttendees]);
 
+  // Check WebHID devices on mount
+  useEffect(() => {
+    if (navigator.hid?.getDevices) {
+      navigator.hid.getDevices().then((devices) => {
+        if (devices.length > 0) setBarcodeReaderDetected(true);
+      }).catch(() => {});
+    }
+  }, []);
+
   // 2. Hardware Barcode Gun / USB Scanner Listener (Keyboard Wedge)
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -68,7 +78,8 @@ const CheckInScannerPage = () => {
       }
 
       const now = Date.now();
-      if (now - lastKeyTimeRef.current > 200) {
+      const interval = now - lastKeyTimeRef.current;
+      if (interval > 200) {
         barcodeBufferRef.current = '';
       }
       lastKeyTimeRef.current = now;
@@ -77,9 +88,13 @@ const CheckInScannerPage = () => {
         const scanned = barcodeBufferRef.current.trim();
         barcodeBufferRef.current = '';
         if (scanned.length >= 3) {
+          setBarcodeReaderDetected(true);
           processScanCode(scanned);
         }
       } else if (e.key.length === 1) {
+        if (interval < 55) {
+          setBarcodeReaderDetected(true);
+        }
         barcodeBufferRef.current += e.key;
       }
     };
@@ -555,7 +570,9 @@ const CheckInScannerPage = () => {
           <div className="craft-card scanner-manual-card">
             <div className="manual-card-header">
               <span className="font-mono manual-card-title">🔍 USB BARCODE GUN / MANUAL SEARCH</span>
-              <span className="font-mono usb-status-tag">⚡ HARDWARE SCANNER READY</span>
+              <span className={`font-mono usb-status-tag ${barcodeReaderDetected ? 'tag-detected' : 'tag-not-detected'}`}>
+                {barcodeReaderDetected ? '⚡ BARCODE READER DETECTED' : '○ BARCODE READER NOT DETECTED'}
+              </span>
             </div>
             <form onSubmit={handleManualSubmit} className="manual-search-form">
               <input
