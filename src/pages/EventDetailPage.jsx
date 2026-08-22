@@ -25,10 +25,12 @@ const TABS = [
 const EventDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { events, deleteEvent } = useEventStore();
+  const { events, isLoading, deleteEvent, fetchEventParticipants } = useEventStore();
   const [activeTab, setActiveTab] = useState('overview');
   const [editOpen, setEditOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [participants, setParticipants] = useState([]);
+  const [participantsLoading, setParticipantsLoading] = useState(false);
 
   const event = events.find((e) => e.id === id);
 
@@ -36,20 +38,42 @@ const EventDetailPage = () => {
     window.scrollTo(0, 0);
   }, [id]);
 
+  useEffect(() => {
+    if (!id || !fetchEventParticipants) return;
+    setParticipantsLoading(true);
+    fetchEventParticipants(id).then((data) => {
+      setParticipants(data || []);
+      setParticipantsLoading(false);
+    }).catch(() => {
+      setParticipantsLoading(false);
+    });
+  }, [id, fetchEventParticipants]);
+
+  if (isLoading && !event) {
+    return (
+      <div className="event-detail-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: '50%',
+          border: '3px solid rgba(99,102,241,0.2)',
+          borderTopColor: '#6366F1',
+          animation: 'spin 0.7s linear infinite',
+        }} />
+      </div>
+    );
+  }
+
   if (!event) {
     return (
       <div className="event-detail-container">
         <EmptyState
-          icon={
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-            </svg>
-          }
+          preset="noEvents"
           title="Event Not Found"
           description="The event you are looking for does not exist or has been removed from the registry."
-          actionLabel="Back to Events"
-          onAction={() => navigate('/events')}
+          action={
+            <Button variant="primary" onClick={() => navigate('/events')}>
+              Back to Events Directory
+            </Button>
+          }
         />
       </div>
     );
@@ -58,15 +82,19 @@ const EventDetailPage = () => {
   const cat = getCategoryById(event.category) || { label: event.category || 'General', icon: '⚡' };
   const daysUntil = getDaysUntil(event.date);
   const occupancyPct = Math.round(
-    (event.registrationCount / event.maxParticipants) * 100
+    (event.registrationCount / (event.maxParticipants || 1)) * 100
   );
 
-  // Status breakdown data for the Donut Chart
-  const statusData = [
-    { name: 'Confirmed', value: event.statusBreakdown?.confirmed || 0, color: '#10B981' },
-    { name: 'Pending',   value: event.statusBreakdown?.pending   || 0, color: '#F59E0B' },
-    { name: 'Cancelled', value: event.statusBreakdown?.cancelled || 0, color: '#F43F5E' },
-  ].filter((d) => d.value > 0);
+  // Telemetry breakdown data for charts
+  const confirmedCount = participants.filter(p => p.status === 'confirmed').length || event.statusBreakdown?.confirmed || 0;
+  const pendingCount   = participants.filter(p => p.status === 'pending').length || event.statusBreakdown?.pending || 0;
+  const availableSeats = Math.max(0, (event.maxParticipants || 100) - (event.registrationCount || 0));
+
+  const chartData = [
+    { name: 'Confirmed Attendees', value: confirmedCount, color: '#10B981' },
+    { name: 'Pending Approvals',  value: pendingCount,   color: '#F59E0B' },
+    { name: 'Available Slots',    value: availableSeats, color: '#26282E' },
+  ];
 
   const handleDelete = () => {
     deleteEvent(event.id);
