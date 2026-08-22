@@ -8,7 +8,7 @@ import useEventStore from '../store/useEventStore';
 import useUIStore from '../store/useUIStore';
 import Button from '../components/ui/Button';
 import Avatar from '../components/ui/Avatar';
-import { formatEventSchedule } from '../utils/dateUtils';
+import { formatEventSchedule, getRegistrationStatusInfo, getComputedEventStatus } from '../utils/dateUtils';
 import { getCategoryById } from '../data/mockData';
 import './EventRegistrationPage.css';
 
@@ -31,6 +31,8 @@ const EventRegistrationPage = () => {
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
+
+  const regInfo = useMemo(() => getRegistrationStatusInfo(event), [event]);
 
   // Generate unique Ticket ID
   const tempTicketId = useMemo(() => `TCK-${Math.floor(100000 + Math.random() * 900000)}`, []);
@@ -276,6 +278,27 @@ const EventRegistrationPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Registration Status Banner if Closed or Spot Pass */}
+      {regInfo.isClosed && (
+        <div style={{ background: 'rgba(225, 29, 72, 0.1)', border: '1.5px solid var(--accent-rose)', borderRadius: 'var(--radius-xl)', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: '1.5rem' }}>🔒</span>
+          <div>
+            <strong style={{ color: 'var(--accent-rose)', display: 'block', fontSize: '0.95rem' }}>Online Registration Closed</strong>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>The deadline for this event has passed or the venue is at full capacity. New registrations cannot be submitted.</span>
+          </div>
+        </div>
+      )}
+
+      {regInfo.isSpot && (
+        <div style={{ background: 'rgba(217, 119, 6, 0.1)', border: '1.5px solid #D97706', borderRadius: 'var(--radius-xl)', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: '1.5rem' }}>⚡</span>
+          <div>
+            <strong style={{ color: '#D97706', display: 'block', fontSize: '0.95rem' }}>Spot Registration Active</strong>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>You are applying for an on-desk / venue spot pass. Please present this confirmed pass at the registration desk.</span>
+          </div>
+        </div>
+      )}
 
       {/* Full Page Stepper Bar */}
       <div className="full-reg-stepper-container craft-card">
@@ -722,20 +745,22 @@ const EventRegistrationPage = () => {
             {isLastBeforeConfirm ? (
               <Button
                 type="button"
-                variant="primary"
+                variant={regInfo.isClosed ? 'secondary' : 'primary'}
                 loading={isSubmitting}
+                disabled={regInfo.isClosed}
                 onClick={handleSubmit}
                 id="submit-registration-btn"
               >
-                Confirm Registration & Generate Pass 🎟️
+                {regInfo.isClosed ? 'Registrations Closed' : regInfo.isSpot ? 'Confirm Spot Registration ⚡' : 'Confirm Registration & Generate Pass 🎟️'}
               </Button>
             ) : (
               <Button
                 type="button"
                 variant="primary"
+                disabled={regInfo.isClosed}
                 onClick={handleNext}
               >
-                Continue →
+                {regInfo.isClosed ? 'Registrations Closed' : 'Continue →'}
               </Button>
             )}
           </div>

@@ -1,11 +1,10 @@
-// VibeVenue Event Card — with status, amenity, and mode badges (v4.0)
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getCategoryById } from '../../data/mockData';
 import Badge from '../ui/Badge';
 import ProgressBar from '../ui/ProgressBar';
-import { formatDate, formatEventSchedule, getEventFeeDisplay } from '../../utils/dateUtils';
+import { formatDate, formatEventSchedule, getEventFeeDisplay, getComputedEventStatus, getRegistrationStatusInfo } from '../../utils/dateUtils';
 import './EventCard.css';
 
 const EventCard = ({ event, delay = 0 }) => {
@@ -16,6 +15,8 @@ const EventCard = ({ event, delay = 0 }) => {
   );
   const isPaid = event.fee && event.fee !== 'Free' && event.fee !== '';
   const isOnline = event.isOnline;
+  const computedStatus = getComputedEventStatus(event);
+  const regInfo = getRegistrationStatusInfo(event);
 
   return (
     <motion.article
@@ -62,11 +63,18 @@ const EventCard = ({ event, delay = 0 }) => {
               {cat?.label || event.category}
             </Badge>
 
-            <Badge status={event.status} dot size="xs">
-              {event.status === 'upcoming' ? 'Upcoming'
-                : event.status === 'ongoing' ? 'Live Now'
-                : 'Ended'}
+            <Badge status={computedStatus} dot size="xs">
+              {computedStatus === 'upcoming' ? 'Upcoming'
+                : computedStatus === 'ongoing' ? '🔴 Live Now'
+                : computedStatus === 'completed' ? 'Completed'
+                : 'Cancelled'}
             </Badge>
+
+            {regInfo.isSpot && (
+              <span className="font-mono" style={{ fontSize: '0.625rem', color: '#D97706', background: 'rgba(217, 119, 6, 0.1)', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                ⚡ Spot Open
+              </span>
+            )}
           </div>
 
           <h3 className="event-card-title">{event.name}</h3>

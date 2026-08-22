@@ -54,6 +54,9 @@ const freshData = () => ({
   groupMaxSize: '5',
   hasCapacityLimit: false,
   maxParticipants: '',
+  allowRegistrationsUntil: '',
+  enableSpotRegistrations: false,
+  allowSpotRegistrationsUntil: '',
   addOns: [], // [{ label, price, required }]
   hasEarlyBird: false,
   earlyBirdDiscount: '',
@@ -83,6 +86,9 @@ const EventForm = ({ event = null, onClose }) => {
           pricingType: event.pricingType || (event.pricingTiers?.length ? 'tiered' : 'flat'),
           pricingTiers: event.pricingTiers?.length ? event.pricingTiers : freshData().pricingTiers,
           openTo: event.openTo?.length ? event.openTo : ['All'],
+          allowRegistrationsUntil: event.allowRegistrationsUntil || '',
+          enableSpotRegistrations: event.enableSpotRegistrations || false,
+          allowSpotRegistrationsUntil: event.allowSpotRegistrationsUntil || '',
           bannerBase64: event.bannerUrl || null,
           bannerName: event.bannerUrl ? 'Current Banner' : '',
           logoBase64: event.logoUrl || null,
@@ -976,6 +982,61 @@ const EventForm = ({ event = null, onClose }) => {
                     )}
                   </div>
                 )}
+
+                {/* ⏱️ Registration Deadlines & Spot Registration Access */}
+                <div className="form-field-group" style={{ background: 'var(--surface-inset)', padding: '14px 16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
+                  <label className="craft-label" style={{ marginBottom: 8, color: 'var(--text-primary)' }}>⏱️ Registration Windows & Spot Access</label>
+                  
+                  {/* Allow registrations until */}
+                  <div className="form-field-group" style={{ marginBottom: 12 }}>
+                    <label htmlFor="evt-reg-until" className="craft-label" style={{ fontSize: '0.8125rem' }}>Allow Online Registrations Until</label>
+                    <input
+                      id="evt-reg-until"
+                      type="datetime-local"
+                      className="craft-input font-mono"
+                      value={formData.allowRegistrationsUntil}
+                      onChange={e => set('allowRegistrationsUntil', e.target.value)}
+                    />
+                    <p className="field-hint-text font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: 3 }}>
+                      Defaults to event start time if left empty. Once passed, online registration closes.
+                    </p>
+                  </div>
+
+                  {/* Enable spot registration toggle */}
+                  <div className="form-field-group" style={{ marginBottom: 0 }}>
+                    <div className="form-label-row">
+                      <label className="craft-label" style={{ fontSize: '0.8125rem' }}>Enable Spot Registrations ⚡</label>
+                      <label className="toggle-switch-label">
+                        <input
+                          type="checkbox"
+                          checked={formData.enableSpotRegistrations}
+                          onChange={e => set('enableSpotRegistrations', e.target.checked)}
+                        />
+                        <span className="toggle-switch-track" />
+                        <span className="toggle-switch-text font-mono">{formData.enableSpotRegistrations ? 'Enabled' : 'Disabled'}</span>
+                      </label>
+                    </div>
+                    <p className="field-hint-text font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                      Allows on-desk and walk-in spot passes at the venue after regular online registration closes.
+                    </p>
+
+                    {formData.enableSpotRegistrations && (
+                      <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--border-default)' }}>
+                        <label htmlFor="evt-spot-until" className="craft-label" style={{ fontSize: '0.8125rem' }}>Allow Spot Registrations Until</label>
+                        <input
+                          id="evt-spot-until"
+                          type="datetime-local"
+                          className="craft-input font-mono"
+                          value={formData.allowSpotRegistrationsUntil}
+                          onChange={e => set('allowSpotRegistrationsUntil', e.target.value)}
+                        />
+                        <p className="field-hint-text font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: 3 }}>
+                          Defaults to event end time. Spot passes close permanently after this timestamp.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Add-ons */}
                 <div className="form-field-group">

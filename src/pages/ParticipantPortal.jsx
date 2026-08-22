@@ -10,7 +10,7 @@ import Button from '../components/ui/Button';
 import ProgressBar from '../components/ui/ProgressBar';
 import Modal from '../components/ui/Modal';
 import EditProfileModal from '../components/profile/EditProfileModal';
-import { formatDate, formatEventSchedule, getEventFeeDisplay } from '../utils/dateUtils';
+import { formatDate, formatEventSchedule, getEventFeeDisplay, getComputedEventStatus, getRegistrationStatusInfo } from '../utils/dateUtils';
 import './ParticipantPortal.css';
 
 const ParticipantPortal = () => {
@@ -51,14 +51,17 @@ const ParticipantPortal = () => {
     };
   }, [refreshPasses]);
 
-  // Compute upcoming events available for registration
+  // Compute upcoming & ongoing events available for registration
   // Filter out registered events AND filter by target academic year if restricted
   const registeredEventIds = new Set(passes.map(p => p.eventId));
   const studentYear = user?.year || '';
 
   const availableEvents = useMemo(() => {
     return events
-      .filter(evt => evt.status === 'upcoming')
+      .filter(evt => {
+        const computedStatus = getComputedEventStatus(evt);
+        return computedStatus !== 'completed' && computedStatus !== 'cancelled';
+      })
       .filter(evt => !registeredEventIds.has(evt.id))
       .filter(evt => {
         const openTo = Array.isArray(evt.openTo) ? evt.openTo : ['All'];
@@ -70,11 +73,12 @@ const ParticipantPortal = () => {
 
   // Handle new self-registration — navigates to full-page registration view
   const handleSelfRegister = (event) => {
-    if (event.registrationCount >= event.maxParticipants && !event.isOnline) {
+    const regInfo = getRegistrationStatusInfo(event);
+    if (!regInfo.isOpen) {
       addToast({
         type: 'error',
-        title: 'Event Full',
-        message: `"${event.name}" has no more seats available.`,
+        title: regInfo.isFull ? 'Event Full' : 'Registration Closed',
+        message: regInfo.isFull ? `"${event.name}" has reached capacity.` : `Registration deadline for "${event.name}" has passed.`,
       });
       return;
     }
@@ -185,86 +189,104 @@ const ParticipantPortal = () => {
             </div>
 
             <div className="recommended-grid">
-              {availableEvents.map((event) => (
-                <div key={event.id} className="craft-card rec-event-card">
-                  {event.bannerUrl && (
-                    <div className="rec-card-banner" style={{ backgroundImage: `url(${event.bannerUrl})` }}>
-                      <div className="rec-card-banner-overlay" />
-                    </div>
-                  )}
-                  <div className="rec-card-body">
-                    <div className="rec-card-header-row">
-                      {event.logoUrl && (
-                        <img
-                          src={event.logoUrl}
-                          alt={event.name}
-                          className={`rec-card-logo ${event.bannerUrl ? 'rec-card-logo-overlap' : ''}`}
-                        />
-                      )}
-                      <div className="rec-card-header-info">
-                        <div className="rec-card-title-line">
-                          <h4 className="rec-title">{event.name}</h4>
-                          <Badge category={event.category} size="xs">
-                            {event.category.toUpperCase()}
-                          </Badge>
-                        </div>
-                        {event.tagline && <p className="rec-card-tagline">{event.tagline}</p>}
-                      </div>
-                    </div>
-                    <p className="rec-desc">{event.shortDescription || event.description}</p>
-                    <div className="rec-logistics font-mono">
-                      <span>📅 {formatEventSchedule(event.date || event.startDate, event.time || event.startTime, event.endTime)}</span>
-                      <span>📍 {event.venue}</span>
-                      <span className="rec-fee-tag">🎟️ {getEventFeeDisplay(event)}</span>
-                    </div>
+              {availableEvents.map((event) => {
+                const computedStatus = getComputedEventStatus(event);
+                const regInfo = getRegistrationStatusInfo(event);
 
-                    {/* Pre-event Resource Links */}
-                    {event.preLinks && event.preLinks.filter(l => l.url).length > 0 && (
-                      <div className="rec-links-container">
-                        {event.preLinks.filter(l => l.url).map((l, i) => (
-                          <a key={i} href={l.url} target="_blank" rel="noopener noreferrer" className="rec-link-pill">
-                            🔗 {l.label || 'Event Resource'}
-                          </a>
-                        ))}
+                return (
+                  <div key={event.id} className="craft-card rec-event-card">
+                    {event.bannerUrl && (
+                      <div className="rec-card-banner" style={{ backgroundImage: `url(${event.bannerUrl})` }}>
+                        <div className="rec-card-banner-overlay" />
                       </div>
                     )}
+                    <div className="rec-card-body">
+                      <div className="rec-card-header-row">
+                        {event.logoUrl && (
+                          <img
+                            src={event.logoUrl}
+                            alt={event.name}
+                            className={`rec-card-logo ${event.bannerUrl ? 'rec-card-logo-overlap' : ''}`}
+                          />
+                        )}
+                        <div className="rec-card-header-info">
+                          <div className="rec-card-title-line">
+                            <h4 className="rec-title">{event.name}</h4>
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                              <Badge category={event.category} size="xs">
+                                {event.category.toUpperCase()}
+                              </Badge>
+                              {computedStatus === 'ongoing' && (
+                                <span className="font-mono" style={{ fontSize: '0.625rem', color: '#E11D48', background: 'rgba(225, 29, 72, 0.1)', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                                  🔴 LIVE NOW
+                                </span>
+                              )}
+                              {regInfo.isSpot && (
+                                <span className="font-mono" style={{ fontSize: '0.625rem', color: '#D97706', background: 'rgba(217, 119, 6, 0.1)', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                                  ⚡ SPOT PASS
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {event.tagline && <p className="rec-card-tagline">{event.tagline}</p>}
+                        </div>
+                      </div>
+                      <p className="rec-desc">{event.shortDescription || event.description}</p>
+                      <div className="rec-logistics font-mono">
+                        <span>📅 {formatEventSchedule(event.date || event.startDate, event.time || event.startTime, event.endTime)}</span>
+                        <span>📍 {event.venue}</span>
+                        <span className="rec-fee-tag">🎟️ {getEventFeeDisplay(event)}</span>
+                      </div>
 
-                    {/* Contact Coordinators */}
-                    {event.contacts && event.contacts.filter(c => c.name).length > 0 && (
-                      <div className="rec-contacts-strip">
-                        <span className="rec-contacts-title font-mono">Coordinators:</span>
-                        <div className="rec-contacts-list">
-                          {event.contacts.filter(c => c.name).map((c, i) => (
-                            <span key={i} className="rec-contact-tag font-mono">
-                              👤 {c.name} {c.role ? `(${c.role})` : ''} {c.phone ? `• 📞 ${c.phone}` : ''}
-                            </span>
+                      {/* Pre-event Resource Links */}
+                      {event.preLinks && event.preLinks.filter(l => l.url).length > 0 && (
+                        <div className="rec-links-container">
+                          {event.preLinks.filter(l => l.url).map((l, i) => (
+                            <a key={i} href={l.url} target="_blank" rel="noopener noreferrer" className="rec-link-pill">
+                              🔗 {l.label || 'Event Resource'}
+                            </a>
                           ))}
                         </div>
-                      </div>
-                    )}
-                    <div className="rec-footer">
-                      <ProgressBar
-                        current={event.registrationCount}
-                        total={event.maxParticipants}
-                        showLabel={false}
-                        height={4}
-                      />
-                      <div className="rec-btn-row">
-                        <span className="rec-capacity-label font-mono">
-                          {event.registrationCount}/{event.maxParticipants} slots filled
-                        </span>
-                        <Button
-                          variant="primary"
-                          size="xs"
-                          onClick={() => handleSelfRegister(event)}
-                        >
-                          Register Now
-                        </Button>
+                      )}
+
+                      {/* Contact Coordinators */}
+                      {event.contacts && event.contacts.filter(c => c.name).length > 0 && (
+                        <div className="rec-contacts-strip">
+                          <span className="rec-contacts-title font-mono">Coordinators:</span>
+                          <div className="rec-contacts-list">
+                            {event.contacts.filter(c => c.name).map((c, i) => (
+                              <span key={i} className="rec-contact-tag font-mono">
+                                👤 {c.name} {c.role ? `(${c.role})` : ''} {c.phone ? `• 📞 ${c.phone}` : ''}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="rec-footer">
+                        <ProgressBar
+                          current={event.registrationCount}
+                          total={event.maxParticipants}
+                          showLabel={false}
+                          height={4}
+                        />
+                        <div className="rec-btn-row">
+                          <span className="rec-capacity-label font-mono">
+                            {event.registrationCount}/{event.maxParticipants} slots filled
+                          </span>
+                          <Button
+                            variant={regInfo.isOpen ? (regInfo.isSpot ? 'primary' : 'primary') : 'secondary'}
+                            size="xs"
+                            disabled={!regInfo.isOpen}
+                            onClick={() => handleSelfRegister(event)}
+                          >
+                            {regInfo.actionLabel}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {availableEvents.length === 0 && (
                 <p className="no-more-tracks font-mono">You are registered for all available upcoming tracks.</p>
