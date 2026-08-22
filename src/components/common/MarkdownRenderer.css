@@ -1,0 +1,71 @@
+/* MarkdownRenderer.css — Impeccable Typography & Prose Layout */
+
+.markdown-prose-container {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.md-h1 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 14px 0 4px;
+  letter-spacing: -0.02em;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 6px;
+}
+
+.md-h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 12px 0 4px;
+  letter-spacing: -0.01em;
+}
+
+.md-h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 10px 0 2px;
+}
+
+.md-p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.md-strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.md-inline-code {
+  background: var(--surface-inset);
+  border: 1px solid var(--border-default);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  color: var(--accent-iris, #6366F1);
+}
+
+.md-ul,
+.md-ol {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.md-li {
+  color: var(--text-secondary);
+}
+
+.md-li::marker {
+  color: var(--accent-iris, #6366F1);
+}

@@ -244,7 +244,9 @@ const ParticipantPortal = () => {
                           {event.tagline && <p className="rec-card-tagline">{event.tagline}</p>}
                         </div>
                       </div>
-                      <p className="rec-desc">{event.shortDescription || event.description}</p>
+                      <p className="rec-desc">
+                        {event.shortDescription || (event.description ? event.description.replace(/[#*`_]/g, '').slice(0, 180) + '...' : '')}
+                      </p>
                       <div className="rec-logistics font-mono">
                         <span>📅 {formatEventSchedule(event.date || event.startDate, event.time || event.startTime, event.endTime)}</span>
                         <span>📍 {event.venue}</span>

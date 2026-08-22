@@ -174,7 +174,7 @@ const EventDetailPage = () => {
             </div>
           </div>
 
-          <p className="detail-hero-desc">{event.description}</p>
+          {cleanHeroDesc && <p className="detail-hero-desc">{cleanHeroDesc}</p>}
 
         {/* Quick Logistics Strip */}
         <div className="detail-hero-logistics">
@@ -236,6 +236,14 @@ const EventDetailPage = () => {
       >
         {activeTab === 'overview' && (
           <div className="detail-overview-grid">
+            {/* About Event Markdown Prose Card */}
+            {event.description && (
+              <div className="craft-card detail-about-card" style={{ gridColumn: '1 / -1', padding: '22px 26px' }}>
+                <h3 className="card-section-title" style={{ marginBottom: 14 }}>About Event & Track Overview</h3>
+                <MarkdownRenderer content={event.description} />
+              </div>
+            )}
+
             {/* Left: Capacity Telemetry */}
             <div className="craft-card capacity-card">
               <h3 className="card-section-title">Capacity & Occupancy Matrix</h3>

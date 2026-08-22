@@ -82,7 +82,7 @@ const EventCard = ({ event, delay = 0 }) => {
             <p className="event-card-tagline">{event.tagline}</p>
           )}
           <p className="event-card-desc">
-            {event.shortDescription || event.description}
+            {event.shortDescription || (event.description ? event.description.replace(/[#*`_]/g, '').slice(0, 160) + '...' : '')}
           </p>
         </div>
       </div>
