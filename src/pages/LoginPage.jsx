@@ -108,17 +108,28 @@ const LoginPage = () => {
           <p className="login-subtitle">Event Management Platform</p>
         </div>
 
-        {/* Role switcher */}
-        <div className="segmented-control role-switcher" style={{ marginBottom: '0.75rem' }}>
-          <button className={`segmented-option ${role === 'admin' ? 'active' : ''}`} onClick={() => setRole('admin')} type="button">Event Organizer</button>
-          <button className={`segmented-option ${role === 'participant' ? 'active' : ''}`} onClick={() => setRole('participant')} type="button">Student Participant</button>
-        </div>
-
         {/* Mode tabs */}
-        <div className="segmented-control mode-switcher" style={{ marginBottom: '1rem' }}>
+        <div className="segmented-control role-switcher" style={{ marginBottom: '1.25rem' }}>
           <button className={`segmented-option ${mode === 'login' ? 'active' : ''}`} onClick={() => switchMode('login')} type="button">Sign In</button>
           <button className={`segmented-option ${mode === 'signup' ? 'active' : ''}`} onClick={() => switchMode('signup')} type="button">Create Account</button>
         </div>
+
+        {/* Role selector — only shown when creating a new account */}
+        <AnimatePresence mode="wait">
+          {mode === 'signup' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              style={{ overflow: 'hidden', marginBottom: '1rem' }}
+            >
+              <div className="segmented-control role-switcher">
+                <button className={`segmented-option ${role === 'participant' ? 'active' : ''}`} onClick={() => setRole('participant')} type="button">Student Participant</button>
+                <button className={`segmented-option ${role === 'admin' ? 'active' : ''}`} onClick={() => setRole('admin')} type="button">Event Organizer</button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Form */}
         <form className="login-form" onSubmit={handleSubmit}>
