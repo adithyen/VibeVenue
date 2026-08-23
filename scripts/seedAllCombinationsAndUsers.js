@@ -1,3 +1,4 @@
+// scripts/seedAllCombinationsAndUsers.js — Seed 10 CSI Events with Realistic Capacities (50-120 slots, total 790), 30 Student Accounts, and All Registration Combinations
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
@@ -12,7 +13,7 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function main() {
-  console.log('🚀 Starting Seeding of 10 CSI Events & 30 Student Accounts...');
+  console.log('🚀 Starting VibeVenue Full Seeding: 10 Events (Realistic 50-120 Capacities), 30 Accounts, and All Registration Combinations...');
 
   // 1. Authenticate as Admin
   const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
@@ -27,13 +28,40 @@ async function main() {
   const adminId = authData.user.id;
   console.log('✓ Admin authenticated:', adminId);
 
-  // 2. Define the 10 CSI Event Combinations
+  // 2. Prepare Sample Receipt Image
+  let sampleReceiptUrl = 'https://vibe-venue.vercel.app/sample_receipt.png';
+  const receiptLocalPath = path.join(__dirname, '..', 'public', 'sample_receipt.png');
+
+  if (fs.existsSync(receiptLocalPath)) {
+    try {
+      const fileBuffer = fs.readFileSync(receiptLocalPath);
+      const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from('receipts')
+        .upload('sample_payment_receipt.png', fileBuffer, {
+          contentType: 'image/png',
+          upsert: true,
+        });
+
+      if (!uploadErr) {
+        const { data: pubData } = supabase.storage.from('receipts').getPublicUrl('sample_payment_receipt.png');
+        if (pubData?.publicUrl) {
+          sampleReceiptUrl = pubData.publicUrl;
+          console.log('✓ Uploaded payment receipt to Supabase Storage:', sampleReceiptUrl);
+        }
+      }
+    } catch (e) {
+      console.log('Using default sample receipt URL fallback');
+    }
+  }
+
+  // 3. Define the 10 CSI Event Tracks with Realistic Capacities (Total = 790 slots, within 670-825 range)
   const csiEvents = [
     {
+      code: "TECHPULSE",
       name: "CSI TECHPULSE '26 — National Emerging Technologies Convention & Keynote Summit",
       tagline: "The premier CSI annual flagship gathering for AI, Cloud & Quantum Computing",
       category: "technical",
-      status: "published",
+      status: "upcoming",
       startDate: "2026-08-23",
       startTime: "09:00 AM",
       endDate: "2026-08-23",
@@ -56,7 +84,7 @@ async function main() {
       groupMinSize: 2,
       groupMaxSize: 4,
       hasCapacityLimit: true,
-      maxParticipants: 300,
+      maxParticipants: 120, // Realistic Capacity
       amenities: {
         openTo: ["All"],
         enableSpotRegistrations: true,
@@ -69,7 +97,7 @@ async function main() {
       description: `
 # CSI TECHPULSE '26 — National Emerging Tech Convention
 
-Welcome to the flagship annual convention organized by the **Computer Society of India (CSI) Student Branch**. TECHPULSE '26 brings together 300+ visionary engineers, industry leaders, and researchers to explore breakthrough frontiers in generative intelligence, quantum algorithms, and next-gen cloud systems.
+Welcome to the flagship annual convention organized by the **Computer Society of India (CSI) Student Branch**. TECHPULSE '26 brings together 120 visionary engineers, industry leaders, and researchers to explore breakthrough frontiers in generative intelligence, quantum algorithms, and next-gen cloud systems.
 
 ---
 
@@ -106,10 +134,11 @@ Welcome to the flagship annual convention organized by the **Computer Society of
       `
     },
     {
+      code: "CODECRAFT",
       name: "CSI CodeCraft: Deep Dive into Distributed Systems & Rust Microservices",
       tagline: "Build high-throughput zero-cost distributed microservices from scratch with Rust",
       category: "workshop",
-      status: "published",
+      status: "upcoming",
       startDate: "2026-08-24",
       startTime: "06:00 PM",
       endDate: "2026-08-24",
@@ -124,7 +153,8 @@ Welcome to the flagship annual convention organized by the **Computer Society of
       isPaid: false,
       upiId: "adityenh@oksbi",
       paymentVerification: "none",
-      hasCapacityLimit: false,
+      hasCapacityLimit: true,
+      maxParticipants: 100, // Realistic Capacity
       amenities: {
         openTo: ["All"],
         enableSpotRegistrations: true
@@ -157,10 +187,11 @@ A completely **free virtual masterclass** brought to you by **CSI** for students
       `
     },
     {
+      code: "HACKVERSE",
       name: "CSI HACKVERSE '26 — 24-Hour Autonomous Agentic Hackathon",
       tagline: "Build multi-agent AI ecosystems, smart campus systems, and win ₹50,000 prize pool",
       category: "hackathon",
-      status: "published",
+      status: "upcoming",
       startDate: "2026-08-26",
       startTime: "10:00 AM",
       endDate: "2026-08-27",
@@ -179,7 +210,7 @@ A completely **free virtual masterclass** brought to you by **CSI** for students
       upiId: "adityenh@oksbi",
       paymentVerification: "both",
       hasCapacityLimit: true,
-      maxParticipants: 40,
+      maxParticipants: 80, // Realistic Capacity (20-40 teams)
       amenities: {
         openTo: ["All"],
         enableSpotRegistrations: true,
@@ -207,26 +238,14 @@ The battleground for the sharpest coders! Form a squad of 2 to 4 hackers and con
 1. **Autonomous Campus Orchestration**: Multi-agent assistants for lab scheduling and hostel amenities.
 2. **Defensive Cybersecurity Sentinel**: Real-time anomaly detection for local network traffic.
 3. **Fintech & Decentralized Ledger Tools**: Micro-transaction escrow engines for campus merchants.
-
----
-
-## 📋 Rules & Conduct
-- All code must be authored inside fresh repositories created during the hackathon kickoff.
-- Open-source libraries and public LLM APIs are permitted; plagiarism results in immediate disqualification.
-- 24-hour continuous food, high-speed fiber Wi-Fi, and mentoring support provided on venue.
-
----
-
-## 📞 Emergency & Desk Support
-- **Hackathon Convener**: Harikrishnan K (+91 94471 23456)
-- **Payment Verification UPI ID**: \`adityenh@oksbi\`
       `
     },
     {
+      code: "ALGOBLITZ",
       name: "CSI AlgoBlitz: Inter-Year Competitive Programming Arena",
       tagline: "Speed coding contest featuring dynamic programming, graphs, and greedy algorithms",
       category: "coding",
-      status: "published",
+      status: "upcoming",
       startDate: "2026-08-28",
       startTime: "02:00 PM",
       endDate: "2026-08-28",
@@ -241,110 +260,73 @@ The battleground for the sharpest coders! Form a squad of 2 to 4 hackers and con
       upiId: "adityenh@oksbi",
       paymentVerification: "none",
       hasCapacityLimit: true,
-      maxParticipants: 50,
+      maxParticipants: 60, // Realistic Capacity
       amenities: {
         openTo: ["1st Year", "2nd Year"],
         enableSpotRegistrations: true
       },
       addOns: [],
       description: `
-# CSI AlgoBlitz Competitive Programming Arena
+# CSI AlgoBlitz: Speed Coding Championship
 
-An adrenaline-pumping 3-hour algorithmic showdown strictly curated for **1st and 2nd Year undergraduate students**. Test your problem-solving velocity, time complexity optimization, and debugging precision.
-
----
-
-## 🧠 Contest Structure
-- **Round 1 (60 Mins)**: 4 Rapid-fire implementation & math challenges.
-- **Round 2 (120 Mins)**: 3 Hard algorithmic problems (Graph traversals, Dynamic Programming, Segment Trees).
-- **Supported Languages**: C++20, Java 21, Python 3.12, Rust.
-
----
-
-## 🎁 Prizes & Perks
-- 🏅 Top 3 coders receive direct wildcard entry into the CSI National Collegiate Coding Team.
-- 📜 Certificate of Distinction for top 10 percentile participants.
-
----
-
-## 📞 Coordinator Info
-- **Student Lead**: Ananya S (\`csi.algoblitz@vibevenue.tech\`)
-- **UPI Verification ID**: \`adityenh@oksbi\`
+Sharpen your logic and compete in a high-intensity algorithmic showdown! Solve complex DSA challenges with zero syntax errors under tight time constraints.
       `
     },
     {
-      name: "CSI EmbeddedX: Hands-on Edge AI with ESP32 & TinyML Bootcamp",
-      tagline: "Build smart edge devices running neural inference without cloud connectivity",
+      code: "EMBEDDEDX",
+      name: "CSI EmbeddedX: Edge AI with ESP32 & TinyML Bootcamp",
+      tagline: "Hands-on micro-controller sensor interfacing, TensorFlow Lite for Microcontrollers & Edge Vision",
       category: "workshop",
-      status: "published",
+      status: "upcoming",
       startDate: "2026-08-30",
       startTime: "09:30 AM",
       endDate: "2026-08-30",
       endTime: "04:30 PM",
-      venue: "IoT & Embedded Systems Center, 3rd Floor",
+      venue: "Embedded Systems & IoT Innovation Center, Block D",
+      whatsappLink: "https://chat.whatsapp.com/EmbeddedX2026",
       isOnline: false,
       bannerUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&auto=format&fit=crop&q=80",
       logoUrl: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=400&auto=format&fit=crop&q=80",
-      tags: ["IoT", "Edge-AI", "ESP32", "TinyML", "CSI-Workshop"],
+      tags: ["IoT", "Edge-AI", "ESP32", "TinyML", "Hardware-Lab"],
       registrationType: "individual",
       isPaid: true,
       pricingType: "tiered",
       pricingTiers: [
-        { label: "CSI Student Member", price: 300, requiresProof: true, proofLabel: "CSI Membership ID" },
-        { label: "General Pass", price: 550, requiresProof: false }
+        { label: "CSI Member Pass (Includes Sensor Kit Rental)", price: 300, requiresProof: true, proofLabel: "CSI Membership ID" },
+        { label: "Non-CSI Delegate Pass", price: 550, requiresProof: false }
       ],
       upiId: "adityenh@oksbi",
-      paymentVerification: "screenshot",
+      paymentVerification: "both",
       hasCapacityLimit: true,
-      maxParticipants: 45,
-      whatsappLink: "https://chat.whatsapp.com/CSI-EmbeddedX-2026",
+      maxParticipants: 50, // Realistic Capacity
       amenities: {
         openTo: ["All"],
-        enableSpotRegistrations: false
+        enableSpotRegistrations: true
       },
       addOns: [
-        { label: "Pre-flashed ESP32-S3 Dev Board + Sensor Shield Kit", price: 450, required: false }
+        { label: "Take-Home ESP32-CAM & Sensor Starter Bundle", price: 250, required: false }
       ],
       description: `
-# CSI EmbeddedX: Edge AI with ESP32 & TinyML
+# CSI EmbeddedX: Edge AI & TinyML
 
-Dive into hardware-software co-design! Learn how to quantize lightweight TensorFlow models and execute real-time computer vision and audio gesture recognition directly on sub-$5 microcontrollers.
-
----
-
-## 🛠️ Hands-on Agenda
-1. **ESP32 Architecture & FreeRTOS Fundamentals**
-2. **Sensor Interfacing (I2C, SPI, Camera Modules)**
-3. **Training & Quantizing Neural Networks with Edge Impulse**
-4. **Deploying TinyML Models for Keyword Spotting & Fall Detection**
-
----
-
-## 📦 What to Bring
-- Laptop with USB-C / USB-A port and administrative access.
-- Visual Studio Code with PlatformIO extension pre-installed.
-
----
-
-## 📞 Support Contacts
-- **Workshop Lead**: Siddharth V (+91 94950 11223)
-- **Official Payment UPI ID**: \`adityenh@oksbi\`
+Deploy neural network models directly to ultra-low-power microcontrollers! Interface sensors, capture live audio/vision streams, and run on-device inference without internet connectivity.
       `
     },
     {
-      name: "CSI PixelForge: 6-Hour Rapid Prototyping & Product Design Sprint",
-      tagline: "Design intuitive 2026-level digital products, design systems, and micro-interactions",
+      code: "PIXELFORGE",
+      name: "CSI PixelForge: 6-Hour UI/UX Prototyping & Product Design Sprint",
+      tagline: "Design intuitive digital experiences in Figma and master modern design systems & micro-interactions",
       category: "design",
-      status: "published",
+      status: "upcoming",
       startDate: "2026-09-02",
       startTime: "10:00 AM",
       endDate: "2026-09-02",
       endTime: "04:00 PM",
-      venue: "Design Studio & Digital Media Lab, SCTCE",
+      venue: "Multimedia Studio & Design Bay, Block B",
       isOnline: false,
       bannerUrl: "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=1200&auto=format&fit=crop&q=80",
       logoUrl: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=400&auto=format&fit=crop&q=80",
-      tags: ["UI-UX", "Figma", "Design-Sprint", "CSI-Design", "Prototyping"],
+      tags: ["UI-UX", "Figma", "Design-Sprint", "Design-Tokens"],
       registrationType: "individual",
       isPaid: true,
       pricingType: "flat",
@@ -352,51 +334,33 @@ Dive into hardware-software co-design! Learn how to quantize lightweight TensorF
       upiId: "adityenh@oksbi",
       paymentVerification: "both",
       hasCapacityLimit: true,
-      maxParticipants: 40,
+      maxParticipants: 70, // Realistic Capacity
       amenities: {
         openTo: ["All"],
         enableSpotRegistrations: true
       },
       addOns: [],
       description: `
-# CSI PixelForge Design Sprint
+# CSI PixelForge: Product Design Sprint
 
-Transform user empathy into breathtaking digital interfaces! In this rapid 6-hour sprint organized by **CSI**, delegates will receive real product design briefs and engineer interactive, high-fidelity prototypes.
-
----
-
-## 🎨 Sprint Criteria
-- Design System Consistency & Token Hierarchy
-- Spatial Rhythm, Contrast, & Accessibility (WCAG AAA)
-- Fluid Micro-interactions and Motion Choreography in Figma
-
----
-
-## 🏆 Awards & Perks
-- 🥇 **Best Product Experience**: ₹5,000 + Figma Pro Annual License
-- 📜 CSI Design Certificate for all qualifying submissions
-
----
-
-## 📞 Coordinator Details
-- **Design Lead**: Niharika Das (\`csi.pixelforge@vibevenue.tech\`)
-- **Payment UPI ID**: \`adityenh@oksbi\`
+A sprint for product designers, frontend developers, and creative minds! Master typography, spatial rhythm, glassmorphism, and interactive micro-animations in Figma.
       `
     },
     {
-      name: "CSI CyberStrike: National Collegiate Valorant & Esports Arena",
-      tagline: "5v5 Tactical FPS championship battle for collegiate esports supremacy",
+      code: "CYBERSTRIKE",
+      name: "CSI CyberStrike: 5v5 Collegiate Valorant & Tactical Esports Championship",
+      tagline: "LAN esports championship on dedicated 240Hz monitors with live casting",
       category: "gaming",
-      status: "published",
+      status: "upcoming",
       startDate: "2026-09-05",
-      startTime: "11:00 AM",
+      startTime: "09:00 AM",
       endDate: "2026-09-05",
       endTime: "07:00 PM",
-      venue: "LAN Gaming Hub & Student Activity Center",
+      venue: "High Performance Gaming Arena, Mechanical Block Foyer",
       isOnline: false,
       bannerUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&auto=format&fit=crop&q=80",
       logoUrl: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&auto=format&fit=crop&q=80",
-      tags: ["Gaming", "Valorant", "Esports", "LAN", "CSI-Arena"],
+      tags: ["Gaming", "Valorant", "Esports", "5v5-LAN"],
       registrationType: "group",
       groupMinSize: 5,
       groupMaxSize: 5,
@@ -406,95 +370,66 @@ Transform user empathy into breathtaking digital interfaces! In this rapid 6-hou
       upiId: "adityenh@oksbi",
       paymentVerification: "both",
       hasCapacityLimit: true,
-      maxParticipants: 16,
+      maxParticipants: 60, // Realistic Capacity (12 squads)
       amenities: {
         openTo: ["All"],
         enableSpotRegistrations: false
       },
       addOns: [],
       description: `
-# CSI CyberStrike Collegiate Esports Championship
+# CSI CyberStrike: 5v5 Valorant LAN Championship
 
-Gear up for high-intensity 5v5 tactical FPS action! 16 squads compete in double-elimination brackets on low-latency dedicated LAN servers.
-
----
-
-## 🎮 Tournament Format
-- **Group Stages**: Best of 1 (Custom Competitive Tournament Mode)
-- **Semi-Finals & Grand Finals**: Best of 3 with map veto system
-- **Anti-Cheat Enforcement**: Strict hardware validation & referee monitoring
-
----
-
-## 🏆 Prize Pool
-- 🥇 **Champion Squad**: ₹12,000 Cash + CSI Esports Trophies
-- 🥈 **Runner-Up Squad**: ₹6,000 Cash
-
----
-
-## 📞 Esports Marshall Contact
-- **Head Marshall**: Gautham Krishna (+91 97450 99887)
-- **Payment UPI ID**: \`adityenh@oksbi\`
+Assemble your 5-player squad! Compete on low-latency LAN servers with professional casting and cash prizes for top fraggers.
       `
     },
     {
-      name: "CSI PromptX: Generative AI, RAG & LLM Application Mastery",
-      tagline: "Master prompt orchestration, vector databases, and enterprise RAG architecture",
-      category: "seminar",
-      status: "published",
+      code: "PROMPTX",
+      name: "CSI PromptX: Enterprise GenAI, LLMOps & RAG Architecture Masterclass",
+      tagline: "Build production-grade retrieval-augmented generation pipelines with LangChain & pgvector",
+      category: "workshop",
+      status: "upcoming",
       startDate: "2026-09-08",
       startTime: "07:00 PM",
       endDate: "2026-09-08",
       endTime: "09:30 PM",
-      venue: "Google Meet Virtual Auditorium",
-      meetingLink: "https://meet.google.com/csi-promptx-mastery",
+      venue: "Zoom Live Auditorium",
+      meetingLink: "https://zoom.us/j/9876543210",
       isOnline: true,
-      bannerUrl: "https://images.unsplash.com/photo-1677442136019-21780efad99a?w=1200&auto=format&fit=crop&q=80",
-      logoUrl: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=400&auto=format&fit=crop&q=80",
-      tags: ["GenAI", "LLM", "RAG", "Prompt-Engineering", "CSI-Webinar"],
+      bannerUrl: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=1200&auto=format&fit=crop&q=80",
+      logoUrl: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&auto=format&fit=crop&q=80",
+      tags: ["GenAI", "RAG", "LLMOps", "Vector-DB", "Free-Masterclass"],
       registrationType: "individual",
       isPaid: false,
       upiId: "adityenh@oksbi",
       paymentVerification: "none",
-      hasCapacityLimit: false,
+      hasCapacityLimit: true,
+      maxParticipants: 110, // Realistic Capacity
       amenities: {
         openTo: ["All"],
         enableSpotRegistrations: true
       },
       addOns: [],
       description: `
-# CSI PromptX: Enterprise GenAI & RAG Architecture
+# CSI PromptX: GenAI & RAG Masterclass
 
-A comprehensive virtual masterclass focusing on building high-reliability LLM applications with hybrid semantic search, context compression, and agentic workflows.
-
----
-
-## 🧠 Core Topics
-- Few-shot Prompt Engineering & ReAct Reasoning Loops
-- Chunking Strategies & Vector Indexing (pgvector & Pinecone)
-- Preventing Hallucinations with Guardrails & Evaluation Benchmarks
-
----
-
-## 📞 Session Coordinator
-- **AI Track Coordinator**: Akhil Mohan (\`csi.promptx@vibevenue.tech\`)
-- **UPI Verification ID**: \`adityenh@oksbi\`
+Master retrieval-augmented generation, embeddings, semantic chunking, and hybrid search using pgvector and modern LLM frameworks.
       `
     },
     {
-      name: "CSI INVENTRON '26 — National Technical Paper & Project Expo",
-      tagline: "Showcase original research, patentable hardware, and software inventions",
-      category: "technical",
-      status: "published",
+      code: "INVENTRON",
+      name: "CSI INVENTRON '26 — National Project & Paper Expo",
+      tagline: "National paper presentation & hardware demo symposium with ISBN journal publication",
+      category: "symposium",
+      status: "upcoming",
       startDate: "2026-09-12",
-      startTime: "09:00 AM",
+      startTime: "09:30 AM",
       endDate: "2026-09-12",
-      endTime: "05:00 PM",
-      venue: "Seminar Complex & Central Tech Quad, SCTCE",
+      endTime: "04:30 PM",
+      venue: "Central Seminar Complex & Exhibition Concourse, SCTCE",
       isOnline: false,
-      bannerUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&auto=format&fit=crop&q=80",
-      logoUrl: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&auto=format&fit=crop&q=80",
-      tags: ["Research", "Paper-Presentation", "Invention", "CSI-Symposium"],
+      bannerUrl: "https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=1200&auto=format&fit=crop&q=80",
+      logoUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&auto=format&fit=crop&q=80",
+      tags: ["Symposium", "Research-Papers", "Hardware-Demo", "ISBN-Journal"],
       registrationType: "both",
       groupMinSize: 1,
       groupMaxSize: 3,
@@ -511,7 +446,7 @@ A comprehensive virtual masterclass focusing on building high-reliability LLM ap
       ifscCode: "SBIN0070080",
       paymentVerification: "both",
       hasCapacityLimit: true,
-      maxParticipants: 100,
+      maxParticipants: 75, // Realistic Capacity
       amenities: {
         openTo: ["All"],
         enableSpotRegistrations: true
@@ -523,35 +458,14 @@ A comprehensive virtual masterclass focusing on building high-reliability LLM ap
 # CSI INVENTRON '26 — National Project & Paper Expo
 
 INVENTRON '26 is a national platform for undergraduate and postgraduate scholars to demonstrate working hardware prototypes and present peer-reviewed research papers.
-
----
-
-## 📜 Publication & Presentation Tracks
-1. **Intelligent Computing & Autonomous Systems**
-2. **Sustainable Smart Grid & Renewable Energy IoT**
-3. **Applied Cryptography & Privacy-Preserving Computing**
-
----
-
-## 💳 Payment Options
-- **Direct Instant UPI**: \`adityenh@oksbi\`
-- **NEFT / Bank Transfer**:
-  - Bank: State Bank of India
-  - A/C No: \`98765432109876\`
-  - IFSC: \`SBIN0070080\`
-
----
-
-## 📞 Organizing Secretariat
-- **Secretary**: Prof. V. Ramanathan (\`csi.inventron@vibevenue.tech\`)
-- **Emergency Helpline**: +91 94970 00090
       `
     },
     {
+      code: "REDTEAM",
       name: "CSI RedTeam: Capture The Flag & Offensive Security WarGames",
       tagline: "Break cipher suites, exploit binary vulnerabilities, and pwn servers in live CTF",
       category: "cybersecurity",
-      status: "published",
+      status: "upcoming",
       startDate: "2026-09-15",
       startTime: "10:00 AM",
       endDate: "2026-09-15",
@@ -573,7 +487,7 @@ INVENTRON '26 is a national platform for undergraduate and postgraduate scholars
       upiId: "adityenh@oksbi",
       paymentVerification: "both",
       hasCapacityLimit: true,
-      maxParticipants: 50,
+      maxParticipants: 65, // Realistic Capacity
       amenities: {
         openTo: ["All"],
         enableSpotRegistrations: true
@@ -585,32 +499,16 @@ INVENTRON '26 is a national platform for undergraduate and postgraduate scholars
 # CSI RedTeam: Capture The Flag WarGames
 
 Step into the shoes of ethical offensive researchers! Uncover hidden flags across realistic penetration testing targets, reverse-engineer obfuscated binaries, and exploit web application vulnerabilities.
-
----
-
-## 🚩 CTF Categories
-- **Web Exploitation**: SSRF, SQL Injection, JWT tampering, and Prototype Pollution.
-- **Reverse Engineering**: x86-64 disassembly, decompilation, and anti-debugging bypass.
-- **Cryptography**: Broken RSA implementations, custom elliptic curve ciphers, and hash collisions.
-- **Forensics & Steganography**: PCAP network analysis and memory dump investigation.
-
----
-
-## 🏆 Hacker Bounties
-- 🥇 **1st Place Cyber Sentinel**: ₹10,000 + TryHackMe Annual Subscriptions
-- 🥈 **2nd Place Runner-Up**: ₹5,000 Cash
-
----
-
-## 📞 WarGame Marshall Contact
-- **CTF Marshall**: Arjun Dev (\`csi.redteam@vibevenue.tech\`)
-- **Official Payment UPI ID**: \`adityenh@oksbi\`
       `
     }
   ];
 
-  // Insert or Upsert Events
+  // Insert or Update Events and Store IDs
+  const eventMap = {};
+  let totalSlots = 0;
+
   for (const evt of csiEvents) {
+    totalSlots += evt.maxParticipants;
     const eventPayload = {
       created_by: adminId,
       name: evt.name,
@@ -638,7 +536,7 @@ Step into the shoes of ethical offensive researchers! Uncover hidden flags acros
       group_min_size: evt.groupMinSize || 2,
       group_max_size: evt.groupMaxSize || 4,
       has_capacity_limit: evt.hasCapacityLimit || false,
-      max_participants: evt.maxParticipants || 9999,
+      max_participants: evt.maxParticipants,
       amenities: evt.amenities,
       upi_id: evt.upiId,
       has_bank_transfer: evt.hasBankTransfer || false,
@@ -648,13 +546,12 @@ Step into the shoes of ethical offensive researchers! Uncover hidden flags acros
       confirmation_message: "Thank you for registering! Your CSI digital pass is confirmed.",
     };
 
-    // Check if event with this name already exists
-    const { data: existing } = await supabase.from('events').select('id').eq('name', evt.name).single();
+    const { data: existing } = await supabase.from('events').select('id').eq('name', evt.name).maybeSingle();
     let eventId = existing?.id;
 
     if (eventId) {
       await supabase.from('events').update(eventPayload).eq('id', eventId);
-      console.log(`✓ Updated Event: ${evt.name}`);
+      console.log(`✓ Updated Event [${evt.code}]: ${evt.name} (Cap: ${evt.maxParticipants})`);
     } else {
       const { data: inserted, error: insertErr } = await supabase.from('events').insert(eventPayload).select().single();
       if (insertErr) {
@@ -662,10 +559,11 @@ Step into the shoes of ethical offensive researchers! Uncover hidden flags acros
         continue;
       }
       eventId = inserted.id;
-      console.log(`✓ Created Event: ${evt.name} (${eventId})`);
+      console.log(`✓ Created Event [${evt.code}]: ${evt.name} (Cap: ${evt.maxParticipants})`);
     }
+    eventMap[evt.code] = eventId;
 
-    // Insert add-ons if any
+    // Add-ons
     if (evt.addOns?.length) {
       await supabase.from('event_addons').delete().eq('event_id', eventId);
       const addonRows = evt.addOns.map((a) => ({
@@ -675,12 +573,14 @@ Step into the shoes of ethical offensive researchers! Uncover hidden flags acros
         required: a.required || false,
       }));
       await supabase.from('event_addons').insert(addonRows);
-      console.log(`  ✓ Inserted ${addonRows.length} Add-ons for ${evt.name}`);
     }
   }
 
+  console.log(`\n✨ All 10 Events configured with realistic capacities! Total aggregate slots = ${totalSlots} (Within target 670-825 range).`);
+
+  // 4. Generate the 30 Student Testing Accounts & Retrieve IDs
   console.log('\n======================================================');
-  console.log('👥 3. Generating 30 Student Testing Accounts & 2 Admins');
+  console.log('👥 4. Registering 30 Student Accounts & User Profiles');
   console.log('======================================================');
 
   const defaultPassword = 'VibeVenue#2026';
@@ -697,34 +597,9 @@ Step into the shoes of ethical offensive researchers! Uncover hidden flags acros
     'Amritha Paul', 'Tarun George', 'Aswathi K', 'Rahul Madhav', 'Keerthi S'
   ];
 
-  const accountRows = [];
+  const studentAccounts = [];
+  const userMap = {}; // email -> { id, name, rollNumber, dept, year, college, phone }
 
-  // Add 2 Admin accounts first
-  accountRows.push({
-    account_type: 'Admin / Organizer',
-    full_name: 'Lead Organizer Admin',
-    email: 'organizer.admin@vibevenue.tech',
-    password: 'VibeVenueAdmin#2026',
-    roll_number: 'ADMIN-01',
-    department: 'CSE / Organizer Secretariat',
-    year: 'Faculty / Lead',
-    college: 'SCT College of Engineering',
-    role: 'admin'
-  });
-
-  accountRows.push({
-    account_type: 'Admin / Organizer',
-    full_name: 'CSI Staff Lead & Admin',
-    email: 'csi.lead@vibevenue.tech',
-    password: 'CSIAdmin#2026',
-    roll_number: 'ADMIN-CSI-02',
-    department: 'Computer Science Department',
-    year: 'CSI Staff Lead',
-    college: 'SCT College of Engineering',
-    role: 'admin'
-  });
-
-  // Create the 30 student accounts
   for (let i = 0; i < studentNames.length; i++) {
     const name = studentNames[i];
     const paddedIdx = String(i + 1).padStart(2, '0');
@@ -734,6 +609,8 @@ Step into the shoes of ethical offensive researchers! Uncover hidden flags acros
     const yr = years[i % years.length];
     const clg = colleges[i % colleges.length];
     const phone = `98765${String(10000 + i).slice(1)}`;
+
+    let userId = null;
 
     try {
       const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
@@ -751,58 +628,348 @@ Step into the shoes of ethical offensive researchers! Uncover hidden flags acros
         }
       });
 
-      if (signUpErr) {
-        // If user already registered, that's completely fine
-        console.log(`- Student ${paddedIdx} (${email}) already registered / exists`);
-      } else if (signUpData?.user?.id) {
-        console.log(`+ Created Student ${paddedIdx}: ${name} (${email})`);
-        // Update profile table
-        await supabase.from('profiles').update({
-          name,
-          student_id: rollNumber,
-          department: dept,
-          year: yr,
-          phone,
-          role: 'participant',
-        }).eq('id', signUpData.user.id);
+      if (signUpData?.user?.id) {
+        userId = signUpData.user.id;
       }
     } catch (e) {
-      console.log(`- Handled signup for ${email}`);
+      // ignore
     }
 
-    accountRows.push({
-      account_type: 'Student / Participant',
-      full_name: name,
+    if (!userId) {
+      const { data: prof } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle();
+      if (prof?.id) userId = prof.id;
+    }
+
+    if (userId) {
+      await supabase.from('profiles').upsert({
+        id: userId,
+        email,
+        name,
+        student_id: rollNumber,
+        department: dept,
+        year: yr,
+        college: clg,
+        phone,
+        role: 'participant',
+      });
+    }
+
+    const userData = {
+      index: i + 1,
+      paddedIdx,
+      id: userId,
+      name,
       email,
-      password: defaultPassword,
-      roll_number: rollNumber,
-      department: dept,
+      rollNumber,
+      dept,
       year: yr,
       college: clg,
-      role: 'participant'
+      phone,
+    };
+
+    studentAccounts.push(userData);
+    userMap[email] = userData;
+  }
+
+  console.log(`✓ Synchronized all 30 student accounts!`);
+
+  // 5. Clean Previous Registrations to Seed Fresh Combinations
+  console.log('\n======================================================');
+  console.log('🎟️ 5. Seeding All Multi-Track Registration Combinations');
+  console.log('======================================================');
+
+  // Helper function to insert a registration safely
+  async function seedRegistration({
+    eventCode,
+    userEmail,
+    regType = 'individual',
+    teamName = null,
+    teamMembers = [],
+    pricingTier = null,
+    membershipProof = null,
+    totalPaid = 0,
+    txnNumber = null,
+    status = 'confirmed',
+    ticketId = null,
+    checkInStatus = 'Not Checked In',
+    checkedInAt = null,
+  }) {
+    const eventId = eventMap[eventCode];
+    if (!eventId) return;
+
+    const user = userMap[userEmail];
+    if (!user) return;
+
+    const finalTicketId = ticketId || `TKT-${eventCode}-${user.paddedIdx}`;
+
+    const regRow = {
+      event_id: eventId,
+      user_id: user.id || null,
+      ticket_id: finalTicketId,
+      full_name: user.name,
+      email: user.email,
+      phone: user.phone,
+      student_id: user.rollNumber,
+      college: user.college,
+      department: user.dept,
+      year: user.year,
+      registration_type: regType,
+      team_name: teamName,
+      team_members: teamMembers,
+      pricing_tier: pricingTier,
+      membership_proof: membershipProof,
+      payment_screenshot: totalPaid > 0 ? sampleReceiptUrl : null,
+      total_paid: totalPaid,
+      txn_id: txnNumber ? `testurstnx${txnNumber}` : (totalPaid > 0 ? `testurstnx${user.paddedIdx}` : null),
+      status: status,
+      check_in_status: checkInStatus,
+      checked_in_at: checkedInAt,
+    };
+
+    // Remove any existing registration for this user & event
+    await supabase.from('registrations').delete().match({ event_id: eventId, email: user.email });
+
+    const { data: inserted, error: regErr } = await supabase.from('registrations').insert(regRow).select().single();
+    if (regErr) {
+      console.error(`Error registering ${user.email} for ${eventCode}:`, regErr.message);
+    } else {
+      console.log(`  ✓ Registered [${status.toUpperCase()}] ${user.name} for ${eventCode} (Txn: ${regRow.txn_id || 'FREE'}, Ticket: ${finalTicketId}, CheckIn: ${checkInStatus})`);
+    }
+  }
+
+  // --- Seed Registrations Across 30 Accounts ---
+
+  // 1. CSI TECHPULSE '26 (Flagship Keynote Summit)
+  await seedRegistration({
+    eventCode: 'TECHPULSE',
+    userEmail: 'test.student01@vibevenue.tech',
+    pricingTier: { label: 'CSI Student Member', price: 100 },
+    membershipProof: 'CSI-MEM-2026-8812',
+    totalPaid: 450, // Tier 100 + Badge 200 + Lunch 150
+    txnNumber: '01',
+    status: 'confirmed',
+    checkInStatus: 'Checked In',
+    checkedInAt: '2026-08-23T09:12:00Z',
+  });
+
+  await seedRegistration({
+    eventCode: 'TECHPULSE',
+    userEmail: 'test.student02@vibevenue.tech',
+    pricingTier: { label: 'SCTians General Delegate', price: 250 },
+    totalPaid: 400, // Tier 250 + Lunch 150
+    txnNumber: '02',
+    status: 'confirmed',
+    checkInStatus: 'Not Checked In',
+  });
+
+  await seedRegistration({
+    eventCode: 'TECHPULSE',
+    userEmail: 'test.student03@vibevenue.tech',
+    pricingTier: { label: 'External Institution Pass', price: 400 },
+    totalPaid: 400,
+    txnNumber: '03',
+    status: 'pending',
+    checkInStatus: 'Not Checked In',
+  });
+
+  await seedRegistration({
+    eventCode: 'TECHPULSE',
+    userEmail: 'test.student04@vibevenue.tech',
+    pricingTier: { label: 'CSI Student Member', price: 100 },
+    membershipProof: 'CSI-MEM-2026-9041',
+    totalPaid: 100,
+    txnNumber: '04',
+    status: 'confirmed',
+    checkInStatus: 'Checked In',
+    checkedInAt: '2026-08-23T09:25:00Z',
+  });
+
+  // 2. CSI CodeCraft (Free Distributed Systems Masterclass)
+  for (let idx = 5; idx <= 8; idx++) {
+    const padded = String(idx).padStart(2, '0');
+    await seedRegistration({
+      eventCode: 'CODECRAFT',
+      userEmail: `test.student${padded}@vibevenue.tech`,
+      totalPaid: 0,
+      status: 'confirmed',
+      checkInStatus: idx % 2 === 0 ? 'Checked In' : 'Not Checked In',
+      checkedInAt: idx % 2 === 0 ? '2026-08-24T18:05:00Z' : null,
     });
   }
 
-  // 4. Save to CSV file in project root
-  const csvHeaders = ['account_type', 'full_name', 'email', 'password', 'roll_number', 'department', 'year', 'college', 'role'];
-  const csvLines = [
-    csvHeaders.join(','),
-    ...accountRows.map(r => [
-      `"${r.account_type}"`,
-      `"${r.full_name}"`,
-      `"${r.email}"`,
-      `"${r.password}"`,
-      `"${r.roll_number}"`,
-      `"${r.department}"`,
-      `"${r.year}"`,
-      `"${r.college}"`,
-      `"${r.role}"`,
-    ].join(','))
+  // 3. CSI HACKVERSE '26 (24-Hour Agentic Hackathon — Group Teams)
+  const hackverseSquad1 = [
+    { name: userMap['test.student09@vibevenue.tech'].name, email: 'test.student09@vibevenue.tech', phone: '9876500009', studentId: 'SCT24CS09', department: 'Computer Science', checkedIn: true, checkedInAt: '2026-08-26T10:15:00Z' },
+    { name: userMap['test.student10@vibevenue.tech'].name, email: 'test.student10@vibevenue.tech', phone: '9876500010', studentId: 'SCT24CS10', department: 'CSE(AI&ML)', checkedIn: true, checkedInAt: '2026-08-26T10:15:00Z' },
+    { name: userMap['test.student11@vibevenue.tech'].name, email: 'test.student11@vibevenue.tech', phone: '9876500011', studentId: 'SCT24CS11', department: 'ECE', checkedIn: false, checkedInAt: null },
+    { name: userMap['test.student12@vibevenue.tech'].name, email: 'test.student12@vibevenue.tech', phone: '9876500012', studentId: 'SCT24CS12', department: 'IT', checkedIn: true, checkedInAt: '2026-08-26T10:15:00Z' },
   ];
 
-  const csvPath = path.join(process.cwd(), 'test_accounts.csv');
-  fs.writeFileSync(csvPath, csvLines.join('\n'), 'utf-8');
-  console.log(`\n✓ Saved CSV of all 32 accounts to: ${csvPath}`);
+  await seedRegistration({
+    eventCode: 'HACKVERSE',
+    userEmail: 'test.student09@vibevenue.tech',
+    regType: 'group',
+    teamName: 'AgentX Autonomous Swarm',
+    teamMembers: hackverseSquad1,
+    totalPaid: 850, // Squad ₹600 + Red Bull ₹100 + Bedding ₹150
+    txnNumber: '09',
+    status: 'confirmed',
+    checkInStatus: 'Checked In',
+    checkedInAt: '2026-08-26T10:15:00Z',
+  });
+
+  const hackverseSquad2 = [
+    { name: userMap['test.student13@vibevenue.tech'].name, email: 'test.student13@vibevenue.tech', phone: '9876500013', studentId: 'SCT24CS13', department: 'Mechanical', checkedIn: false },
+    { name: userMap['test.student14@vibevenue.tech'].name, email: 'test.student14@vibevenue.tech', phone: '9876500014', studentId: 'SCT24CS14', department: 'CSE', checkedIn: false },
+    { name: userMap['test.student15@vibevenue.tech'].name, email: 'test.student15@vibevenue.tech', phone: '9876500015', studentId: 'SCT24CS15', department: 'ECE', checkedIn: false },
+  ];
+
+  await seedRegistration({
+    eventCode: 'HACKVERSE',
+    userEmail: 'test.student13@vibevenue.tech',
+    regType: 'group',
+    teamName: 'ByteBandits',
+    teamMembers: hackverseSquad2,
+    totalPaid: 600,
+    txnNumber: '13',
+    status: 'pending',
+    checkInStatus: 'Not Checked In',
+  });
+
+  // 4. CSI AlgoBlitz (Free Speed Coding)
+  for (let idx = 16; idx <= 18; idx++) {
+    const padded = String(idx).padStart(2, '0');
+    await seedRegistration({
+      eventCode: 'ALGOBLITZ',
+      userEmail: `test.student${padded}@vibevenue.tech`,
+      totalPaid: 0,
+      status: 'confirmed',
+      checkInStatus: idx === 16 ? 'Checked In' : 'Not Checked In',
+      checkedInAt: idx === 16 ? '2026-08-28T14:02:00Z' : null,
+    });
+  }
+
+  // 5. CSI EmbeddedX (Edge AI Bootcamp)
+  await seedRegistration({
+    eventCode: 'EMBEDDEDX',
+    userEmail: 'test.student19@vibevenue.tech',
+    pricingTier: { label: 'CSI Member Pass', price: 300 },
+    membershipProof: 'CSI-MEM-2026-1189',
+    totalPaid: 550, // 300 + Kit 250
+    txnNumber: '19',
+    status: 'confirmed',
+    checkInStatus: 'Checked In',
+    checkedInAt: '2026-08-30T09:40:00Z',
+  });
+
+  await seedRegistration({
+    eventCode: 'EMBEDDEDX',
+    userEmail: 'test.student20@vibevenue.tech',
+    pricingTier: { label: 'Non-CSI Delegate Pass', price: 550 },
+    totalPaid: 550,
+    txnNumber: '20',
+    status: 'pending',
+    checkInStatus: 'Not Checked In',
+  });
+
+  // 6. CSI PixelForge (Flat UI/UX Sprint)
+  for (let idx = 21; idx <= 23; idx++) {
+    const padded = String(idx).padStart(2, '0');
+    await seedRegistration({
+      eventCode: 'PIXELFORGE',
+      userEmail: `test.student${padded}@vibevenue.tech`,
+      totalPaid: 150,
+      txnNumber: padded,
+      status: idx === 23 ? 'cancelled' : 'confirmed',
+      checkInStatus: idx === 21 ? 'Checked In' : 'Not Checked In',
+      checkedInAt: idx === 21 ? '2026-09-02T10:05:00Z' : null,
+    });
+  }
+
+  // 7. CSI CyberStrike (5v5 Esports Championship)
+  const cyberSquad = [
+    { name: userMap['test.student24@vibevenue.tech'].name, email: 'test.student24@vibevenue.tech', phone: '9876500024', studentId: 'SCT24CS24', department: 'CSE', checkedIn: true, checkedInAt: '2026-09-05T09:10:00Z' },
+    { name: userMap['test.student25@vibevenue.tech'].name, email: 'test.student25@vibevenue.tech', phone: '9876500025', studentId: 'SCT24CS25', department: 'CSE', checkedIn: true, checkedInAt: '2026-09-05T09:10:00Z' },
+    { name: userMap['test.student26@vibevenue.tech'].name, email: 'test.student26@vibevenue.tech', phone: '9876500026', studentId: 'SCT24CS26', department: 'IT', checkedIn: true, checkedInAt: '2026-09-05T09:10:00Z' },
+    { name: userMap['test.student27@vibevenue.tech'].name, email: 'test.student27@vibevenue.tech', phone: '9876500027', studentId: 'SCT24CS27', department: 'ECE', checkedIn: true, checkedInAt: '2026-09-05T09:10:00Z' },
+    { name: userMap['test.student28@vibevenue.tech'].name, email: 'test.student28@vibevenue.tech', phone: '9876500028', studentId: 'SCT24CS28', department: 'Mech', checkedIn: true, checkedInAt: '2026-09-05T09:10:00Z' },
+  ];
+
+  await seedRegistration({
+    eventCode: 'CYBERSTRIKE',
+    userEmail: 'test.student24@vibevenue.tech',
+    regType: 'group',
+    teamName: 'Phoenix Vanguard 5v5',
+    teamMembers: cyberSquad,
+    totalPaid: 500,
+    txnNumber: '24',
+    status: 'confirmed',
+    checkInStatus: 'Checked In',
+    checkedInAt: '2026-09-05T09:10:00Z',
+  });
+
+  // 8. CSI PromptX (Free Enterprise GenAI)
+  await seedRegistration({
+    eventCode: 'PROMPTX',
+    userEmail: 'test.student29@vibevenue.tech',
+    totalPaid: 0,
+    status: 'confirmed',
+    checkInStatus: 'Not Checked In',
+  });
+
+  await seedRegistration({
+    eventCode: 'PROMPTX',
+    userEmail: 'test.student30@vibevenue.tech',
+    totalPaid: 0,
+    status: 'confirmed',
+    checkInStatus: 'Checked In',
+    checkedInAt: '2026-09-08T19:05:00Z',
+  });
+
+  // 9. CSI INVENTRON (Paper & Hardware Symposium)
+  const inventronTeam = [
+    { name: userMap['test.student01@vibevenue.tech'].name, email: 'test.student01@vibevenue.tech', phone: '9876500001', studentId: 'SCT24CS01', department: 'CSE', checkedIn: true, checkedInAt: '2026-09-12T09:35:00Z' },
+    { name: userMap['test.student02@vibevenue.tech'].name, email: 'test.student02@vibevenue.tech', phone: '9876500002', studentId: 'SCT24CS02', department: 'CSE', checkedIn: true, checkedInAt: '2026-09-12T09:35:00Z' },
+  ];
+
+  await seedRegistration({
+    eventCode: 'INVENTRON',
+    userEmail: 'test.student01@vibevenue.tech',
+    regType: 'group',
+    teamName: 'NeuroGrid Research Duo',
+    teamMembers: inventronTeam,
+    pricingTier: { label: 'CSI Author Pass', price: 200 },
+    membershipProof: 'CSI-MEM-2026-8812',
+    totalPaid: 500, // 200 + ISBN Journal 300
+    txnNumber: '29',
+    status: 'confirmed',
+    checkInStatus: 'Checked In',
+    checkedInAt: '2026-09-12T09:35:00Z',
+  });
+
+  // 10. CSI RedTeam CTF
+  const ctfTeam = [
+    { name: userMap['test.student03@vibevenue.tech'].name, email: 'test.student03@vibevenue.tech', phone: '9876500003', studentId: 'SCT24CS03', department: 'ECE', checkedIn: false },
+    { name: userMap['test.student05@vibevenue.tech'].name, email: 'test.student05@vibevenue.tech', phone: '9876500005', studentId: 'SCT24CS05', department: 'Mech', checkedIn: false },
+  ];
+
+  await seedRegistration({
+    eventCode: 'REDTEAM',
+    userEmail: 'test.student03@vibevenue.tech',
+    regType: 'group',
+    teamName: 'NullSec Offensive Duo',
+    teamMembers: ctfTeam,
+    pricingTier: { label: 'CSI Student Member', price: 250 },
+    membershipProof: 'CSI-MEM-2026-7731',
+    totalPaid: 370, // 250 + Badge 120
+    txnNumber: '30',
+    status: 'confirmed',
+    checkInStatus: 'Not Checked In',
+  });
+
+  console.log('\n======================================================');
+  console.log('✨ All 10 Events, 30 Accounts & Diverse Registrations Successfully Seeded!');
+  console.log('======================================================');
 }
 
 main().catch(console.error);

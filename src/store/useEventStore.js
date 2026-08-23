@@ -5,6 +5,7 @@
 import { create } from 'zustand';
 import { supabase, uploadBase64 } from '../lib/supabase';
 import { CATEGORIES } from '../data/mockData';
+import { getComputedEventStatus } from '../utils/dateUtils';
 
 const useEventStore = create((set, get) => ({
   // ── State ───────────────────────────────────────────────────
@@ -63,7 +64,7 @@ const useEventStore = create((set, get) => ({
 
   getDashboardStats: () => {
     const events = get().events;
-    const upcoming  = events.filter(e => e.status === 'upcoming').length;
+    const upcoming  = events.filter(e => getComputedEventStatus(e) === 'upcoming').length;
     const totalRegs = events.reduce((s, e) => s + (e.registrationCount || 0), 0);
     const totalSeats = events.reduce((s, e) => s + (e.maxParticipants || 0), 0);
     const available = Math.max(0, totalSeats - totalRegs);
@@ -125,7 +126,9 @@ const useEventStore = create((set, get) => ({
       );
     }
     if (category) events = events.filter(e => e.category === category);
-    if (status)   events = events.filter(e => e.status === status);
+    if (status && status !== 'all') {
+      events = events.filter(e => getComputedEventStatus(e) === status);
+    }
     switch (sort) {
       case 'date-asc':  events.sort((a, b) => new Date(a.date) - new Date(b.date)); break;
       case 'date-desc': events.sort((a, b) => new Date(b.date) - new Date(a.date)); break;
@@ -644,6 +647,15 @@ function normaliseEvent(row) {
       ? (minTierPrice === maxTierPrice ? `₹${minTierPrice}` : `₹${minTierPrice} – ₹${maxTierPrice}`)
       : (row.registration_type === 'group' ? `₹${row.group_price}/team` : `₹${row.individual_price}`);
 
+  const computedStatus = getComputedEventStatus({
+    ...row,
+    startDate: row.start_date,
+    startTime: row.start_time || '',
+    endDate: row.end_date || '',
+    endTime: row.end_time || '',
+    status: row.status,
+  });
+
   return {
     id:                row.id,
     createdBy:         row.created_by,
@@ -655,7 +667,8 @@ function normaliseEvent(row) {
     isOnline:          row.is_online,
     bannerUrl:         row.banner_url,
     logoUrl:           row.logo_url,
-    status:            row.status,
+    status:            computedStatus,
+    rawDbStatus:       row.status,
 
     startDate:         row.start_date,
     startTime:         row.start_time || '',
