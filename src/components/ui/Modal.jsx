@@ -5,6 +5,7 @@ import './Modal.css';
 
 const Modal = ({
   open,
+  isOpen,
   onClose,
   title,
   subtitle,
@@ -13,19 +14,21 @@ const Modal = ({
   showClose = true,
   className = '',
 }) => {
+  const isVisible = open !== undefined ? open : !!isOpen;
+
   // Close on Escape
   useEffect(() => {
-    if (!open) return;
+    if (!isVisible) return;
     const handler = (e) => {
       if (e.key === 'Escape') onClose?.();
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [open, onClose]);
+  }, [isVisible, onClose]);
 
   // Lock body scroll
   useEffect(() => {
-    if (open) {
+    if (isVisible) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -33,11 +36,11 @@ const Modal = ({
     return () => {
       document.body.style.overflow = '';
     };
-  }, [open]);
+  }, [isVisible]);
 
   return (
     <AnimatePresence>
-      {open && (
+      {isVisible && (
         <div className="craft-modal-root" role="dialog" aria-modal="true" aria-label={title}>
           <motion.div
             className="craft-modal-backdrop"

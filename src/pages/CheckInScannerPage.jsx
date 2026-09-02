@@ -367,30 +367,79 @@ const CheckInScannerPage = () => {
       return;
     }
 
-    // If Team Registration -> Open Interactive Team Member Selection Modal
+    // 1. If Team Registration -> Check in arriving members and immediately display result on screen
     if (match.registrationType === 'group' || (Array.isArray(match.teamMembers) && match.teamMembers.length > 0)) {
       playSuccessChime();
+
       const currentlyChecked = (match.teamMembers || [])
         .map((m, i) => (m.checkedIn ? i : null))
         .filter((i) => i !== null);
 
-      // If a specific individual team member's barcode/roll matched, ensure they are selected
-      let initialSelected = [...currentlyChecked];
-      if (matchedMemberIdx !== -1 && !initialSelected.includes(matchedMemberIdx)) {
-        initialSelected.push(matchedMemberIdx);
+      // Determine which members to check in:
+      let targetIndices = [...currentlyChecked];
+      if (matchedMemberIdx !== -1) {
+        if (!targetIndices.includes(matchedMemberIdx)) {
+          targetIndices.push(matchedMemberIdx);
+        }
+      } else if (targetIndices.length === 0) {
+        // If whole team pass scanned and none are checked in, check in all members
+        targetIndices = (match.teamMembers || []).map((_, i) => i);
       }
 
-      setTeamModalData({
-        attendee: match,
-        selectedIndices: initialSelected,
-        matchedMemberIndex: matchedMemberIdx,
-        rawCode,
+      // Optimistic update so the display updates IMMEDIATELY without waiting for DB
+      const updatedMembers = (match.teamMembers || []).map((m, idx) => ({
+        ...m,
+        checkedIn: targetIndices.includes(idx),
+        checkedInAt: targetIndices.includes(idx) ? m.checkedInAt || scanTimestamp.toISOString() : null,
+      }));
+      const allChecked = updatedMembers.length > 0 && updatedMembers.every((m) => m.checkedIn);
+      const anyChecked = updatedMembers.some((m) => m.checkedIn);
+      const overallStatus = allChecked ? 'Checked In' : anyChecked ? 'Partially Checked In' : 'Not Checked In';
+
+      const updatedAttendee = {
+        ...match,
+        teamMembers: updatedMembers,
+        checkInStatus: overallStatus,
+        checkedInAt: anyChecked ? match.checkedInAt || scanTimestamp.toISOString() : null,
+      };
+
+      // Immediately show scan result card on right side
+      setAttendees((prev) => prev.map((a) => (a.id === match.id ? updatedAttendee : a)));
+      setLastScannedResult({
+        attendee: updatedAttendee,
+        status: 'success',
+        scannedCode: rawCode,
+        timestamp: scanTimestamp,
       });
-      setIsProcessingScan(false);
+
+      setRecentScans((prev) => [
+        {
+          id: match.id,
+          name: `${match.teamName || match.name} (${targetIndices.length}/${updatedMembers.length} Present)`,
+          ticketId: match.ticketId,
+          eventName: match.eventName || 'Event Pass',
+          time: scanTimestamp.toISOString(),
+          avatar: '👥',
+          tier: match.pricingTier || 'Team Pass',
+        },
+        ...prev.slice(0, 9),
+      ]);
+
+      addToast({
+        type: 'success',
+        title: 'Team Gate Clearance Approved! 🎉',
+        message: `${match.teamName || match.name}: ${targetIndices.length} of ${updatedMembers.length} members checked in.`,
+      });
+
+      // Persist to database in background
+      updateTeamCheckIn(match.id, targetIndices);
+
+      // Debounce camera re-scan for 2.2s to prevent rapid re-triggering
+      setTimeout(() => setIsProcessingScan(false), 2200);
       return;
     }
 
-    // Individual Registration: Check if already checked in
+    // 2. Individual Registration: Check if already checked in
     if (match.checkInStatus === 'Checked In') {
       playWarningBeep();
       setLastScannedResult({
@@ -404,49 +453,49 @@ const CheckInScannerPage = () => {
         title: 'Already Checked In ⚠️',
         message: `${match.name} was already checked in ${formatTimeAgo(match.checkedInAt || match.registeredAt)}.`,
       });
-      setTimeout(() => setIsProcessingScan(false), 1800);
+      setTimeout(() => setIsProcessingScan(false), 2200);
       return;
     }
 
-    // Successful Individual Check-In
+    // 3. Successful Individual Check-In -> Immediately show scan result card
     playSuccessChime();
-    const ok = await updateCheckInStatus(match.id, true);
     const updatedAttendee = {
       ...match,
       checkInStatus: 'Checked In',
       checkedInAt: scanTimestamp.toISOString(),
     };
 
-    if (ok) {
-      setAttendees((prev) => prev.map((a) => (a.id === match.id ? updatedAttendee : a)));
-      setLastScannedResult({
-        attendee: updatedAttendee,
-        status: 'success',
-        scannedCode: rawCode,
-        timestamp: scanTimestamp,
-      });
+    setAttendees((prev) => prev.map((a) => (a.id === match.id ? updatedAttendee : a)));
+    setLastScannedResult({
+      attendee: updatedAttendee,
+      status: 'success',
+      scannedCode: rawCode,
+      timestamp: scanTimestamp,
+    });
 
-      setRecentScans((prev) => [
-        {
-          id: match.id,
-          name: match.name || 'Attendee',
-          ticketId: match.ticketId,
-          eventName: match.eventName || 'Event Pass',
-          time: scanTimestamp.toISOString(),
-          avatar: match.initials || match.name?.slice(0, 2)?.toUpperCase() || 'A',
-          tier: match.pricingTier || 'Standard',
-        },
-        ...prev.slice(0, 9),
-      ]);
+    setRecentScans((prev) => [
+      {
+        id: match.id,
+        name: match.name || 'Attendee',
+        ticketId: match.ticketId,
+        eventName: match.eventName || 'Event Pass',
+        time: scanTimestamp.toISOString(),
+        avatar: match.initials || match.name?.slice(0, 2)?.toUpperCase() || 'A',
+        tier: match.pricingTier || 'Standard',
+      },
+      ...prev.slice(0, 9),
+    ]);
 
-      addToast({
-        type: 'success',
-        title: 'Gate Entry Approved ✓',
-        message: `Welcome, ${match.name}! Check-in verified.`,
-      });
-    }
+    addToast({
+      type: 'success',
+      title: 'Gate Entry Approved ✓',
+      message: `Welcome, ${match.name}! Check-in verified.`,
+    });
 
-    setTimeout(() => setIsProcessingScan(false), 1800);
+    // Persist to database
+    updateCheckInStatus(match.id, true);
+
+    setTimeout(() => setIsProcessingScan(false), 2200);
   };
 
   // 8. Image File Scanner
