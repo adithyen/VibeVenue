@@ -418,6 +418,52 @@ const ParticipantPortal = () => {
               )}
             </div>
 
+            {/* Team Roster & Gate Check-in Status for Team Passes */}
+            {Array.isArray(inspectPass.teamMembers) && inspectPass.teamMembers.length > 0 && (
+              <div style={{ background: 'var(--surface-inset)', borderRadius: 8, padding: '12px 14px', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span className="font-mono" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                    👥 TEAM ROSTER & VENUE GATE STATUS
+                  </span>
+                  <span className="font-mono" style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: 700 }}>
+                    {inspectPass.teamMembers.filter((m) => m.checkedIn).length} / {inspectPass.teamMembers.length} Present
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {inspectPass.teamMembers.map((m, mIdx) => (
+                    <div
+                      key={mIdx}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        background: m.checkedIn ? 'rgba(16, 185, 129, 0.08)' : 'var(--surface-card)',
+                        border: m.checkedIn ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-subtle)',
+                      }}
+                    >
+                      <div>
+                        <strong style={{ fontSize: '0.8125rem', color: 'var(--text-primary)' }}>{m.name || `Member ${mIdx + 1}`}</strong>
+                        {m.isLeader && <span className="font-mono" style={{ fontSize: '0.625rem', color: '#D97706', marginLeft: 6 }}>👑 Leader</span>}
+                      </div>
+                      <span
+                        className="font-mono"
+                        style={{
+                          fontSize: '0.6875rem',
+                          fontWeight: 700,
+                          color: m.checkedIn ? '#10B981' : 'var(--text-muted)',
+                        }}
+                      >
+                        {m.checkedIn ? '✓ Arrived & Checked In' : '○ Not Yet Checked In'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <PassBarcodeQR value={inspectPass.ticketId} />
 
             <div className="ticket-inspect-actions">

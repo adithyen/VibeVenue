@@ -17,7 +17,7 @@ import './CheckInScannerPage.css';
 
 const CheckInScannerPage = () => {
   const navigate = useNavigate();
-  const { events, getRecentRegistrations, updateCheckInStatus, updateTeamCheckIn, updateAddonFulfillment } = useEventStore();
+  const { events, getRecentRegistrations, updateCheckInStatus, updateTeamCheckIn, updateMemberCheckIn, updateAddonFulfillment } = useEventStore();
   const { addToast } = useUIStore();
 
   const [selectedEventId, setSelectedEventId] = useState('all');
@@ -315,7 +315,8 @@ const CheckInScannerPage = () => {
 
     setIsProcessingScan(true);
 
-    // Look for matching attendee
+    // Look for matching attendee (checks ticket, leader, and ALL individual team members)
+    let matchedMemberIdx = -1;
     const match = attendees.find((a) => {
       if (selectedEventId !== 'all' && a.eventId !== selectedEventId) {
         return false;
@@ -325,7 +326,27 @@ const CheckInScannerPage = () => {
       const studentMatch = (a.studentId && cleanCode.includes(a.studentId.toUpperCase())) || (a.rollNumber && cleanCode.includes(a.rollNumber.toUpperCase()));
       const idMatch = a.id && cleanCode.includes(a.id.toUpperCase());
       const emailMatch = a.email && cleanCode.includes(a.email.toUpperCase());
-      return ticketMatch || studentMatch || idMatch || emailMatch;
+      const nameMatch = a.name && a.name.toUpperCase().includes(cleanCode);
+
+      if (ticketMatch || studentMatch || idMatch || emailMatch || nameMatch) {
+        return true;
+      }
+
+      // Deep scan all individual team members
+      if (Array.isArray(a.teamMembers)) {
+        const mIdx = a.teamMembers.findIndex((m) => {
+          const mRoll = m.rollNumber || m.studentId;
+          const rollOk = mRoll && cleanCode.includes(mRoll.toUpperCase());
+          const emailOk = m.email && cleanCode.includes(m.email.toUpperCase());
+          const nameOk = m.name && cleanCode.includes(m.name.toUpperCase());
+          return rollOk || emailOk || nameOk;
+        });
+        if (mIdx !== -1) {
+          matchedMemberIdx = mIdx;
+          return true;
+        }
+      }
+      return false;
     });
 
     const scanTimestamp = new Date();
@@ -349,10 +370,20 @@ const CheckInScannerPage = () => {
     // If Team Registration -> Open Interactive Team Member Selection Modal
     if (match.registrationType === 'group' || (Array.isArray(match.teamMembers) && match.teamMembers.length > 0)) {
       playSuccessChime();
-      const allIndices = (match.teamMembers || []).map((_, i) => i);
+      const currentlyChecked = (match.teamMembers || [])
+        .map((m, i) => (m.checkedIn ? i : null))
+        .filter((i) => i !== null);
+
+      // If a specific individual team member's barcode/roll matched, ensure they are selected
+      let initialSelected = [...currentlyChecked];
+      if (matchedMemberIdx !== -1 && !initialSelected.includes(matchedMemberIdx)) {
+        initialSelected.push(matchedMemberIdx);
+      }
+
       setTeamModalData({
         attendee: match,
-        selectedIndices: allIndices,
+        selectedIndices: initialSelected,
+        matchedMemberIndex: matchedMemberIdx,
         rawCode,
       });
       setIsProcessingScan(false);
@@ -806,6 +837,92 @@ const CheckInScannerPage = () => {
                       </div>
                     )}
 
+                    {/* Team Members Roster & Individual Attendance */}
+                    {Array.isArray(lastScannedResult.attendee.teamMembers) && lastScannedResult.attendee.teamMembers.length > 0 && (
+                      <div className="scanned-addons-box" style={{ marginTop: 12 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <span className="font-mono addons-title">
+                            👥 TEAM ATTENDANCE ROSTER ({lastScannedResult.attendee.teamMembers.filter(m => m.checkedIn).length}/{lastScannedResult.attendee.teamMembers.length} Present):
+                          </span>
+                          <button
+                            type="button"
+                            className="font-mono copy-btn"
+                            style={{ fontSize: '0.6875rem' }}
+                            onClick={() => {
+                              const currentlyChecked = lastScannedResult.attendee.teamMembers
+                                .map((m, i) => m.checkedIn ? i : null)
+                                .filter(i => i !== null);
+                              setTeamModalData({
+                                attendee: lastScannedResult.attendee,
+                                selectedIndices: currentlyChecked,
+                                rawCode: lastScannedResult.attendee.ticketId,
+                              });
+                            }}
+                          >
+                            ⚡ Open Team Modal
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {lastScannedResult.attendee.teamMembers.map((member, mIdx) => {
+                            const isPresent = !!member.checkedIn;
+                            return (
+                              <div
+                                key={mIdx}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '8px 12px',
+                                  borderRadius: 6,
+                                  background: isPresent ? 'rgba(16, 185, 129, 0.08)' : 'var(--surface-card)',
+                                  border: isPresent ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-subtle)',
+                                }}
+                              >
+                                <div>
+                                  <strong style={{ fontSize: '0.8125rem', color: 'var(--text-primary)' }}>{member.name}</strong>
+                                  <span className="font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginLeft: 8 }}>
+                                    {member.rollNumber ? `${member.rollNumber} • ` : ''}{member.department || ''}
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="font-mono"
+                                  onClick={async () => {
+                                    const next = !isPresent;
+                                    const ok = await updateMemberCheckIn(lastScannedResult.attendee.id, mIdx, next);
+                                    if (ok) {
+                                      if (next) playSuccessChime();
+                                      const updatedMembers = [...lastScannedResult.attendee.teamMembers];
+                                      updatedMembers[mIdx] = { ...member, checkedIn: next, checkedInAt: next ? new Date().toISOString() : null };
+                                      const all = updatedMembers.length > 0 && updatedMembers.every(m => m.checkedIn);
+                                      const any = updatedMembers.some(m => m.checkedIn);
+                                      const status = all ? 'Checked In' : any ? 'Partially Checked In' : 'Not Checked In';
+                                      const updatedAtt = { ...lastScannedResult.attendee, teamMembers: updatedMembers, checkInStatus: status };
+                                      setLastScannedResult(prev => ({ ...prev, attendee: updatedAtt }));
+                                      setAttendees(prev => prev.map(a => a.id === updatedAtt.id ? updatedAtt : a));
+                                    }
+                                  }}
+                                  style={{
+                                    fontSize: '0.6875rem',
+                                    padding: '3px 10px',
+                                    borderRadius: 4,
+                                    cursor: 'pointer',
+                                    fontWeight: 700,
+                                    border: isPresent ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--accent-emerald, #059669)',
+                                    background: isPresent ? 'rgba(239, 68, 68, 0.08)' : 'var(--accent-emerald, #059669)',
+                                    color: isPresent ? '#EF4444' : '#FFFFFF',
+                                  }}
+                                >
+                                  {isPresent ? '✕ Mark Absent' : '✓ Mark Present'}
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Actions */}
                     <div className="scanned-actions-row">
                       <Button
@@ -931,6 +1048,11 @@ const CheckInScannerPage = () => {
                           {isLeader && (
                             <span className="font-mono" style={{ fontSize: '0.625rem', color: '#D97706', background: 'rgba(217, 119, 6, 0.1)', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>
                               👑 Leader
+                            </span>
+                          )}
+                          {teamModalData.matchedMemberIndex === idx && (
+                            <span className="font-mono" style={{ fontSize: '0.625rem', color: '#10B981', background: 'rgba(16, 185, 129, 0.15)', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>
+                              🎯 Matched Scan
                             </span>
                           )}
                         </div>

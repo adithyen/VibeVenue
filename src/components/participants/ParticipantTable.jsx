@@ -101,7 +101,14 @@ const ParticipantTable = ({ participants, eventId, showEvent = false, onUpdateAt
                     >
                       <Avatar name={attendee.name} initials={attendee.initials} size="sm" />
                       <div className="attendee-text-col">
-                        <span className="attendee-full-name">{attendee.name}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span className="attendee-full-name">{attendee.name}</span>
+                          {(attendee.teamName || (Array.isArray(attendee.teamMembers) && attendee.teamMembers.length > 0)) && (
+                            <span className="font-mono" style={{ fontSize: '0.625rem', color: '#6366F1', background: 'rgba(99, 102, 241, 0.1)', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>
+                              👥 {attendee.teamName || 'Team'}
+                            </span>
+                          )}
+                        </div>
                         <span className="attendee-roll font-mono">{attendee.studentId}</span>
                       </div>
                     </button>
@@ -133,9 +140,33 @@ const ParticipantTable = ({ participants, eventId, showEvent = false, onUpdateAt
 
                   {/* Check-in */}
                   <td>
-                    <span className={`checkin-status font-mono ${attendee.checkInStatus === 'Checked In' ? 'checkin-yes' : 'checkin-no'}`}>
-                      {attendee.checkInStatus || 'Not Checked'}
-                    </span>
+                    {(() => {
+                      const members = Array.isArray(attendee.teamMembers) ? attendee.teamMembers : [];
+                      const isGrp = attendee.registrationType === 'group' || members.length > 0;
+                      const checkedCount = members.filter((m) => m.checkedIn).length;
+                      const isFullyPresent = isGrp ? (members.length > 0 && checkedCount === members.length) : attendee.checkInStatus === 'Checked In';
+                      const isPartiallyPresent = isGrp && checkedCount > 0 && checkedCount < members.length;
+
+                      if (isFullyPresent) {
+                        return (
+                          <span className="checkin-status font-mono checkin-yes">
+                            ✓ {isGrp ? `Team Present (${members.length}/${members.length})` : 'Checked In'}
+                          </span>
+                        );
+                      }
+                      if (isPartiallyPresent) {
+                        return (
+                          <span className="checkin-status font-mono" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#F59E0B', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '2px 8px', borderRadius: 4, fontWeight: 700 }}>
+                            🟡 Partial ({checkedCount}/{members.length})
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="checkin-status font-mono checkin-no">
+                          ○ {isGrp ? `Absent (0/${members.length})` : 'Not Checked'}
+                        </span>
+                      );
+                    })()}
                   </td>
 
                   {/* Registration Status */}

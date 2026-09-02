@@ -100,11 +100,23 @@ const AttendancePage = () => {
 
   // 3. Tab breakdown
   const presentAttendees = useMemo(() => {
-    return eventAttendees.filter((a) => a.checkInStatus === 'Checked In' || a.checkInStatus === 'Partially Checked In');
+    return eventAttendees.filter((a) => {
+      const isGrp = a.registrationType === 'group' || (Array.isArray(a.teamMembers) && a.teamMembers.length > 0);
+      if (isGrp) {
+        return (a.teamMembers || []).some((m) => m.checkedIn);
+      }
+      return a.checkInStatus === 'Checked In' || a.checkInStatus === 'Partially Checked In';
+    });
   }, [eventAttendees]);
 
   const absentAttendees = useMemo(() => {
-    return eventAttendees.filter((a) => a.checkInStatus !== 'Checked In' && a.checkInStatus !== 'Partially Checked In');
+    return eventAttendees.filter((a) => {
+      const isGrp = a.registrationType === 'group' || (Array.isArray(a.teamMembers) && a.teamMembers.length > 0);
+      if (isGrp) {
+        return !(a.teamMembers || []).some((m) => m.checkedIn);
+      }
+      return a.checkInStatus !== 'Checked In' && a.checkInStatus !== 'Partially Checked In';
+    });
   }, [eventAttendees]);
 
   const spotAttendees = useMemo(() => {
@@ -151,12 +163,30 @@ const AttendancePage = () => {
     if (!quickScanCode.trim()) return;
     const cleanCode = quickScanCode.trim().toUpperCase();
 
+    let matchedMemberIdx = -1;
     const match = eventAttendees.find((a) => {
       const ticket = a.ticketId?.toUpperCase();
       const ticketMatch = ticket && (cleanCode === ticket || cleanCode.includes(ticket) || ticket.includes(cleanCode));
       const studentMatch = (a.studentId && cleanCode.includes(a.studentId.toUpperCase())) || (a.rollNumber && cleanCode.includes(a.rollNumber.toUpperCase()));
       const nameMatch = a.name && a.name.toUpperCase().includes(cleanCode);
-      return ticketMatch || studentMatch || nameMatch;
+
+      if (ticketMatch || studentMatch || nameMatch) return true;
+
+      // Scan all team members
+      if (Array.isArray(a.teamMembers)) {
+        const mIdx = a.teamMembers.findIndex((m) => {
+          const mRoll = m.rollNumber || m.studentId;
+          const rollOk = mRoll && cleanCode.includes(mRoll.toUpperCase());
+          const emailOk = m.email && cleanCode.includes(m.email.toUpperCase());
+          const nameOk = m.name && cleanCode.includes(m.name.toUpperCase());
+          return rollOk || emailOk || nameOk;
+        });
+        if (mIdx !== -1) {
+          matchedMemberIdx = mIdx;
+          return true;
+        }
+      }
+      return false;
     });
 
     if (!match) {
@@ -168,25 +198,31 @@ const AttendancePage = () => {
       return;
     }
 
-    if (match.checkInStatus === 'Checked In') {
-      addToast({
-        type: 'warning',
-        title: 'Already Checked In',
-        message: `${match.name} was already marked as present.`,
-      });
-      setQuickScanCode('');
-      return;
-    }
-
-    // For Group / Team Registrations: Open individual member selection modal rather than marking everyone present!
+    // For Group / Team Registrations: Open individual member selection modal
     const isGroup = match.registrationType === 'group' || (Array.isArray(match.teamMembers) && match.teamMembers.length > 0);
     if (isGroup) {
       const currentlyChecked = (match.teamMembers || [])
         .map((m, idx) => (m.checkedIn ? idx : null))
         .filter((idx) => idx !== null);
+
+      let initialSelected = [...currentlyChecked];
+      if (matchedMemberIdx !== -1 && !initialSelected.includes(matchedMemberIdx)) {
+        initialSelected.push(matchedMemberIdx);
+      }
+
       setTeamModalData({
         attendee: match,
-        selectedIndices: currentlyChecked,
+        selectedIndices: initialSelected,
+      });
+      setQuickScanCode('');
+      return;
+    }
+
+    if (match.checkInStatus === 'Checked In') {
+      addToast({
+        type: 'warning',
+        title: 'Already Checked In',
+        message: `${match.name} was already marked as present.`,
       });
       setQuickScanCode('');
       return;
@@ -733,13 +769,17 @@ const AttendancePage = () => {
                 </tr>
               ) : (
                 currentTabList.map((a) => {
-                  const isPresent = a.checkInStatus === 'Checked In';
-                  const isPartial = a.checkInStatus === 'Partially Checked In';
-                  const addons = a.selectedAddOns || [];
-                  const addonsProvided = a.addonsProvided || {};
                   const isGroup = a.registrationType === 'group' || (Array.isArray(a.teamMembers) && a.teamMembers.length > 0);
                   const members = Array.isArray(a.teamMembers) ? a.teamMembers : [];
                   const checkedMembersCount = members.filter((m) => m.checkedIn).length;
+                  const isPresent = isGroup
+                    ? (members.length > 0 && checkedMembersCount === members.length)
+                    : a.checkInStatus === 'Checked In';
+                  const isPartial = isGroup
+                    ? (checkedMembersCount > 0 && checkedMembersCount < members.length)
+                    : a.checkInStatus === 'Partially Checked In';
+                  const addons = a.selectedAddOns || [];
+                  const addonsProvided = a.addonsProvided || {};
                   const isExpanded = !!expandedTeams[a.id];
 
                   return (
@@ -786,7 +826,11 @@ const AttendancePage = () => {
                         <td>
                           <div className="att-status-col font-mono">
                             <span className={`att-status-badge ${isPresent ? 'badge-present' : isPartial ? 'badge-partial' : 'badge-absent'}`}>
-                              {isPresent ? '✓ FULLY PRESENT' : isPartial ? `🟡 PARTIAL (${checkedMembersCount}/${members.length})` : '○ ABSENT'}
+                              {isPresent
+                                ? (isGroup ? `✓ FULLY PRESENT (${members.length}/${members.length})` : '✓ FULLY PRESENT')
+                                : isPartial
+                                ? `🟡 PARTIAL (${checkedMembersCount}/${members.length})`
+                                : (isGroup ? `○ ABSENT (0/${members.length})` : '○ ABSENT')}
                             </span>
                             {isPresent && a.checkedInAt && (
                               <span className="att-checkin-time">{formatTimeAgo(a.checkedInAt)}</span>

@@ -276,24 +276,36 @@ const useAuthStore = create((set, get) => ({
 
     if (error) { console.error('getParticipantPasses error:', error); return []; }
 
-    return (data || []).map(r => ({
-      ...r,
-      ticketId: r.ticket_id,
-      name: r.full_name,
-      studentId: r.student_id,
-      pricingTier: formatPricingTier(r.pricing_tier),
-      membershipProof: r.membership_proof,
-      screenshotUrl: r.payment_screenshot || r.screenshot_url || null,
-      statusReason: r.status_reason || r.admin_notes || null,
-      checkInStatus: r.check_in_status || 'Not Checked In',
-      eventName: r.events?.name,
-      eventId: r.events?.id,
-      eventCategory: r.events?.category,
-      eventDate: r.events?.start_date,
-      eventTime: r.events?.start_time,
-      eventVenue: r.events?.venue || r.events?.meeting_link,
-      eventStatus: r.events?.status,
-    }));
+    return (data || []).map(r => {
+      const tm = r.team_members;
+      let checkInStatus = r.check_in_status || 'Not Checked In';
+      if (Array.isArray(tm) && tm.length > 0) {
+        const all = tm.every(m => m.checkedIn);
+        const any = tm.some(m => m.checkedIn);
+        checkInStatus = all ? 'Checked In' : any ? 'Partially Checked In' : 'Not Checked In';
+      }
+
+      return {
+        ...r,
+        ticketId: r.ticket_id,
+        name: r.full_name,
+        studentId: r.student_id,
+        teamName: r.team_name || null,
+        teamMembers: r.team_members || [],
+        pricingTier: formatPricingTier(r.pricing_tier),
+        membershipProof: r.membership_proof,
+        screenshotUrl: r.payment_screenshot || r.screenshot_url || null,
+        statusReason: r.status_reason || r.admin_notes || null,
+        checkInStatus,
+        eventName: r.events?.name,
+        eventId: r.events?.id,
+        eventCategory: r.events?.category,
+        eventDate: r.events?.start_date,
+        eventTime: r.events?.start_time,
+        eventVenue: r.events?.venue || r.events?.meeting_link,
+        eventStatus: r.events?.status,
+      };
+    });
   },
 
   clearError: () => set({ error: null }),

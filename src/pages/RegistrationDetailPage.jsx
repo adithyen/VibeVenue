@@ -686,23 +686,101 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
                 </span>
               </div>
 
-              <Button
-                type="button"
-                variant={isCheckedIn ? 'secondary' : 'primary'}
-                size="md"
-                fullWidth
-                loading={isUpdating}
-                onClick={handleToggleCheckIn}
-                className="gate-action-btn"
-              >
-                {Array.isArray(attendee.teamMembers) && attendee.teamMembers.length > 0
-                  ? (isCheckedIn ? '↺ Reset All Team Attendance' : '✓ Mark All Team Present')
-                  : (isCheckedIn ? '↺ Reset Gate Check-In' : '✓ Mark Attendee Checked In')}
-              </Button>
-              {Array.isArray(attendee.teamMembers) && attendee.teamMembers.length > 0 && (
-                <p className="font-mono text-muted" style={{ fontSize: '0.6875rem', margin: '8px 0 0', textAlign: 'center' }}>
-                  💡 Use the team roster on the left to mark individual delegates Present or Absent.
-                </p>
+              {Array.isArray(attendee.teamMembers) && attendee.teamMembers.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className="font-mono" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                      TEAM MEMBER PASS CONTROL
+                    </span>
+                    <span className="font-mono" style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: 700 }}>
+                      {(attendee.teamMembers || []).filter(m => m.checkedIn).length} / {attendee.teamMembers.length} Present
+                    </span>
+                  </div>
+
+                  {/* Inline list of team members with instant toggles */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {attendee.teamMembers.map((member, mIdx) => {
+                      const isMemPresent = !!member.checkedIn;
+                      return (
+                        <div
+                          key={mIdx}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '6px 10px',
+                            borderRadius: 6,
+                            background: isMemPresent ? 'rgba(16, 185, 129, 0.08)' : 'var(--surface-card)',
+                            border: isMemPresent ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-subtle)',
+                          }}
+                        >
+                          <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '170px' }}>
+                            <strong style={{ fontSize: '0.8125rem' }}>{member.name || `Member ${mIdx + 1}`}</strong>
+                            {member.isLeader && (
+                              <span className="font-mono" style={{ fontSize: '0.625rem', color: '#D97706', marginLeft: 4 }}>👑</span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            className="font-mono"
+                            disabled={isUpdating}
+                            onClick={() => handleToggleMember(mIdx)}
+                            style={{
+                              fontSize: '0.6875rem',
+                              padding: '2px 8px',
+                              borderRadius: 4,
+                              cursor: 'pointer',
+                              fontWeight: 700,
+                              border: isMemPresent ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid var(--accent-emerald, #059669)',
+                              background: isMemPresent ? 'rgba(239, 68, 68, 0.08)' : 'var(--accent-emerald, #059669)',
+                              color: isMemPresent ? '#EF4444' : '#FFFFFF',
+                            }}
+                          >
+                            {isMemPresent ? '✕ Absent' : '✓ Present'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Batch team controls */}
+                  <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      fullWidth
+                      loading={isUpdating}
+                      onClick={() => handleMarkAllMembers(true)}
+                      style={{ fontSize: '0.75rem' }}
+                    >
+                      ✓ Mark All Present
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      fullWidth
+                      loading={isUpdating}
+                      onClick={() => handleMarkAllMembers(false)}
+                      style={{ fontSize: '0.75rem' }}
+                    >
+                      ○ Mark All Absent
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant={isCheckedIn ? 'secondary' : 'primary'}
+                  size="md"
+                  fullWidth
+                  loading={isUpdating}
+                  onClick={handleToggleCheckIn}
+                  className="gate-action-btn"
+                >
+                  {isCheckedIn ? '↺ Reset Gate Check-In' : '✓ Mark Attendee Checked In'}
+                </Button>
               )}
             </div>
           </div>
