@@ -28,6 +28,7 @@ const CheckInScannerPage = () => {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState(null);
   const [camerasList, setCamerasList] = useState([]);
+  const [selectedCameraId, setSelectedCameraId] = useState('');
   const [teamModalData, setTeamModalData] = useState(null); // { attendee, selectedIndices, rawCode }
 
   const handleToggleMemberIndex = (idx) => {
@@ -134,8 +135,9 @@ const CheckInScannerPage = () => {
     fetchAttendees();
 
     // Supabase Realtime channel for instant gate synchronization
+    const channelName = `scanner-live-sync-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const channel = supabase
-      .channel('scanner-live-sync')
+      .channel(channelName)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => {
         fetchAttendees();
       })
@@ -147,7 +149,7 @@ const CheckInScannerPage = () => {
     const timer = setInterval(fetchAttendees, 4000);
 
     return () => {
-      supabase.removeChannel(channel);
+      try { supabase.removeChannel(channel); } catch {}
       window.removeEventListener('focus', handleFocus);
       clearInterval(timer);
     };
@@ -219,10 +221,11 @@ const CheckInScannerPage = () => {
     setCameraError(null);
     stopCamera();
 
+    const targetDev = deviceId || selectedCameraId || undefined;
     try {
       const constraints = {
-        video: deviceId
-          ? { deviceId: { exact: deviceId } }
+        video: targetDev
+          ? { deviceId: { exact: targetDev } }
           : { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       };

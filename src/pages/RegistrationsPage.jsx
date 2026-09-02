@@ -31,8 +31,9 @@ const RegistrationsPage = () => {
   useEffect(() => {
     loadRegistrations();
 
+    const channelName = `registrations-live-sync-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const channel = supabase
-      .channel('registrations-live-sync')
+      .channel(channelName)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => {
         loadRegistrations();
       })
@@ -44,7 +45,7 @@ const RegistrationsPage = () => {
     const timer = setInterval(loadRegistrations, 5000);
 
     return () => {
-      supabase.removeChannel(channel);
+      try { supabase.removeChannel(channel); } catch {}
       window.removeEventListener('focus', handleFocus);
       clearInterval(timer);
     };
@@ -76,6 +77,7 @@ const RegistrationsPage = () => {
   // Metrics
   const totalCount = allAttendees.length;
   const confirmedCount = allAttendees.filter((p) => p.status === 'confirmed').length;
+  const waitlistCount = allAttendees.filter((p) => p.status === 'waitlisted').length;
   const pendingCount = allAttendees.filter((p) => p.status === 'pending').length;
   const cancelledCount = allAttendees.filter((p) => p.status === 'cancelled').length;
 
@@ -131,7 +133,7 @@ const RegistrationsPage = () => {
         <div className="page-title-group">
           <h2 className="page-title">Registrations</h2>
           <p className="page-subtitle">
-            View, search and export all event registrations
+            View, search, manage waiting lists and export all attendee records
           </p>
         </div>
 
@@ -158,8 +160,12 @@ const RegistrationsPage = () => {
           <span className="summary-pill-val font-mono">{totalCount.toLocaleString()}</span>
         </div>
         <div className="summary-pill-item">
-          <span className="summary-pill-lbl">Registered</span>
+          <span className="summary-pill-lbl">Confirmed</span>
           <span className="summary-pill-val font-mono text-emerald">{confirmedCount.toLocaleString()}</span>
+        </div>
+        <div className="summary-pill-item">
+          <span className="summary-pill-lbl">Waitlisted</span>
+          <span className="summary-pill-val font-mono text-amber">{waitlistCount.toLocaleString()}</span>
         </div>
         <div className="summary-pill-item">
           <span className="summary-pill-lbl">Cancelled</span>
@@ -207,7 +213,8 @@ const RegistrationsPage = () => {
           }}
         >
           <option value="">All Statuses</option>
-          <option value="confirmed">Registered</option>
+          <option value="confirmed">Confirmed Passes</option>
+          <option value="waitlisted">📋 Waiting List Queue ({waitlistCount})</option>
           <option value="cancelled">Cancelled</option>
         </select>
       </div>

@@ -41,14 +41,15 @@ const ParticipantPortal = () => {
 
   // Realtime subscription — any pass change refreshes dashboard instantly
   useEffect(() => {
+    const channelName = `participant-passes-realtime-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const channel = supabase
-      .channel('participant-passes-realtime')
+      .channel(channelName)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => {
         refreshPasses();
       })
       .subscribe();
     return () => {
-      supabase.removeChannel(channel);
+      try { supabase.removeChannel(channel); } catch {}
     };
   }, [refreshPasses]);
 
@@ -444,30 +445,50 @@ const ParticipantPortal = () => {
         subtitle="This action will cancel your seat registration permanently"
         size="sm"
       >
-        {confirmCancel && (
-          <div className="revoke-confirm-body">
-            <p className="revoke-warn-txt">
-              Are you sure you want to cancel your registration for{' '}
-              <strong>"{confirmCancel.eventName}"</strong>?
-              Your entry pass will be deactivated immediately.
-            </p>
-            <div className="revoke-actions">
-              <Button
-                variant="secondary"
-                onClick={() => setConfirmCancel(null)}
-              >
-                Keep Pass
-              </Button>
-              <Button
-                variant="danger"
-                loading={isRevoking}
-                onClick={() => handleRevokePass(confirmCancel)}
-              >
-                Confirm Deactivation
-              </Button>
+        {confirmCancel && (() => {
+          const evt = events.find(e => e.id === confirmCancel.eventId);
+          const isPastDeadline = evt?.acceptCancellationsUntil && new Date() > new Date(evt.acceptCancellationsUntil);
+
+          return (
+            <div className="revoke-confirm-body">
+              <p className="revoke-warn-txt">
+                Are you sure you want to cancel your registration for{' '}
+                <strong>"{confirmCancel.eventName}"</strong>?
+                Your entry pass will be deactivated immediately and offered to the waitlist queue.
+              </p>
+
+              {evt?.cancellationPolicy && (
+                <div style={{ background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.25)', padding: '10px 12px', borderRadius: 8, margin: '12px 0' }}>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#818CF8', display: 'block', textTransform: 'uppercase' }}>Cancellation & Refund Policy:</span>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>{evt.cancellationPolicy}</p>
+                </div>
+              )}
+
+              {isPastDeadline && (
+                <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '10px 12px', borderRadius: 8, margin: '12px 0', color: '#EF4444', fontSize: '0.75rem', lineHeight: 1.4 }}>
+                  ⚠️ The self-cancellation deadline for this event was {new Date(evt.acceptCancellationsUntil).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}. Cancellations are now closed.
+                </div>
+              )}
+
+              <div className="revoke-actions">
+                <Button
+                  variant="secondary"
+                  onClick={() => setConfirmCancel(null)}
+                >
+                  Keep Pass
+                </Button>
+                <Button
+                  variant="danger"
+                  disabled={isPastDeadline}
+                  loading={isRevoking}
+                  onClick={() => handleRevokePass(confirmCancel)}
+                >
+                  {isPastDeadline ? 'Cancellation Closed' : 'Confirm Deactivation'}
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </Modal>
 
       {/* Edit Profile Modal */}

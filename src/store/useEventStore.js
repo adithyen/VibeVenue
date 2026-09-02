@@ -5,7 +5,14 @@
 import { create } from 'zustand';
 import { supabase, uploadBase64 } from '../lib/supabase';
 import { CATEGORIES } from '../data/mockData';
-import { getComputedEventStatus } from '../utils/dateUtils';
+import { getComputedEventStatus, formatPricingTier } from '../utils/dateUtils';
+import {
+  sendConfirmedTicketEmail,
+  sendWaitlistTicketEmail,
+  sendWaitlistPromotedEmail,
+  sendWaitlistQueueShiftEmail,
+  sendCancellationEmail,
+} from '../services/emailService';
 
 const useEventStore = create((set, get) => ({
   // ── State ───────────────────────────────────────────────────
@@ -19,10 +26,16 @@ const useEventStore = create((set, get) => ({
     set({ isLoading: true });
     await get().fetchEvents();
 
+    // Clean up previous channel if any
+    const prev = get()._realtimeChannel;
+    if (prev) {
+      try { supabase.removeChannel(prev); } catch {}
+    }
+
     // Realtime subscription — any INSERT/UPDATE/DELETE on events
     // propagates to all open sessions instantly
     const channel = supabase
-      .channel('events-realtime')
+      .channel(`events-realtime-${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'events' },
         () => get().fetchEvents()
       )
@@ -96,7 +109,7 @@ const useEventStore = create((set, get) => ({
       registrationType: r.registration_type,
       teamName: r.team_name,
       teamMembers: r.team_members || [],
-      pricingTier: r.pricing_tier,
+      pricingTier: formatPricingTier(r.pricing_tier),
       membershipProof: r.membership_proof,
       selectedAddOns: r.selected_addons || [],
       addonsProvided: r.addons_provided || {},
@@ -105,7 +118,15 @@ const useEventStore = create((set, get) => ({
       screenshotUrl: r.payment_screenshot || r.screenshot_url || null,
       status: r.status,
       statusReason: r.status_reason || r.admin_notes || null,
-      checkInStatus: r.check_in_status || 'Not Checked In',
+      checkInStatus: (() => {
+        const tm = r.team_members;
+        if (Array.isArray(tm) && tm.length > 0) {
+          const all = tm.every(m => m.checkedIn);
+          const any = tm.some(m => m.checkedIn);
+          return all ? 'Checked In' : any ? 'Partially Checked In' : 'Not Checked In';
+        }
+        return r.check_in_status || 'Not Checked In';
+      })(),
       checkedInAt: r.checked_in_at,
       registeredAt: r.registered_at,
       eventName: r.events?.name,
@@ -244,7 +265,7 @@ const useEventStore = create((set, get) => ({
         payment_screenshot: screenshotUrl,
         total_paid:         formData.totalPaid || 0,
         txn_id:             formData.txnId || null,
-        status:             'confirmed',
+        status:             formData.status || 'confirmed',
       })
       .select()
       .single();
@@ -264,45 +285,322 @@ const useEventStore = create((set, get) => ({
       await supabase.from('registration_addons').insert(addonRows);
     }
 
+    const isWaitlist = (formData.status || 'confirmed') === 'waitlisted';
     // Optimistically update local count
     set(state => ({
       events: state.events.map(e =>
         e.id === eventId
-          ? { ...e, registrationCount: (e.registrationCount || 0) + 1 }
+          ? {
+              ...e,
+              registrationCount: isWaitlist ? (e.registrationCount || 0) : (e.registrationCount || 0) + 1,
+              waitlistCount: isWaitlist ? (e.waitlistCount || 0) + 1 : (e.waitlistCount || 0),
+            }
           : e
       ),
     }));
+
+    // Trigger Email Dispatch asynchronously
+    const event = get().events.find(e => e.id === eventId);
+    const eventName = event?.name || formData.eventName || 'Campus Event';
+    const eventDate = event?.date || event?.startDate || '';
+    const eventTime = event?.time || event?.startTime || '';
+    const eventVenue = event?.venue || 'Campus Venue';
+
+    if (formData.email) {
+      if (isWaitlist) {
+        sendWaitlistTicketEmail({
+          to: formData.email,
+          name: formData.fullName || formData.name,
+          eventName,
+          date: eventDate,
+          time: eventTime,
+          venue: eventVenue,
+          ticketId: reg.ticket_id,
+          position: (event?.waitlistCount || 0) + 1,
+          pricingTier: formatPricingTier(formData.pricingTier),
+        }).catch(err => console.error('[useEventStore] sendWaitlistTicketEmail err:', err));
+      } else {
+        sendConfirmedTicketEmail({
+          to: formData.email,
+          name: formData.fullName || formData.name,
+          eventName,
+          date: eventDate,
+          time: eventTime,
+          venue: eventVenue,
+          ticketId: reg.ticket_id,
+          pricingTier: formatPricingTier(formData.pricingTier),
+          totalPaid: formData.totalPaid || 0,
+          whatsappLink: event?.whatsappLink || null,
+        }).catch(err => console.error('[useEventStore] sendConfirmedTicketEmail err:', err));
+      }
+    }
+
     return {
       ...reg,
       ticketId: reg.ticket_id,
-      pricingTier: reg.pricing_tier,
+      pricingTier: formatPricingTier(reg.pricing_tier),
       membershipProof: reg.membership_proof,
     };
   },
 
+  promoteNextWaitlisted: async (eventId) => {
+    if (!eventId) return null;
+    try {
+      // Find all waitlisted participants in chronological order
+      const { data: waitlistRows, error } = await supabase
+        .from('registrations')
+        .select('id, full_name, email, ticket_id, registered_at')
+        .eq('event_id', eventId)
+        .eq('status', 'waitlisted')
+        .order('registered_at', { ascending: true });
+
+      if (error || !waitlistRows || waitlistRows.length === 0) return null;
+
+      const nextInLine = waitlistRows[0];
+      const remainingWaitlist = waitlistRows.slice(1);
+
+      // 1. Promote attendee #1 to confirmed
+      const { error: updateErr } = await supabase
+        .from('registrations')
+        .update({
+          status: 'confirmed',
+          status_reason: 'Promoted automatically from waitlist upon seat vacancy',
+        })
+        .eq('id', nextInLine.id);
+
+      if (updateErr) {
+        console.error('promoteNextWaitlisted update error:', updateErr);
+        return null;
+      }
+
+      // Update store state
+      set(state => ({
+        events: state.events.map(e =>
+          e.id === eventId
+            ? {
+                ...e,
+                registrationCount: (e.registrationCount || 0) + 1,
+                waitlistCount: Math.max(0, (e.waitlistCount || 1) - 1),
+              }
+            : e
+        ),
+      }));
+
+      // Find event metadata for emails
+      const event = get().events.find(e => e.id === eventId);
+      const eventName = event?.name || 'Campus Event';
+      const eventDate = event?.date || event?.startDate || '';
+      const eventTime = event?.time || event?.startTime || '';
+      const eventVenue = event?.venue || 'Campus Venue';
+
+      // 2. Dispatch "Promoted to Confirmed" Email to attendee #1
+      if (nextInLine.email) {
+        sendWaitlistPromotedEmail({
+          to: nextInLine.email,
+          name: nextInLine.full_name,
+          eventName,
+          date: eventDate,
+          time: eventTime,
+          venue: eventVenue,
+          ticketId: nextInLine.ticket_id,
+        }).catch(err => console.error('[useEventStore] sendWaitlistPromotedEmail err:', err));
+      }
+
+      // 3. Dispatch "Queue Shift" Emails to remaining waitlisted attendees
+      remainingWaitlist.forEach((attendee, idx) => {
+        if (attendee.email) {
+          const oldPos = idx + 2;
+          const newPos = idx + 1;
+          sendWaitlistQueueShiftEmail({
+            to: attendee.email,
+            name: attendee.full_name,
+            eventName,
+            oldPosition: oldPos,
+            newPosition: newPos,
+            ticketId: attendee.ticket_id,
+          }).catch(err => console.error('[useEventStore] sendWaitlistQueueShiftEmail err:', err));
+        }
+      });
+
+      return nextInLine;
+    } catch (err) {
+      console.error('promoteNextWaitlisted catch:', err);
+      return null;
+    }
+  },
+
+  manualPromoteWaitlisted: async (eventId, registrationId) => {
+    try {
+      const { data: targetReg, error } = await supabase
+        .from('registrations')
+        .select('*')
+        .eq('id', registrationId)
+        .single();
+
+      if (error || !targetReg) return false;
+
+      const { error: updateErr } = await supabase
+        .from('registrations')
+        .update({
+          status: 'confirmed',
+          status_reason: 'Manually promoted to confirmed seat by event administrator',
+        })
+        .eq('id', registrationId);
+
+      if (updateErr) return false;
+
+      set(state => ({
+        events: state.events.map(e =>
+          e.id === eventId
+            ? {
+                ...e,
+                registrationCount: (e.registrationCount || 0) + 1,
+                waitlistCount: Math.max(0, (e.waitlistCount || 1) - 1),
+              }
+            : e
+        ),
+      }));
+
+      const event = get().events.find(e => e.id === eventId);
+      if (targetReg.email) {
+        sendWaitlistPromotedEmail({
+          to: targetReg.email,
+          name: targetReg.full_name,
+          eventName: event?.name || 'Campus Event',
+          date: event?.date || event?.startDate || '',
+          time: event?.time || event?.startTime || '',
+          venue: event?.venue || 'Campus Venue',
+          ticketId: targetReg.ticket_id,
+        }).catch(err => console.error('[useEventStore] manual sendWaitlistPromotedEmail err:', err));
+      }
+
+      // Re-index remaining queue positions and notify
+      const { data: remaining } = await supabase
+        .from('registrations')
+        .select('id, full_name, email, ticket_id')
+        .eq('event_id', eventId)
+        .eq('status', 'waitlisted')
+        .order('registered_at', { ascending: true });
+
+      if (remaining && remaining.length > 0) {
+        remaining.forEach((att, idx) => {
+          if (att.email) {
+            sendWaitlistQueueShiftEmail({
+              to: att.email,
+              name: att.full_name,
+              eventName: event?.name || 'Campus Event',
+              oldPosition: idx + 2,
+              newPosition: idx + 1,
+              ticketId: att.ticket_id,
+            }).catch(err => console.error('[useEventStore] manual shift email err:', err));
+          }
+        });
+      }
+
+      return true;
+    } catch (err) {
+      console.error('manualPromoteWaitlisted catch:', err);
+      return false;
+    }
+  },
+
   removeParticipant: async (eventId, registrationId) => {
+    const { data: currentReg } = await supabase
+      .from('registrations')
+      .select('status, full_name, email, ticket_id')
+      .eq('id', registrationId)
+      .maybeSingle();
+
+    const wasConfirmed = currentReg ? currentReg.status === 'confirmed' : true;
+    const wasWaitlisted = currentReg ? currentReg.status === 'waitlisted' : false;
+
     const { error } = await supabase.from('registrations').delete().eq('id', registrationId);
     if (error) return false;
+
     set(state => ({
       events: state.events.map(e =>
         e.id === eventId
-          ? { ...e, registrationCount: Math.max(0, (e.registrationCount || 1) - 1) }
+          ? {
+              ...e,
+              registrationCount: wasConfirmed ? Math.max(0, (e.registrationCount || 1) - 1) : e.registrationCount,
+              waitlistCount: !wasConfirmed ? Math.max(0, (e.waitlistCount || 1) - 1) : e.waitlistCount,
+            }
           : e
       ),
     }));
+
+    const event = get().events.find(e => e.id === eventId);
+    if (currentReg?.email) {
+      sendCancellationEmail({
+        to: currentReg.email,
+        name: currentReg.full_name,
+        eventName: event?.name || 'Campus Event',
+        ticketId: currentReg.ticket_id,
+        wasWaitlisted,
+      }).catch(err => console.error('[useEventStore] sendCancellationEmail err:', err));
+    }
+
+    if (wasConfirmed) {
+      await get().promoteNextWaitlisted(eventId);
+    }
+
     return true;
   },
 
-  updateParticipantStatus: async (registrationId, status, reason = null) => {
+  updateParticipantStatus: async (registrationId, status, reason = null, eventId = null) => {
     const payload = { status };
     if (reason !== undefined) {
       payload.status_reason = reason;
       payload.admin_notes = reason;
     }
+
+    let targetEventId = eventId;
+    let wasConfirmed = false;
+    let wasWaitlisted = false;
+    let currentReg = null;
+    if (status === 'cancelled') {
+      const { data: current } = await supabase
+        .from('registrations')
+        .select('event_id, status, full_name, email, ticket_id')
+        .eq('id', registrationId)
+        .maybeSingle();
+      if (current) {
+        currentReg = current;
+        targetEventId = targetEventId || current.event_id;
+        wasConfirmed = current.status === 'confirmed';
+        wasWaitlisted = current.status === 'waitlisted';
+      }
+    }
+
     const { error } = await supabase
       .from('registrations')
       .update(payload)
       .eq('id', registrationId);
+
+    if (!error && status === 'cancelled') {
+      if (currentReg?.email) {
+        const event = get().events.find(e => e.id === targetEventId);
+        sendCancellationEmail({
+          to: currentReg.email,
+          name: currentReg.full_name,
+          eventName: event?.name || 'Campus Event',
+          ticketId: currentReg.ticket_id,
+          wasWaitlisted,
+        }).catch(err => console.error('[useEventStore] sendCancellationEmail err:', err));
+      }
+
+      if (wasConfirmed && targetEventId) {
+        set(state => ({
+          events: state.events.map(e =>
+            e.id === targetEventId
+              ? { ...e, registrationCount: Math.max(0, (e.registrationCount || 1) - 1) }
+              : e
+          ),
+        }));
+        await get().promoteNextWaitlisted(targetEventId);
+      }
+    }
+
     return !error;
   },
 
@@ -332,12 +630,12 @@ const useEventStore = create((set, get) => ({
       }
     }
 
-    const allChecked = updatedMembers ? (updatedMembers.length > 0 && updatedMembers.every((m) => m.checkedIn)) : checkIn;
     const anyChecked = updatedMembers ? updatedMembers.some((m) => m.checkedIn) : checkIn;
-    const overallStatus = allChecked ? 'Checked In' : anyChecked ? 'Partially Checked In' : 'Not Checked In';
+    // Postgres registrations_check_in_status_check strictly accepts 'Checked In' or 'Not Checked In'
+    const dbStatus = anyChecked ? 'Checked In' : 'Not Checked In';
 
     const payload = {
-      check_in_status: overallStatus,
+      check_in_status: dbStatus,
       checked_in_at: anyChecked ? current?.checked_in_at || timestamp : null,
     };
     if (updatedMembers) {
@@ -367,15 +665,15 @@ const useEventStore = create((set, get) => ({
       checkedInAt: selectedMemberIndices.includes(idx) ? (m.checkedInAt || timestamp) : null,
     }));
 
-    const allChecked = updatedMembers.length > 0 && updatedMembers.every((m) => m.checkedIn);
     const anyChecked = updatedMembers.some((m) => m.checkedIn);
-    const overallStatus = allChecked ? 'Checked In' : anyChecked ? 'Partially Checked In' : 'Not Checked In';
+    // Postgres registrations_check_in_status_check strictly accepts 'Checked In' or 'Not Checked In'
+    const dbStatus = anyChecked ? 'Checked In' : 'Not Checked In';
 
     const { error } = await supabase
       .from('registrations')
       .update({
         team_members: updatedMembers,
-        check_in_status: overallStatus,
+        check_in_status: dbStatus,
         checked_in_at: anyChecked ? current.checked_in_at || timestamp : null,
       })
       .eq('id', registrationId);
@@ -399,15 +697,16 @@ const useEventStore = create((set, get) => ({
         checkedInAt: checkIn ? (members[memberIndex].checkedInAt || timestamp) : null,
       };
     }
-    const allChecked = members.length > 0 && members.every((m) => m.checkedIn);
+
     const anyChecked = members.some((m) => m.checkedIn);
-    const overallStatus = allChecked ? 'Checked In' : anyChecked ? 'Partially Checked In' : 'Not Checked In';
+    // Postgres registrations_check_in_status_check strictly accepts 'Checked In' or 'Not Checked In'
+    const dbStatus = anyChecked ? 'Checked In' : 'Not Checked In';
 
     const { error } = await supabase
       .from('registrations')
       .update({
         team_members: members,
-        check_in_status: overallStatus,
+        check_in_status: dbStatus,
         checked_in_at: anyChecked ? current.checked_in_at || timestamp : null,
       })
       .eq('id', registrationId);
@@ -450,7 +749,7 @@ const useEventStore = create((set, get) => ({
       department: r.department,
       year: r.year,
       ticketId: r.ticket_id,
-      pricingTier: r.pricing_tier,
+      pricingTier: formatPricingTier(r.pricing_tier),
       membershipProof: r.membership_proof,
       selectedAddOns: r.selected_addons || [],
       addonsProvided: r.addons_provided || {},
@@ -506,6 +805,10 @@ function buildEventPayload(f, userId) {
       allowRegistrationsUntil: f.allowRegistrationsUntil || null,
       enableSpotRegistrations: f.enableSpotRegistrations || false,
       allowSpotRegistrationsUntil: f.allowSpotRegistrationsUntil || null,
+      enableWaitlist: f.enableWaitlist || false,
+      waitlistCapacity: parseInt(f.waitlistCapacity, 10) || 30,
+      acceptCancellationsUntil: f.acceptCancellationsUntil || null,
+      cancellationPolicy: f.cancellationPolicy || '',
     },
     upi_id:                f.upiId    || null,
     has_bank_transfer:     f.hasBankTransfer || false,
@@ -550,6 +853,10 @@ function formDataToRow(f, bannerUrl, logoUrl) {
       allowRegistrationsUntil: f.allowRegistrationsUntil || null,
       enableSpotRegistrations: f.enableSpotRegistrations || false,
       allowSpotRegistrationsUntil: f.allowSpotRegistrationsUntil || null,
+      enableWaitlist: f.enableWaitlist || false,
+      waitlistCapacity: parseInt(f.waitlistCapacity, 10) || 30,
+      acceptCancellationsUntil: f.acceptCancellationsUntil || null,
+      cancellationPolicy: f.cancellationPolicy || '',
     },
     upi_id:                f.upiId    || null,
     has_bank_transfer:     f.hasBankTransfer || false,
@@ -689,6 +996,10 @@ function normaliseEvent(row) {
     allowRegistrationsUntil: row.allow_registrations_until || null,
     enableSpotRegistrations: row.enable_spot_registrations || false,
     allowSpotRegistrationsUntil: row.allow_spot_registrations_until || null,
+    enableWaitlist:    row.enable_waitlist ?? amenities?.enableWaitlist ?? false,
+    waitlistCapacity:  parseInt(row.waitlist_capacity ?? amenities?.waitlistCapacity, 10) || 30,
+    acceptCancellationsUntil: row.accept_cancellations_until ?? amenities?.acceptCancellationsUntil ?? null,
+    cancellationPolicy: row.cancellation_policy ?? amenities?.cancellationPolicy ?? '',
     individualPrice:   row.individual_price,
     groupPrice:        row.group_price,
     groupMinSize:      row.group_min_size,
@@ -707,8 +1018,11 @@ function normaliseEvent(row) {
 
     // Counts from direct registrations relation or view fallback
     registrationCount: Array.isArray(row.registrations)
-      ? row.registrations.length
+      ? row.registrations.filter(r => r.status === 'confirmed').length
       : (parseInt(row.registration_count, 10) || 0),
+    waitlistCount: Array.isArray(row.registrations)
+      ? row.registrations.filter(r => r.status === 'waitlisted').length
+      : 0,
     checkedInCount: Array.isArray(row.registrations)
       ? row.registrations.filter(r => r.check_in_status === 'Checked In').length
       : (parseInt(row.checked_in_count, 10) || 0),

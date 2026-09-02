@@ -4,6 +4,7 @@
 // ============================================================
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
+import { formatPricingTier } from '../utils/dateUtils';
 
 const useAuthStore = create((set, get) => ({
   user: null,          // { id, name, email, avatar, role, studentId, department, year, initials }
@@ -280,7 +281,7 @@ const useAuthStore = create((set, get) => ({
       ticketId: r.ticket_id,
       name: r.full_name,
       studentId: r.student_id,
-      pricingTier: r.pricing_tier,
+      pricingTier: formatPricingTier(r.pricing_tier),
       membershipProof: r.membership_proof,
       screenshotUrl: r.payment_screenshot || r.screenshot_url || null,
       statusReason: r.status_reason || r.admin_notes || null,

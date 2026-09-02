@@ -19,7 +19,8 @@ const STATUS_VARIANT = {
   cancelled: 'rose',
   confirmed: 'emerald',
   pending:   'amber',
-  waitlist:  'cyan',
+  waitlist:   'amber',
+  waitlisted: 'amber',
 };
 
 const CATEGORY_VARIANT = {

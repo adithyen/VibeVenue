@@ -182,8 +182,46 @@ export const getRegistrationStatusInfo = (event) => {
     return { isOpen: false, isSpot: false, isClosed: true, isFull: false, badgeText: 'Event Ended', badgeType: 'neutral', actionLabel: 'Event Ended' };
   }
 
-  const isFull = event.hasCapacityLimit && event.maxParticipants && (event.registrationCount >= event.maxParticipants) && !event.isOnline;
-  if (isFull) {
+  const isCapacityFull = event.hasCapacityLimit && event.maxParticipants && (event.registrationCount >= event.maxParticipants) && !event.isOnline;
+  if (isCapacityFull) {
+    if (event.enableWaitlist) {
+      const waitlistCapacity = parseInt(event.waitlistCapacity, 10) || 30;
+      const waitlistCount = event.waitlistCount || 0;
+      const isWaitlistFull = waitlistCount >= waitlistCapacity;
+
+      if (!isWaitlistFull) {
+        return {
+          isOpen: true,
+          isSpot: false,
+          isClosed: false,
+          isFull: false,
+          isWaitlist: true,
+          isWaitlistActive: true,
+          waitlistPosition: waitlistCount + 1,
+          waitlistCount,
+          waitlistCapacity,
+          badgeText: `Waitlist Open (#${waitlistCount + 1})`,
+          badgeType: 'warning',
+          actionLabel: `Join Waitlist (#${waitlistCount + 1})`,
+        };
+      } else {
+        return {
+          isOpen: false,
+          isSpot: false,
+          isClosed: true,
+          isFull: true,
+          isWaitlist: true,
+          isWaitlistActive: false,
+          isWaitlistFull: true,
+          waitlistCount,
+          waitlistCapacity,
+          badgeText: 'Capacity & Waitlist Full',
+          badgeType: 'error',
+          actionLabel: 'Waitlist Full',
+        };
+      }
+    }
+
     return { isOpen: false, isSpot: false, isClosed: true, isFull: true, badgeText: 'Housefull', badgeType: 'error', actionLabel: 'Event Full' };
   }
 
@@ -248,5 +286,34 @@ export const getRegistrationStatusInfo = (event) => {
     actionLabel: 'Registrations Closed',
     deadline: regUntilDt,
   };
+};
+
+export const formatPricingTier = (tier) => {
+  if (!tier) return '';
+  if (typeof tier === 'object' && tier !== null) {
+    return tier.label || tier.name || tier.title || '';
+  }
+  if (typeof tier === 'string') {
+    let str = tier.trim();
+    if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
+      try { str = JSON.parse(str); } catch {}
+    }
+    if (typeof str === 'object' && str !== null) {
+      return str.label || str.name || str.title || '';
+    }
+    if (str.includes('"label"') || str.includes('label:')) {
+      try {
+        const parsed = JSON.parse(str);
+        if (parsed && typeof parsed === 'object') {
+          return parsed.label || parsed.name || str;
+        }
+      } catch {
+        const match = str.match(/"label"\s*:\s*"([^"]+)"/);
+        if (match && match[1]) return match[1];
+      }
+    }
+    return str;
+  }
+  return String(tier);
 };
 

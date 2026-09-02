@@ -280,19 +280,23 @@ const EventRegistrationPage = () => {
         })),
       ] : [];
 
+      const isWaitlist = !!regInfo.isWaitlistActive;
       await registerParticipant(event.id, {
         ...form,
         teamMembers: fullTeamMembers,
         ticketId: tempTicketId,
         userId: user?.id,
         totalPaid: totalAmount,
+        status: isWaitlist ? 'waitlisted' : 'confirmed',
         registeredAt: new Date().toISOString(),
       });
       setStep(3);
       addToast({
-        type: 'success',
-        title: 'Registration Confirmed! 🎉',
-        message: `Your pass ${tempTicketId} is now live in your dashboard.`,
+        type: isWaitlist ? 'warning' : 'success',
+        title: isWaitlist ? 'Added to Waiting List! 📋' : 'Registration Confirmed! 🎉',
+        message: isWaitlist
+          ? `You are #${regInfo.waitlistPosition} in queue. You will be automatically promoted if a seat opens.`
+          : `Your pass ${tempTicketId} is now live in your dashboard.`,
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
@@ -348,8 +352,34 @@ const EventRegistrationPage = () => {
         </div>
       </div>
 
-      {/* Registration Status Banner if Closed or Spot Pass */}
-      {regInfo.isClosed && (
+      {/* Registration Status Banners */}
+      {regInfo.isWaitlistFull && (
+        <div style={{ background: 'rgba(225, 29, 72, 0.12)', border: '1.5px solid var(--accent-rose)', borderRadius: 'var(--radius-xl)', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: '1.75rem' }}>🔒</span>
+          <div>
+            <strong style={{ color: 'var(--accent-rose)', display: 'block', fontSize: '0.95rem' }}>Capacity & Waiting List Full</strong>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', lineHeight: '1.4', display: 'block', marginTop: 2 }}>
+              Both regular seats ({event.maxParticipants}) and maximum waitlist queue capacity ({event.waitlistCapacity || 30}) have been filled. No further registrations can be accepted at this time.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {!regInfo.isWaitlistFull && regInfo.isWaitlistActive && (
+        <div style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1.5px solid #F59E0B', borderRadius: 'var(--radius-xl)', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: '1.75rem' }}>📋</span>
+          <div>
+            <strong style={{ color: '#F59E0B', display: 'block', fontSize: '0.95rem' }}>
+              Regular Seats Full — You are Registering for the Waiting List (#{regInfo.waitlistPosition} in Queue)
+            </strong>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', lineHeight: '1.4', display: 'block', marginTop: 2 }}>
+              The standard venue limit of {event.maxParticipants} attendees has been reached. Submitting this form secures your spot on the official waiting list. If any confirmed delegate cancels, you will automatically be promoted to a Confirmed pass!
+            </span>
+          </div>
+        </div>
+      )}
+
+      {!regInfo.isWaitlistActive && !regInfo.isWaitlistFull && regInfo.isClosed && (
         <div style={{ background: 'rgba(225, 29, 72, 0.1)', border: '1.5px solid var(--accent-rose)', borderRadius: 'var(--radius-xl)', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: '1.5rem' }}>🔒</span>
           <div>
@@ -852,20 +882,28 @@ const EventRegistrationPage = () => {
           </div>
         )}
 
-        {/* ── STEP 3: Confirmed Gate Pass ── */}
+        {/* ── STEP 3: Confirmed Gate Pass or Waitlist Pass ── */}
         {step === 3 && (
           <div className="full-reg-confirmed-box">
             <div className="confirmed-celebration-badge">
-              <div className="celebration-icon">🎉</div>
-              <h2 className="confirmed-title">Registration Confirmed!</h2>
-              <p className="confirmed-sub">Your digital gate pass is ready. Present this pass at the venue entrance desk.</p>
+              <div className="celebration-icon">{regInfo.isWaitlistActive ? '📋' : '🎉'}</div>
+              <h2 className="confirmed-title">
+                {regInfo.isWaitlistActive ? 'Added to Waiting List!' : 'Registration Confirmed!'}
+              </h2>
+              <p className="confirmed-sub">
+                {regInfo.isWaitlistActive
+                  ? `You have secured Queue Position #${regInfo.waitlistPosition}. If a confirmed participant cancels their registration, your pass will automatically be upgraded to Confirmed!`
+                  : 'Your digital gate pass is ready. Present this pass at the venue entrance desk.'}
+              </p>
             </div>
 
             {/* Official Pass Ticket Card */}
-            <div className="full-reg-pass-ticket craft-card">
+            <div className="full-reg-pass-ticket craft-card" style={regInfo.isWaitlistActive ? { border: '1.5px solid #F59E0B' } : undefined}>
               <div className="pass-ticket-left">
                 <div className="ticket-header">
-                  <span className="ticket-brand font-mono">VIBEVENUE GATE PASS</span>
+                  <span className="ticket-brand font-mono">
+                    {regInfo.isWaitlistActive ? 'VIBEVENUE WAITLIST PASS' : 'VIBEVENUE GATE PASS'}
+                  </span>
                   <span className="ticket-category-tag font-mono">{event.category?.toUpperCase()}</span>
                 </div>
                 <h3 className="ticket-event-name">{event.name}</h3>
@@ -883,11 +921,13 @@ const EventRegistrationPage = () => {
                   </div>
                   <div>
                     <span className="t-lbl">CATEGORY</span>
-                    <span className="t-val">{form.pricingTier || 'Individual'}</span>
+                    <span className="t-val">{formatPricingTier(form.pricingTier) || 'Individual'}</span>
                   </div>
                   <div>
-                    <span className="t-lbl">AMOUNT PAID</span>
-                    <span className="t-val">₹{totalAmount}</span>
+                    <span className="t-lbl">{regInfo.isWaitlistActive ? 'QUEUE POSITION' : 'AMOUNT PAID'}</span>
+                    <span className="t-val" style={regInfo.isWaitlistActive ? { color: '#F59E0B', fontWeight: 700 } : undefined}>
+                      {regInfo.isWaitlistActive ? `#${regInfo.waitlistPosition}` : `₹${totalAmount}`}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -897,7 +937,12 @@ const EventRegistrationPage = () => {
                   <QRCodeSVG value={tempTicketId} size={110} />
                 </div>
                 <span className="ticket-id-code">{tempTicketId}</span>
-                <span className="ticket-status-pill">STATUS: CONFIRMED</span>
+                <span
+                  className="ticket-status-pill"
+                  style={regInfo.isWaitlistActive ? { background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', borderColor: '#F59E0B' } : undefined}
+                >
+                  {regInfo.isWaitlistActive ? `STATUS: WAITLISTED (#${regInfo.waitlistPosition})` : 'STATUS: CONFIRMED'}
+                </span>
               </div>
             </div>
 
@@ -924,6 +969,26 @@ const EventRegistrationPage = () => {
           </div>
         )}
 
+        {/* Cancellation & Refund Policy Card (Displayed before confirmation) */}
+        {step < 3 && (event.cancellationPolicy || event.acceptCancellationsUntil) && (
+          <div className="craft-card font-mono" style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '14px 18px', borderRadius: 10, marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ fontSize: '1.1rem' }}>🛡️</span>
+              <strong style={{ fontSize: '0.8125rem', color: '#818CF8' }}>CANCELLATION & REFUND POLICY</strong>
+            </div>
+            {event.acceptCancellationsUntil && (
+              <p style={{ margin: '0 0 6px', fontSize: '0.75rem', color: '#CBD5E1' }}>
+                ⏱️ <strong>Self-cancellation cutoff:</strong> Open until {new Date(event.acceptCancellationsUntil).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+              </p>
+            )}
+            {event.cancellationPolicy && (
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                {event.cancellationPolicy}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Bottom Navigation Buttons */}
         {step !== 3 && (
           <div className="full-reg-footer-nav">
@@ -944,8 +1009,15 @@ const EventRegistrationPage = () => {
                 disabled={regInfo.isClosed}
                 onClick={handleSubmit}
                 id="submit-registration-btn"
+                style={regInfo.isWaitlistActive ? { background: '#D97706', borderColor: '#B45309' } : undefined}
               >
-                {regInfo.isClosed ? 'Registrations Closed' : regInfo.isSpot ? 'Confirm Spot Registration ⚡' : 'Confirm Registration & Generate Pass 🎟️'}
+                {regInfo.isClosed
+                  ? 'Registrations Closed'
+                  : regInfo.isWaitlistActive
+                  ? `Join Waitlist (#${regInfo.waitlistPosition} in Queue) 📋`
+                  : regInfo.isSpot
+                  ? 'Confirm Spot Registration ⚡'
+                  : 'Confirm Registration & Generate Pass 🎟️'}
               </Button>
             ) : (
               <Button

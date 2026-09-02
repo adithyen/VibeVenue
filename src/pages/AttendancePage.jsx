@@ -10,7 +10,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import ProgressBar from '../components/ui/ProgressBar';
-import { formatTimeAgo, formatDateTime, formatEventSchedule } from '../utils/dateUtils';
+import { formatTimeAgo, formatDateTime, formatEventSchedule, formatPricingTier } from '../utils/dateUtils';
 import { playSuccessChime } from '../utils/audioUtils';
 import './AttendancePage.css';
 
@@ -20,6 +20,7 @@ const AttendancePage = () => {
     events,
     getRecentRegistrations,
     updateCheckInStatus,
+    updateTeamCheckIn,
     updateMemberCheckIn,
     updateAddonFulfillment,
     registerParticipant,
@@ -33,6 +34,7 @@ const AttendancePage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isUpdatingId, setIsUpdatingId] = useState(null);
   const [expandedTeams, setExpandedTeams] = useState({});
+  const [teamModalData, setTeamModalData] = useState(null); // { attendee, selectedIndices }
 
   // Quick Check-In Bar state
   const [quickScanCode, setQuickScanCode] = useState('');
@@ -65,8 +67,9 @@ const AttendancePage = () => {
     fetchAttendees();
 
     // Supabase Realtime channel
+    const channelName = `attendance-live-sync-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const channel = supabase
-      .channel('attendance-live-sync')
+      .channel(channelName)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => {
         fetchAttendees();
       })
@@ -78,7 +81,7 @@ const AttendancePage = () => {
     const timer = setInterval(fetchAttendees, 4000);
 
     return () => {
-      supabase.removeChannel(channel);
+      try { supabase.removeChannel(channel); } catch {}
       window.removeEventListener('focus', handleFocus);
       clearInterval(timer);
     };
@@ -175,6 +178,20 @@ const AttendancePage = () => {
       return;
     }
 
+    // For Group / Team Registrations: Open individual member selection modal rather than marking everyone present!
+    const isGroup = match.registrationType === 'group' || (Array.isArray(match.teamMembers) && match.teamMembers.length > 0);
+    if (isGroup) {
+      const currentlyChecked = (match.teamMembers || [])
+        .map((m, idx) => (m.checkedIn ? idx : null))
+        .filter((idx) => idx !== null);
+      setTeamModalData({
+        attendee: match,
+        selectedIndices: currentlyChecked,
+      });
+      setQuickScanCode('');
+      return;
+    }
+
     setIsUpdatingId(match.id);
     const ok = await updateCheckInStatus(match.id, true);
     if (ok) {
@@ -197,8 +214,111 @@ const AttendancePage = () => {
     setIsUpdatingId(null);
   };
 
-  // 5. Manual Check-in toggle
+  // Team Modal Handlers for Interactive Individual Delegate Check-In
+  const handleToggleMemberIndex = (idx) => {
+    if (!teamModalData) return;
+    const current = teamModalData.selectedIndices;
+    const next = current.includes(idx) ? current.filter((i) => i !== idx) : [...current, idx];
+    setTeamModalData({ ...teamModalData, selectedIndices: next });
+  };
+
+  const handleSelectAllMembers = () => {
+    if (!teamModalData?.attendee?.teamMembers) return;
+    const all = teamModalData.attendee.teamMembers.map((_, i) => i);
+    setTeamModalData({ ...teamModalData, selectedIndices: all });
+  };
+
+  const handleDeselectAllMembers = () => {
+    if (!teamModalData) return;
+    setTeamModalData({ ...teamModalData, selectedIndices: [] });
+  };
+
+  const handleConfirmTeamCheckIn = async () => {
+    if (!teamModalData?.attendee) return;
+    const { attendee, selectedIndices } = teamModalData;
+    const scanTimestamp = new Date();
+
+    setIsUpdatingId(attendee.id);
+    const ok = await updateTeamCheckIn(attendee.id, selectedIndices);
+    if (ok) {
+      if (selectedIndices.length > 0) playSuccessChime();
+      const members = Array.isArray(attendee.teamMembers) ? attendee.teamMembers : [];
+      const updatedMembers = members.map((m, idx) => ({
+        ...m,
+        checkedIn: selectedIndices.includes(idx),
+        checkedInAt: selectedIndices.includes(idx) ? (m.checkedInAt || scanTimestamp.toISOString()) : null,
+      }));
+      const allChecked = updatedMembers.length > 0 && updatedMembers.every((m) => m.checkedIn);
+      const anyChecked = updatedMembers.some((m) => m.checkedIn);
+      const overallStatus = allChecked ? 'Checked In' : anyChecked ? 'Partially Checked In' : 'Not Checked In';
+
+      const updatedAttendee = {
+        ...attendee,
+        teamMembers: updatedMembers,
+        checkInStatus: overallStatus,
+        checkedInAt: anyChecked ? attendee.checkedInAt || scanTimestamp.toISOString() : null,
+      };
+
+      setAttendees((prev) => prev.map((a) => (a.id === attendee.id ? updatedAttendee : a)));
+      addToast({
+        type: selectedIndices.length > 0 ? 'success' : 'info',
+        title: 'Team Attendance Saved ✓',
+        message: `${selectedIndices.length} of ${members.length} members marked present for ${attendee.teamName || 'Team'}.`,
+      });
+    }
+    setIsUpdatingId(null);
+    setTeamModalData(null);
+  };
+
+  // Quick Batch Toggle for all members in expanded roster
+  const handleMarkAllTeamMembers = async (attendee, markAllPresent) => {
+    const members = Array.isArray(attendee.teamMembers) ? attendee.teamMembers : [];
+    if (members.length === 0) return;
+
+    setIsUpdatingId(`${attendee.id}-all-members`);
+    const selectedIndices = markAllPresent ? members.map((_, i) => i) : [];
+    const ok = await updateTeamCheckIn(attendee.id, selectedIndices);
+    if (ok) {
+      if (markAllPresent) playSuccessChime();
+      const scanTimestamp = new Date().toISOString();
+      const updatedMembers = members.map((m) => ({
+        ...m,
+        checkedIn: markAllPresent,
+        checkedInAt: markAllPresent ? (m.checkedInAt || scanTimestamp) : null,
+      }));
+      const overallStatus = markAllPresent ? 'Checked In' : 'Not Checked In';
+      const updatedAttendee = {
+        ...attendee,
+        teamMembers: updatedMembers,
+        checkInStatus: overallStatus,
+        checkedInAt: markAllPresent ? (attendee.checkedInAt || scanTimestamp) : null,
+      };
+
+      setAttendees((prev) => prev.map((a) => (a.id === attendee.id ? updatedAttendee : a)));
+      addToast({
+        type: markAllPresent ? 'success' : 'info',
+        title: markAllPresent ? 'All Team Members Present ✓' : 'All Members Marked Absent',
+        message: `${attendee.teamName || 'Team'}: ${markAllPresent ? `All ${members.length} members marked present.` : 'All members marked absent.'}`,
+      });
+    }
+    setIsUpdatingId(null);
+  };
+
+  // 5. Manual Check-in toggle (for individuals or opens modal for groups)
   const handleToggleCheckIn = async (attendee) => {
+    const isGroup = attendee.registrationType === 'group' || (Array.isArray(attendee.teamMembers) && attendee.teamMembers.length > 0);
+    if (isGroup) {
+      // For a group/team, open individual team member attendance modal rather than marking everyone present
+      const currentlyChecked = (attendee.teamMembers || [])
+        .map((m, idx) => (m.checkedIn ? idx : null))
+        .filter((idx) => idx !== null);
+      setTeamModalData({
+        attendee,
+        selectedIndices: currentlyChecked,
+      });
+      return;
+    }
+
     setIsUpdatingId(attendee.id);
     const newStatus = attendee.checkInStatus !== 'Checked In';
     const ok = await updateCheckInStatus(attendee.id, newStatus);
@@ -650,7 +770,7 @@ const AttendancePage = () => {
                         <td>
                           <div className="att-event-col font-mono">
                             <span className="att-event-name">{a.eventName || 'Event Program'}</span>
-                            <span className="att-tier-pill">🏷️ {a.pricingTier || 'Individual'}</span>
+                            <span className="att-tier-pill">🏷️ {formatPricingTier(a.pricingTier) || 'Individual'}</span>
                           </div>
                         </td>
 
@@ -701,26 +821,43 @@ const AttendancePage = () => {
                         {/* Actions */}
                         <td style={{ textAlign: 'right' }}>
                           <div className="att-actions-row">
-                            {isGroup && (
+                            {isGroup ? (
+                              <>
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="xs"
+                                  onClick={() => toggleExpandTeam(a.id)}
+                                >
+                                  {isExpanded ? 'Hide Roster ▲' : `Team Roster (${members.length}) ▼`}
+                                </Button>
+
+                                <Button
+                                  type="button"
+                                  variant={isPresent ? 'secondary' : isPartial ? 'secondary' : 'primary'}
+                                  size="xs"
+                                  loading={isUpdatingId === a.id}
+                                  onClick={() => handleToggleCheckIn(a)}
+                                  title="Mark individual team participants present or absent"
+                                >
+                                  {isPresent
+                                    ? `✓ Team (${members.length}/${members.length})`
+                                    : isPartial
+                                    ? `🟡 Team (${checkedMembersCount}/${members.length})`
+                                    : '👥 Team Check-In'}
+                                </Button>
+                              </>
+                            ) : (
                               <Button
                                 type="button"
-                                variant="secondary"
+                                variant={isPresent ? 'secondary' : 'primary'}
                                 size="xs"
-                                onClick={() => toggleExpandTeam(a.id)}
+                                loading={isUpdatingId === a.id}
+                                onClick={() => handleToggleCheckIn(a)}
                               >
-                                {isExpanded ? 'Hide Roster ▲' : `Team Roster (${members.length}) ▼`}
+                                {isPresent ? '↺ Reset' : '✓ Check In'}
                               </Button>
                             )}
-
-                            <Button
-                              type="button"
-                              variant={isPresent ? 'secondary' : 'primary'}
-                              size="xs"
-                              loading={isUpdatingId === a.id}
-                              onClick={() => handleToggleCheckIn(a)}
-                            >
-                              {isPresent ? '↺ Reset' : '✓ Check In'}
-                            </Button>
 
                             <Button
                               type="button"
@@ -737,15 +874,43 @@ const AttendancePage = () => {
                       {/* Expandable Individual Team Members Roster Row */}
                       {isGroup && isExpanded && (
                         <tr className="team-roster-expanded-row">
-                          <td colSpan={6} style={{ padding: '12px 24px', background: 'var(--surface-inset, #F8F9FA)', borderBottom: '1px solid var(--border-subtle)' }}>
+                          <td colSpan={6} style={{ padding: '14px 24px', background: 'var(--surface-inset, #F8F9FA)', borderBottom: '1px solid var(--border-subtle)' }}>
                             <div className="team-members-attendance-grid">
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
                                 <span className="font-mono" style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
                                   👥 INDIVIDUAL TEAM MEMBER ATTENDANCE — {a.teamName?.toUpperCase() || 'TEAM'} ({checkedMembersCount} / {members.length} Present)
                                 </span>
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                  <button
+                                    type="button"
+                                    className="font-mono copy-btn"
+                                    onClick={() => handleMarkAllTeamMembers(a, true)}
+                                    disabled={isUpdatingId === `${a.id}-all-members`}
+                                    style={{ fontSize: '0.6875rem', color: 'var(--accent-emerald, #059669)', borderColor: 'rgba(5, 150, 105, 0.3)' }}
+                                  >
+                                    ✓ All Present
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="font-mono copy-btn"
+                                    onClick={() => handleMarkAllTeamMembers(a, false)}
+                                    disabled={isUpdatingId === `${a.id}-all-members`}
+                                    style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}
+                                  >
+                                    ○ All Absent
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="font-mono copy-btn"
+                                    onClick={() => handleToggleCheckIn(a)}
+                                    style={{ fontSize: '0.6875rem', color: 'var(--accent-iris, #6366F1)', borderColor: 'rgba(99, 102, 241, 0.3)' }}
+                                  >
+                                    ⚡ Modal Selector
+                                  </button>
+                                </div>
                               </div>
 
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '10px' }}>
                                 {members.map((member, mIdx) => {
                                   const isMemberChecked = !!member.checkedIn;
                                   return (
@@ -757,11 +922,12 @@ const AttendancePage = () => {
                                         justifyContent: 'space-between',
                                         padding: '10px 14px',
                                         background: 'var(--surface-card, #FFFFFF)',
-                                        border: isMemberChecked ? '1px solid rgba(5, 150, 105, 0.3)' : '1px solid var(--border-subtle)',
+                                        border: isMemberChecked ? '1px solid rgba(5, 150, 105, 0.35)' : '1px solid var(--border-subtle)',
                                         borderRadius: 8,
+                                        boxShadow: isMemberChecked ? '0 1px 4px rgba(5, 150, 105, 0.08)' : 'none',
                                       }}
                                     >
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                         <Avatar name={member.name} size="xs" />
                                         <div>
                                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -778,15 +944,49 @@ const AttendancePage = () => {
                                         </div>
                                       </div>
 
-                                      <button
-                                        type="button"
-                                        className={`att-addon-toggle font-mono ${isMemberChecked ? 'given' : 'pending'}`}
-                                        disabled={isUpdatingId === `${a.id}-member-${mIdx}`}
-                                        onClick={() => handleToggleMemberCheckIn(a, mIdx)}
-                                        style={{ fontSize: '0.75rem', padding: '4px 10px' }}
-                                      >
-                                        {isMemberChecked ? '✓ Present' : '○ Mark Present'}
-                                      </button>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span
+                                          className="font-mono"
+                                          style={{
+                                            fontSize: '0.6875rem',
+                                            fontWeight: 700,
+                                            padding: '3px 8px',
+                                            borderRadius: 4,
+                                            background: isMemberChecked ? 'rgba(5, 150, 105, 0.12)' : 'rgba(100, 116, 139, 0.12)',
+                                            color: isMemberChecked ? 'var(--accent-emerald, #059669)' : 'var(--text-muted)',
+                                            border: isMemberChecked ? '1px solid rgba(5, 150, 105, 0.3)' : '1px solid var(--border-subtle)',
+                                          }}
+                                        >
+                                          {isMemberChecked ? '✓ PRESENT' : '○ ABSENT'}
+                                        </span>
+
+                                        <button
+                                          type="button"
+                                          className="font-mono"
+                                          disabled={isUpdatingId === `${a.id}-member-${mIdx}`}
+                                          onClick={() => handleToggleMemberCheckIn(a, mIdx)}
+                                          style={{
+                                            fontSize: '0.75rem',
+                                            padding: '4px 12px',
+                                            borderRadius: 6,
+                                            cursor: 'pointer',
+                                            fontWeight: 700,
+                                            transition: 'all 0.15s ease',
+                                            border: isMemberChecked
+                                              ? '1px solid rgba(239, 68, 68, 0.35)'
+                                              : '1px solid var(--accent-emerald, #059669)',
+                                            background: isMemberChecked
+                                              ? 'rgba(239, 68, 68, 0.08)'
+                                              : 'var(--accent-emerald, #059669)',
+                                            color: isMemberChecked
+                                              ? '#DC2626'
+                                              : '#FFFFFF',
+                                          }}
+                                          title={isMemberChecked ? 'Click to mark this member Absent' : 'Click to mark this member Present'}
+                                        >
+                                          {isMemberChecked ? '✕ Mark Absent' : '✓ Mark Present'}
+                                        </button>
+                                      </div>
                                     </div>
                                   );
                                 })}
@@ -905,6 +1105,124 @@ const AttendancePage = () => {
               </Button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {/* Interactive Team Check-In Individual Participant Selection Modal */}
+      {teamModalData && (
+        <Modal
+          isOpen={!!teamModalData}
+          onClose={() => setTeamModalData(null)}
+          title={`👥 Team Attendance Clearance: ${teamModalData.attendee.teamName || teamModalData.attendee.name || 'Team'}`}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ background: 'var(--surface-inset)', padding: '10px 14px', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <div>
+                <span className="font-mono" style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>TICKET ID: </span>
+                <strong className="font-mono text-iris">{teamModalData.attendee.ticketId}</strong>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  {teamModalData.attendee.eventName || 'Event Pass'} • {teamModalData.attendee.pricingTier || 'Team Pass'}
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  type="button"
+                  className="font-mono copy-btn"
+                  onClick={handleSelectAllMembers}
+                  style={{ fontSize: '0.6875rem', color: 'var(--accent-emerald, #059669)', borderColor: 'rgba(5, 150, 105, 0.3)' }}
+                >
+                  ✓ All Present
+                </button>
+                <button
+                  type="button"
+                  className="font-mono copy-btn"
+                  onClick={handleDeselectAllMembers}
+                  style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}
+                >
+                  ○ All Absent
+                </button>
+              </div>
+            </div>
+
+            <p className="font-mono" style={{ fontSize: '0.8125rem', color: 'var(--text-primary)', margin: 0 }}>
+              Mark individual delegates as Present or Absent:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '340px', overflowY: 'auto' }}>
+              {teamModalData.attendee.teamMembers?.map((member, idx) => {
+                const isSelected = teamModalData.selectedIndices.includes(idx);
+                const isLeader = member.isLeader || idx === 0;
+
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => handleToggleMemberIndex(idx)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 14px',
+                      borderRadius: 8,
+                      background: isSelected ? 'rgba(5, 150, 105, 0.08)' : 'var(--surface-card)',
+                      border: isSelected ? '1px solid var(--accent-emerald, #059669)' : '1px solid var(--border-subtle)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {}} // handled by parent div click
+                        style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--accent-emerald, #059669)' }}
+                      />
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <strong style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>{member.name}</strong>
+                          {isLeader && (
+                            <span className="font-mono" style={{ fontSize: '0.625rem', color: '#D97706', background: 'rgba(217, 119, 6, 0.1)', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>
+                              👑 Leader
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                          {member.rollNumber ? `${member.rollNumber} • ` : ''}{member.email || `Member ${idx + 1}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <span
+                      className="font-mono"
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        background: isSelected ? 'rgba(5, 150, 105, 0.12)' : 'rgba(100, 116, 139, 0.12)',
+                        color: isSelected ? 'var(--accent-emerald, #059669)' : 'var(--text-muted)',
+                      }}
+                    >
+                      {isSelected ? '✓ Present' : '○ Absent'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
+              <span className="font-mono" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                {teamModalData.selectedIndices.length} of {teamModalData.attendee.teamMembers?.length || 0} delegates marked present
+              </span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Button type="button" variant="secondary" onClick={() => setTeamModalData(null)}>
+                  Cancel
+                </Button>
+                <Button type="button" variant="primary" onClick={handleConfirmTeamCheckIn}>
+                  Save Team Attendance
+                </Button>
+              </div>
+            </div>
+          </div>
         </Modal>
       )}
     </div>

@@ -14,9 +14,30 @@ const ParticipantTable = ({ participants, eventId, showEvent = false, onUpdateAt
   const [inspectAttendee, setInspectAttendee] = useState(null);
   const [confirmRemove, setConfirmRemove] = useState(null);
   const [isRemoving, setIsRemoving] = useState(false);
+  const [promotingId, setPromotingId] = useState(null);
 
-  const { removeParticipant } = useEventStore();
+  const { removeParticipant, manualPromoteWaitlisted } = useEventStore();
   const { addToast } = useUIStore();
+
+  const handleManualPromote = async (attendee) => {
+    setPromotingId(attendee.id);
+    const ok = await manualPromoteWaitlisted(eventId || attendee.eventId, attendee.id);
+    if (ok) {
+      addToast({
+        type: 'success',
+        title: 'Waitlist Delegate Promoted! 🎉',
+        message: `${attendee.name} has been upgraded to Confirmed. Pass email dispatched!`,
+      });
+      onUpdateAttendee?.({ ...attendee, status: 'confirmed' });
+    } else {
+      addToast({
+        type: 'error',
+        title: 'Promotion Failed',
+        message: 'Could not promote delegate to confirmed seat.',
+      });
+    }
+    setPromotingId(null);
+  };
 
   const handleCancelPass = async (attendee) => {
     setIsRemoving(true);
@@ -127,6 +148,19 @@ const ParticipantTable = ({ participants, eventId, showEvent = false, onUpdateAt
                   {/* Actions */}
                   <td style={{ textAlign: 'right' }}>
                     <div className="table-actions-flex">
+                      {attendee.status === 'waitlisted' && (
+                        <Button
+                          variant="primary"
+                          size="xs"
+                          loading={promotingId === attendee.id}
+                          onClick={() => handleManualPromote(attendee)}
+                          style={{ background: '#10B981', borderColor: '#059669', color: '#000000', fontWeight: 700 }}
+                          id={`promote-pass-${attendee.id}`}
+                        >
+                          ⚡ Promote
+                        </Button>
+                      )}
+
                       <Button
                         variant="ghost"
                         size="xs"
@@ -142,7 +176,7 @@ const ParticipantTable = ({ participants, eventId, showEvent = false, onUpdateAt
                         onClick={() => setConfirmRemove(attendee)}
                         id={`cancel-pass-${attendee.id}`}
                       >
-                        Cancel
+                        {attendee.status === 'waitlisted' ? 'Remove' : 'Cancel'}
                       </Button>
                     </div>
                   </td>

@@ -26,7 +26,7 @@ const EventsPage = () => {
   const [search, setSearch]     = useState('');
   const [category, setCategory] = useState('');
   const [sort, setSort]         = useState('date-asc');
-  const [status, setStatus]     = useState(() => searchParams.get('status') || '');
+  const [status, setStatus]     = useState(() => searchParams.get('status') !== null ? searchParams.get('status') : 'upcoming');
   const [viewMode, setViewMode] = useState(() => searchParams.get('view') === 'seats' ? 'seats' : 'grid');
   const [page, setPage]         = useState(1);
   const [formOpen, setFormOpen] = useState(false);

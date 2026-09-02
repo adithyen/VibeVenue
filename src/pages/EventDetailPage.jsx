@@ -311,6 +311,18 @@ const EventDetailPage = () => {
                     <span className="breakdown-val font-mono">{availableSeats}</span>
                   </div>
 
+                  {event.enableWaitlist && (
+                    <div className="breakdown-item">
+                      <div className="breakdown-name-row">
+                        <span className="breakdown-pip" style={{ backgroundColor: '#D97706' }} />
+                        <span className="breakdown-label">Waitlist Queue</span>
+                      </div>
+                      <span className="breakdown-val font-mono" style={{ color: '#F59E0B', fontWeight: 700 }}>
+                        {event.waitlistCount || 0} / {event.waitlistCapacity || 30}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="capacity-bar-container">
                     <ProgressBar
                       current={event.registrationCount}
@@ -321,6 +333,23 @@ const EventDetailPage = () => {
                 </div>
               </div>
             </div>
+
+            {/* Cancellation & Refund Policy Card */}
+            {(event.cancellationPolicy || event.acceptCancellationsUntil) && (
+              <div className="craft-card" style={{ gridColumn: '1 / -1', padding: '20px 24px' }}>
+                <h3 className="card-section-title" style={{ marginBottom: 10 }}>🛡️ Cancellation & Refund Policy</h3>
+                {event.acceptCancellationsUntil && (
+                  <p className="font-mono" style={{ fontSize: '0.8125rem', color: '#818CF8', margin: '0 0 8px' }}>
+                    ⏱️ <strong>Self-cancellation cutoff deadline:</strong> {new Date(event.acceptCancellationsUntil).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                  </p>
+                )}
+                {event.cancellationPolicy && (
+                  <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    {event.cancellationPolicy}
+                  </p>
+                )}
+              </div>
+            )}
 
 
             {/* Dynamic Pricing Tiers */}

@@ -6,9 +6,8 @@ import { supabase } from '../lib/supabase';
 import useEventStore from '../store/useEventStore';
 import useUIStore from '../store/useUIStore';
 import Avatar from '../components/ui/Avatar';
-import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
-import { formatTimeAgo, formatDate, formatDateTime, formatEventSchedule } from '../utils/dateUtils';
+import { formatTimeAgo, formatDate, formatDateTime, formatEventSchedule, formatPricingTier } from '../utils/dateUtils';
 import './RegistrationDetailPage.css';
 
 const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose }) => {
@@ -20,9 +19,11 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
     getRecentRegistrations,
     updateParticipantStatus,
     updateCheckInStatus,
+    updateTeamCheckIn,
     updateMemberCheckIn,
     updateAddonFulfillment,
     removeParticipant,
+    manualPromoteWaitlisted,
   } = useEventStore();
   const { addToast } = useUIStore();
 
@@ -97,33 +98,88 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
     }
   };
 
-  // 1. Toggle Check-In Attendance (syncs all team members)
+  // Batch toggle for all members of a team
+  const handleMarkAllMembers = async (markAllPresent) => {
+    if (!attendee || !Array.isArray(attendee.teamMembers)) return;
+    setIsUpdating(true);
+    const members = attendee.teamMembers;
+    const selectedIndices = markAllPresent ? members.map((_, i) => i) : [];
+    const ok = await updateTeamCheckIn(attendee.id, selectedIndices);
+    if (ok) {
+      const timestamp = new Date().toISOString();
+      const updatedMembers = members.map((m) => ({
+        ...m,
+        checkedIn: markAllPresent,
+        checkedInAt: markAllPresent ? (m.checkedInAt || timestamp) : null,
+      }));
+      const overallStatus = markAllPresent ? 'Checked In' : 'Not Checked In';
+      setAttendee({
+        ...attendee,
+        teamMembers: updatedMembers,
+        checkInStatus: overallStatus,
+        checkedInAt: markAllPresent ? (attendee.checkedInAt || timestamp) : null,
+      });
+      addToast({
+        type: markAllPresent ? 'success' : 'info',
+        title: markAllPresent ? 'All Members Checked In ✓' : 'All Members Marked Absent',
+        message: markAllPresent
+          ? `All ${members.length} team members marked present.`
+          : 'All team members marked absent.',
+      });
+    }
+    setIsUpdating(false);
+  };
+
+  // Manual Promote from Waiting List to Confirmed Seat
+  const handlePromoteWaitlist = async () => {
+    if (!attendee) return;
+    setIsUpdating(true);
+    const ok = await manualPromoteWaitlisted(attendee.eventId, attendee.id);
+    if (ok) {
+      setAttendee(prev => ({
+        ...prev,
+        status: 'confirmed',
+        statusReason: 'Manually promoted to confirmed seat by event administrator',
+      }));
+      addToast({
+        type: 'success',
+        title: 'Waitlist Delegate Promoted! 🎉',
+        message: `${attendee.name} upgraded to Confirmed. Pass email dispatched via Resend.`,
+      });
+    } else {
+      addToast({
+        type: 'error',
+        title: 'Promotion Failed',
+        message: 'Could not promote delegate to confirmed seat.',
+      });
+    }
+    setIsUpdating(false);
+  };
+
+  // 1. Toggle Check-In Attendance (delegates to handleMarkAllMembers for teams)
   const handleToggleCheckIn = async () => {
     if (!attendee) return;
+    if (Array.isArray(attendee.teamMembers) && attendee.teamMembers.length > 0) {
+      const isAllPresent = attendee.checkInStatus === 'Checked In';
+      await handleMarkAllMembers(!isAllPresent);
+      return;
+    }
+
     setIsUpdating(true);
     const newStatus = attendee.checkInStatus !== 'Checked In';
     const ok = await updateCheckInStatus(attendee.id, newStatus);
     if (ok) {
-      const updatedMembers = Array.isArray(attendee.teamMembers)
-        ? attendee.teamMembers.map((m) => ({
-            ...m,
-            checkedIn: newStatus,
-            checkedInAt: newStatus ? new Date().toISOString() : null,
-          }))
-        : attendee.teamMembers;
-
       const updated = {
         ...attendee,
         checkInStatus: newStatus ? 'Checked In' : 'Not Checked In',
         checkedInAt: newStatus ? new Date().toISOString() : null,
-        teamMembers: updatedMembers,
       };
       setAttendee(updated);
       addToast({
         type: newStatus ? 'success' : 'info',
         title: newStatus ? 'Gate Check-In Verified ✓' : 'Gate Check-In Reset',
         message: newStatus
-          ? `${attendee.name} (and all team members) marked as present.`
+          ? `${attendee.name} marked as present.`
           : 'Gate access status cleared.',
       });
     }
@@ -356,14 +412,36 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
             {/* Team Details if group registration */}
             {attendee.teamName && (
               <div className="dossier-team-box" style={{ marginTop: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span className="team-badge font-mono">👥 TEAM: {attendee.teamName}</span>
-                  <span className="font-mono" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {attendee.teamMembers?.length || 0} Registered Delegates
-                  </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                  <div>
+                    <span className="team-badge font-mono">👥 TEAM: {attendee.teamName}</span>
+                    <span className="font-mono" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 8 }}>
+                      ({(attendee.teamMembers || []).filter(m => m.checkedIn).length} / {attendee.teamMembers?.length || 0} Present)
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      type="button"
+                      className="font-mono copy-btn"
+                      onClick={() => handleMarkAllMembers(true)}
+                      disabled={isUpdating}
+                      style={{ fontSize: '0.6875rem', color: 'var(--accent-emerald, #059669)', borderColor: 'rgba(5, 150, 105, 0.3)' }}
+                    >
+                      ✓ All Present
+                    </button>
+                    <button
+                      type="button"
+                      className="font-mono copy-btn"
+                      onClick={() => handleMarkAllMembers(false)}
+                      disabled={isUpdating}
+                      style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}
+                    >
+                      ○ All Absent
+                    </button>
+                  </div>
                 </div>
                 {attendee.teamMembers?.length > 0 && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '8px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '8px' }}>
                     {attendee.teamMembers.map((m, idx) => {
                       const isObj = typeof m === 'object';
                       const mName = isObj ? m.name : '';
@@ -378,11 +456,12 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
                           style={{
                             padding: '10px 12px',
                             background: 'var(--surface-card)',
-                            border: isChecked ? '1px solid rgba(5, 150, 105, 0.3)' : '1px solid var(--border-subtle)',
+                            border: isChecked ? '1px solid rgba(5, 150, 105, 0.35)' : '1px solid var(--border-subtle)',
                             borderRadius: 8,
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
+                            boxShadow: isChecked ? '0 1px 4px rgba(5, 150, 105, 0.08)' : 'none',
                           }}
                         >
                           <div>
@@ -398,23 +477,43 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
                               {mRoll ? `${mRoll} • ` : ''}{mEmail}
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            className={`att-addon-toggle font-mono ${isChecked ? 'given' : 'pending'}`}
-                            onClick={() => handleToggleMember(idx)}
-                            style={{
-                              fontSize: '0.75rem',
-                              padding: '4px 10px',
-                              borderRadius: 20,
-                              cursor: 'pointer',
-                              border: isChecked ? '1px solid rgba(5, 150, 105, 0.4)' : '1px solid var(--border-default)',
-                              background: isChecked ? 'rgba(5, 150, 105, 0.1)' : 'var(--surface-inset)',
-                              color: isChecked ? 'var(--accent-emerald, #059669)' : 'var(--text-muted)',
-                              fontWeight: 700,
-                            }}
-                          >
-                            {isChecked ? '✓ Present' : '○ Mark Present'}
-                          </button>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span
+                              className="font-mono"
+                              style={{
+                                fontSize: '0.6875rem',
+                                fontWeight: 700,
+                                padding: '2px 6px',
+                                borderRadius: 4,
+                                background: isChecked ? 'rgba(5, 150, 105, 0.12)' : 'rgba(100, 116, 139, 0.12)',
+                                color: isChecked ? 'var(--accent-emerald, #059669)' : 'var(--text-muted)',
+                                border: isChecked ? '1px solid rgba(5, 150, 105, 0.3)' : '1px solid var(--border-subtle)',
+                              }}
+                            >
+                              {isChecked ? '✓ PRESENT' : '○ ABSENT'}
+                            </span>
+
+                            <button
+                              type="button"
+                              className="font-mono"
+                              onClick={() => handleToggleMember(idx)}
+                              style={{
+                                fontSize: '0.75rem',
+                                padding: '4px 10px',
+                                borderRadius: 6,
+                                cursor: 'pointer',
+                                fontWeight: 700,
+                                border: isChecked ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid var(--accent-emerald, #059669)',
+                                background: isChecked ? 'rgba(239, 68, 68, 0.08)' : 'var(--accent-emerald, #059669)',
+                                color: isChecked ? '#DC2626' : '#FFFFFF',
+                                transition: 'all 0.15s ease',
+                              }}
+                              title={isChecked ? 'Click to mark Absent' : 'Click to mark Present'}
+                            >
+                              {isChecked ? '✕ Mark Absent' : '✓ Mark Present'}
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
@@ -432,7 +531,7 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
               <div className="dossier-tier-left">
                 <span className="tier-icon">🏷️</span>
                 <div>
-                  <span className="tier-name-label">{attendee.pricingTier || 'Individual Delegate'}</span>
+                  <span className="tier-name-label">{formatPricingTier(attendee.pricingTier) || 'Individual Delegate'}</span>
                   <span className="tier-type-sub font-mono">
                     {attendee.registrationType === 'group' ? 'Team Pass' : 'Individual Pass'}
                   </span>
@@ -578,9 +677,11 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
             <div className="gate-checkin-block">
               <div className="gate-status-line">
                 <span className="gate-lbl font-mono">CURRENT STATUS</span>
-                <span className={`gate-badge font-mono ${isCheckedIn ? 'checked' : 'not-checked'}`}>
+                <span className={`gate-badge font-mono ${isCheckedIn ? 'checked' : attendee.checkInStatus === 'Partially Checked In' ? 'partial' : 'not-checked'}`}>
                   {isCheckedIn
-                    ? `✓ Checked In (${formatTimeAgo(attendee.checkedInAt || attendee.registeredAt)})`
+                    ? `✓ Fully Checked In (${formatTimeAgo(attendee.checkedInAt || attendee.registeredAt)})`
+                    : attendee.checkInStatus === 'Partially Checked In'
+                    ? `🟡 Partially Checked In (${(attendee.teamMembers || []).filter(m => m.checkedIn).length}/${attendee.teamMembers?.length || 0})`
                     : '○ Not Checked In'}
                 </span>
               </div>
@@ -594,8 +695,15 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
                 onClick={handleToggleCheckIn}
                 className="gate-action-btn"
               >
-                {isCheckedIn ? '↺ Reset Gate Check-In' : '✓ Mark Attendee Checked In'}
+                {Array.isArray(attendee.teamMembers) && attendee.teamMembers.length > 0
+                  ? (isCheckedIn ? '↺ Reset All Team Attendance' : '✓ Mark All Team Present')
+                  : (isCheckedIn ? '↺ Reset Gate Check-In' : '✓ Mark Attendee Checked In')}
               </Button>
+              {Array.isArray(attendee.teamMembers) && attendee.teamMembers.length > 0 && (
+                <p className="font-mono text-muted" style={{ fontSize: '0.6875rem', margin: '8px 0 0', textAlign: 'center' }}>
+                  💡 Use the team roster on the left to mark individual delegates Present or Absent.
+                </p>
+              )}
             </div>
           </div>
 
@@ -616,6 +724,29 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
               <div className="admin-remark-box font-mono">
                 <span className="remark-title">📝 Organizers Note / Feedback:</span>
                 <p className="remark-text">"{attendee.statusReason}"</p>
+              </div>
+            )}
+
+            {/* If attendee is currently on the waitlist */}
+            {attendee.status === 'waitlisted' && (
+              <div style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1.5px solid #F59E0B', borderRadius: 'var(--radius-md)', padding: '14px', marginBottom: 16 }}>
+                <strong style={{ color: '#F59E0B', fontSize: '0.875rem', display: 'block', marginBottom: 4 }}>
+                  📋 Currently on Waiting List
+                </strong>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', margin: '0 0 12px', lineHeight: 1.4 }}>
+                  This delegate is on the waiting list. You can manually promote them to a confirmed ticket now, which immediately grants active gate access and dispatches a confirmation email with their live pass.
+                </p>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  fullWidth
+                  loading={isUpdating}
+                  onClick={handlePromoteWaitlist}
+                  style={{ background: '#10B981', borderColor: '#059669', color: '#000000', fontWeight: 700 }}
+                >
+                  ⚡ Promote to Confirmed Seat Now
+                </Button>
               </div>
             )}
 
@@ -756,7 +887,7 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
               </div>
               <div className="audit-row">
                 <span className="audit-lbl">PASS TYPE:</span>
-                <span className="audit-val">{attendee.pricingTier || 'Standard Individual'}</span>
+                <span className="audit-val">{formatPricingTier(attendee.pricingTier) || 'Standard Individual'}</span>
               </div>
             </div>
           </div>

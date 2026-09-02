@@ -54,6 +54,10 @@ const freshData = () => ({
   groupMaxSize: '5',
   hasCapacityLimit: false,
   maxParticipants: '',
+  enableWaitlist: false,
+  waitlistCapacity: '30',
+  acceptCancellationsUntil: '',
+  cancellationPolicy: '',
   allowRegistrationsUntil: '',
   enableSpotRegistrations: false,
   allowSpotRegistrationsUntil: '',
@@ -86,6 +90,10 @@ const EventForm = ({ event = null, onClose }) => {
           pricingType: event.pricingType || (event.pricingTiers?.length ? 'tiered' : 'flat'),
           pricingTiers: event.pricingTiers?.length ? event.pricingTiers : freshData().pricingTiers,
           openTo: event.openTo?.length ? event.openTo : ['All'],
+          enableWaitlist: event.enableWaitlist ?? event.amenities?.enableWaitlist ?? false,
+          waitlistCapacity: String(event.waitlistCapacity ?? event.amenities?.waitlistCapacity ?? '30'),
+          acceptCancellationsUntil: event.acceptCancellationsUntil ?? event.amenities?.acceptCancellationsUntil ?? '',
+          cancellationPolicy: event.cancellationPolicy ?? event.amenities?.cancellationPolicy ?? '',
           allowRegistrationsUntil: event.allowRegistrationsUntil || '',
           enableSpotRegistrations: event.enableSpotRegistrations || false,
           allowSpotRegistrationsUntil: event.allowSpotRegistrationsUntil || '',
@@ -959,29 +967,129 @@ const EventForm = ({ event = null, onClose }) => {
                   </div>
                 )}
 
-                {/* Capacity — only for offline */}
-                {!formData.isOnline && (
-                  <div className="form-field-group">
+                {/* 📋 Capacity, Waiting List & Cancellation Policies */}
+                <div className="form-field-group" style={{ background: 'var(--surface-inset)', padding: '16px 18px', borderRadius: 'var(--radius-lg)', border: '1.5px solid rgba(99, 102, 241, 0.28)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <h4 className="craft-label" style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                      📋 Capacity, Waiting List & Cancellation Policies
+                    </h4>
+                    <p className="field-hint-text font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                      Configure delegate limits, waitlist queues, cancellation deadlines, and refund policies.
+                    </p>
+                  </div>
+
+                  {/* 1. Regular Seat Capacity */}
+                  <div style={{ padding: '12px 14px', background: 'var(--surface-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
                     <div className="form-label-row">
-                      <label className="craft-label">Participant Limit</label>
+                      <label className="craft-label" style={{ fontSize: '0.8125rem' }}>Regular Seat Capacity Limit</label>
                       <label className="toggle-switch-label">
-                        <input type="checkbox" checked={formData.hasCapacityLimit} onChange={e => set('hasCapacityLimit', e.target.checked)} />
+                        <input
+                          type="checkbox"
+                          checked={formData.hasCapacityLimit}
+                          onChange={e => set('hasCapacityLimit', e.target.checked)}
+                        />
                         <span className="toggle-switch-track" />
-                        <span className="toggle-switch-text">Set a limit</span>
+                        <span className="toggle-switch-text font-mono">{formData.hasCapacityLimit ? 'Limit Active' : 'Unlimited'}</span>
                       </label>
                     </div>
                     {formData.hasCapacityLimit && (
-                      <input
-                        type="number"
-                        min="1"
-                        className="craft-input font-mono"
-                        placeholder="Max participants (e.g. 150)"
-                        value={formData.maxParticipants}
-                        onChange={e => set('maxParticipants', e.target.value)}
-                      />
+                      <div style={{ marginTop: 8 }}>
+                        <input
+                          type="number"
+                          min="1"
+                          className="craft-input font-mono"
+                          placeholder="Max regular participants (e.g. 150)"
+                          value={formData.maxParticipants}
+                          onChange={e => set('maxParticipants', e.target.value)}
+                        />
+                      </div>
                     )}
                   </div>
-                )}
+
+                  {/* 2. Waiting List Configuration */}
+                  <div style={{ padding: '12px 14px', background: 'var(--surface-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                    <div className="form-label-row">
+                      <label className="craft-label" style={{ fontSize: '0.8125rem' }}>Allow Waiting List 📋</label>
+                      <label className="toggle-switch-label">
+                        <input
+                          type="checkbox"
+                          checked={formData.enableWaitlist}
+                          onChange={e => set('enableWaitlist', e.target.checked)}
+                        />
+                        <span className="toggle-switch-track" />
+                        <span className="toggle-switch-text font-mono">{formData.enableWaitlist ? 'Enabled' : 'Disabled'}</span>
+                      </label>
+                    </div>
+                    <p className="field-hint-text font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                      When regular seats fill up, delegates are placed on the waiting list and automatically promoted upon cancellations.
+                    </p>
+
+                    {formData.enableWaitlist && (
+                      <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--border-default)' }}>
+                        <label className="craft-label" style={{ fontSize: '0.75rem' }}>Waitlist Queue Capacity</label>
+                        <input
+                          type="number"
+                          min="1"
+                          className="craft-input font-mono"
+                          placeholder="Max waiting list entries (e.g. 30)"
+                          value={formData.waitlistCapacity}
+                          onChange={e => set('waitlistCapacity', e.target.value)}
+                        />
+                        <p className="field-hint-text font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', margin: '3px 0 0' }}>
+                          Students will be blocked from registering once both regular seats and this waitlist capacity are reached.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 3. Live Pipeline Display */}
+                  <div className="font-mono" style={{ background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.28)', borderRadius: 8, padding: '10px 14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                      <span style={{ fontSize: '0.75rem', color: '#818CF8', fontWeight: 700 }}>🟢 PIPELINE STATUS DISPLAY:</span>
+                      <span style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: 800 }}>
+                        {formData.hasCapacityLimit && formData.maxParticipants ? formData.maxParticipants : 'Unlimited'} Regular Seats + {formData.enableWaitlist ? (formData.waitlistCapacity || 30) : 0} Waitlist Queue
+                      </span>
+                    </div>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.6875rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                      Accepting registrations in <strong>Normal Seats</strong>. If regular capacity fills, registrations continue in the <strong>Waiting List</strong> up to {formData.enableWaitlist ? (formData.waitlistCapacity || 30) : 0} queue positions.
+                    </p>
+                  </div>
+
+                  {/* 4. Accept Cancellations Until */}
+                  <div style={{ padding: '12px 14px', background: 'var(--surface-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                    <label htmlFor="evt-cancel-until" className="craft-label" style={{ fontSize: '0.8125rem' }}>
+                      Accept Cancellations Until ⏱️
+                    </label>
+                    <input
+                      id="evt-cancel-until"
+                      type="datetime-local"
+                      className="craft-input font-mono"
+                      value={formData.acceptCancellationsUntil}
+                      onChange={e => set('acceptCancellationsUntil', e.target.value)}
+                    />
+                    <p className="field-hint-text font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: 3 }}>
+                      Delegates can self-cancel their pass in the student portal until this deadline. Vacated seats trigger immediate automatic waitlist promotions.
+                    </p>
+                  </div>
+
+                  {/* 5. Cancellation & Refund Policy */}
+                  <div style={{ padding: '12px 14px', background: 'var(--surface-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                    <label htmlFor="evt-cancel-policy" className="craft-label" style={{ fontSize: '0.8125rem' }}>
+                      Cancellation & Refund Policy 📝
+                    </label>
+                    <textarea
+                      id="evt-cancel-policy"
+                      rows={3}
+                      className="craft-textarea"
+                      placeholder="e.g. 100% refund for cancellations made at least 48 hours prior to the event. Any vacated seats are automatically offered to the next student in the waiting list."
+                      value={formData.cancellationPolicy}
+                      onChange={e => set('cancellationPolicy', e.target.value)}
+                    />
+                    <p className="field-hint-text font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: 3 }}>
+                      This policy is displayed to participants during registration and printed on their gate pass receipts.
+                    </p>
+                  </div>
+                </div>
 
                 {/* ⏱️ Registration Deadlines & Spot Registration Access */}
                 <div className="form-field-group" style={{ background: 'var(--surface-inset)', padding: '14px 16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
