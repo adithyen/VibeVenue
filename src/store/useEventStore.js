@@ -78,12 +78,32 @@ const useEventStore = create((set, get) => ({
 
   getDashboardStats: () => {
     const events = get().events;
-    const upcoming  = events.filter(e => getComputedEventStatus(e) === 'upcoming').length;
-    const totalRegs = events.reduce((s, e) => s + (e.registrationCount || 0), 0);
-    const totalSeats = events.reduce((s, e) => s + (e.maxParticipants || 0), 0);
-    const available = Math.max(0, totalSeats - totalRegs);
-    const avgOccupancy = totalSeats > 0 ? Math.round((totalRegs / totalSeats) * 100) : 0;
-    return { totalEvents: events.length, upcomingEvents: upcoming, totalRegistrations: totalRegs, availableSeats: available, avgOccupancy };
+    // Compute metrics based on upcoming & ongoing active events (not completed or cancelled)
+    const upcomingEventsList = events.filter(e => {
+      const status = getComputedEventStatus(e);
+      return status === 'upcoming' || status === 'ongoing';
+    });
+
+    const upcomingCount = upcomingEventsList.length;
+    const upcomingRegs = upcomingEventsList.reduce((s, e) => s + (e.registrationCount || 0), 0);
+    const upcomingSeats = upcomingEventsList.reduce((s, e) => s + (e.maxParticipants || 0), 0);
+    const upcomingAvailable = Math.max(0, upcomingSeats - upcomingRegs);
+    const avgOccupancy = upcomingSeats > 0 ? Math.round((upcomingRegs / upcomingSeats) * 100) : 0;
+
+    // All-time metrics preserved if needed
+    const allTimeRegs = events.reduce((s, e) => s + (e.registrationCount || 0), 0);
+    const allTimeSeats = events.reduce((s, e) => s + (e.maxParticipants || 0), 0);
+    const allTimeAvailable = Math.max(0, allTimeSeats - allTimeRegs);
+
+    return {
+      totalEvents: events.length,
+      upcomingEvents: upcomingCount,
+      totalRegistrations: upcomingRegs,
+      availableSeats: upcomingAvailable,
+      avgOccupancy,
+      allTimeRegistrations: allTimeRegs,
+      allTimeAvailableSeats: allTimeAvailable,
+    };
   },
 
   getRecentRegistrations: async (limit = 500) => {

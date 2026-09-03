@@ -40,15 +40,15 @@ const DashboardPage = () => {
   const [trend, setTrend]             = useState([]);
 
   useEffect(() => {
-    store.getRecentRegistrations(7).then(data => {
-      setRecentRegs(data);
-      setTrend(buildTrend(data));
+    store.getRecentRegistrations(100).then(data => {
+      setRecentRegs((data || []).slice(0, 7));
+      setTrend(buildTrend(data || []));
     });
   }, [store.events]); // re-run when realtime pushes new events
 
   const upcomingEvents = store.events
-    .filter(e => e.status === 'upcoming')
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .filter(e => e.status === 'upcoming' || e.status === 'ongoing')
+    .sort((a, b) => new Date(a.date || a.startDate) - new Date(b.date || b.startDate))
     .slice(0, 3);
 
   return (
@@ -94,13 +94,13 @@ const DashboardPage = () => {
           icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>}
           delay={0.05} onClick={() => navigate('/events?status=upcoming')} />
 
-        <StatCard id="stat-total-registrations" title="Total Registrations" value={stats.totalRegistrations} subvalue={`${stats.avgOccupancy}% avg occupancy`} badgeText="View All" badgeType="positive" indicatorPct={stats.avgOccupancy} indicatorColor="var(--accent-emerald)"
+        <StatCard id="stat-total-registrations" title="Total Registrations" value={stats.totalRegistrations} subvalue={`${stats.avgOccupancy}% upcoming occupancy`} badgeText="Upcoming" badgeType="positive" indicatorPct={stats.avgOccupancy} indicatorColor="var(--accent-emerald)"
           icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>}
           delay={0.1} onClick={() => navigate('/registrations')} />
 
-        <StatCard id="stat-available-seats" title="Available Seats" value={stats.availableSeats} subvalue="across all events" badgeText="By Event" badgeType="warning" indicatorPct={100 - stats.avgOccupancy} indicatorColor="var(--accent-amber)"
+        <StatCard id="stat-available-seats" title="Available Seats" value={stats.availableSeats} subvalue="in upcoming events" badgeText="Upcoming" badgeType="warning" indicatorPct={100 - stats.avgOccupancy} indicatorColor="var(--accent-amber)"
           icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
-          delay={0.15} onClick={() => navigate('/events?view=seats')} />
+          delay={0.15} onClick={() => navigate('/events?status=upcoming')} />
       </section>
 
       {/* Middle Grid: Trend Chart & Registrations Feed */}

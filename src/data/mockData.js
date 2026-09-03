@@ -429,14 +429,15 @@ export const MOCK_EVENTS = compileMockEvents();
 
 // ---------- Live Telemetry & Stats Computations ----------
 export const getDashboardStats = (events) => {
-  const upcoming = events.filter((e) => e.status === 'upcoming').length;
-  const totalRegs = events.reduce((sum, e) => sum + e.registrationCount, 0);
-  const totalSeats = events.reduce((sum, e) => sum + e.maxParticipants, 0);
+  const upcomingList = (events || []).filter((e) => e.status === 'upcoming' || e.status === 'ongoing');
+  const upcoming = upcomingList.length;
+  const totalRegs = upcomingList.reduce((sum, e) => sum + (e.registrationCount || 0), 0);
+  const totalSeats = upcomingList.reduce((sum, e) => sum + (e.maxParticipants || 0), 0);
   const available = Math.max(0, totalSeats - totalRegs);
   const avgOccupancy = totalSeats > 0 ? Math.round((totalRegs / totalSeats) * 100) : 0;
 
   return {
-    totalEvents: events.length,
+    totalEvents: (events || []).length,
     upcomingEvents: upcoming,
     totalRegistrations: totalRegs,
     availableSeats: available,
