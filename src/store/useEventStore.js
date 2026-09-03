@@ -13,6 +13,7 @@ import {
   sendWaitlistQueueShiftEmail,
   sendCancellationEmail,
 } from '../services/emailService';
+import { detectRegistrationConflict } from '../utils/overlapChecker';
 
 const useEventStore = create((set, get) => ({
   // ── State ───────────────────────────────────────────────────
@@ -238,6 +239,43 @@ const useEventStore = create((set, get) => ({
   },
 
   registerParticipant: async (eventId, formData) => {
+    // ── Server-side Overlap Guard ────────────────────────────────────────────
+    // Fetch user's existing registrations fresh from Supabase (race-condition safe)
+    // Skipped for admin-initiated override registrations (formData.adminOverrideConflict === true)
+    if (!formData.adminOverrideConflict && (formData.userId || formData.email)) {
+      const orFilter = formData.userId && formData.email
+        ? `user_id.eq.${formData.userId},email.eq.${formData.email}`
+        : formData.userId
+          ? `user_id.eq.${formData.userId}`
+          : `email.eq.${formData.email}`;
+
+      const { data: existingRegs } = await supabase
+        .from('registrations')
+        .select('id, status, event_id, events(id, name, start_date, start_time, end_date, end_time)')
+        .or(orFilter)
+        .in('status', ['confirmed', 'waitlisted']);
+
+      if (existingRegs?.length) {
+        // Find the candidate event in the local store for its time window
+        const candidateEvent = get().events.find(e => e.id === eventId);
+        if (candidateEvent) {
+          // Shape existing regs so detectRegistrationConflict can compare them
+          const passesForCheck = existingRegs.map(r => ({
+            ...r,
+            eventId: r.event_id,
+          }));
+          const conflict = detectRegistrationConflict(candidateEvent, passesForCheck);
+          if (conflict.hasConflict) {
+            throw new Error(
+              `OVERLAP:${conflict.conflictingEvent.name}:${conflict.overlapDescription}`
+            );
+          }
+        }
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
+
     let screenshotUrl = formData.screenshotUrl || formData.screenshotBase64 || null;
     if (formData.screenshotBase64?.startsWith('data:')) {
       const uploaded = await uploadBase64('receipts', `${formData.ticketId || Date.now()}-receipt`, formData.screenshotBase64);

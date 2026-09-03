@@ -5,6 +5,7 @@ import useAuthStore from '../../store/useAuthStore';
 import useEventStore from '../../store/useEventStore';
 import useUIStore from '../../store/useUIStore';
 import { formatDate, formatEventSchedule } from '../../utils/dateUtils';
+import { detectRegistrationConflict } from '../../utils/overlapChecker';
 import './RegistrationModal.css';
 
 const STEP_LABELS = {
@@ -39,6 +40,8 @@ const RegistrationModal = ({ event, onClose }) => {
   }, [needsPreferences, isPaid]);
 
   const [step, setStep] = useState(0);
+  const [adminConflictWarning, setAdminConflictWarning] = useState(null); // { conflictingEventName, overlapDescription }
+  const [overrideConflict, setOverrideConflict] = useState(false);
 
   const [form, setForm] = useState({
     fullName: user?.name || '',
@@ -198,15 +201,103 @@ const RegistrationModal = ({ event, onClose }) => {
   const handleSubmit = async () => {
     if (!validateStep(step)) return;
     await new Promise(r => setTimeout(r, 500));
-    registerParticipant?.(event.id, { ...form, ticketId: tempTicketId, userId: user?.id, totalPaid: totalAmount, registeredAt: new Date().toISOString() });
-    setStep(3);
-    addToast({ type: 'success', title: 'Registered! 🎉', message: `You're confirmed for ${event.name}. Ticket: ${tempTicketId}` });
+    try {
+      await registerParticipant(event.id, { ...form, ticketId: tempTicketId, userId: user?.id, totalPaid: totalAmount, registeredAt: new Date().toISOString() });
+      setStep(3);
+      addToast({ type: 'success', title: 'Registered! 🎉', message: `You're confirmed for ${event.name}. Ticket: ${tempTicketId}` });
+    } catch (err) {
+      const msg = err?.message || '';
+      if (msg.startsWith('OVERLAP:') && !overrideConflict) {
+        // Admin sees a soft warning — they can choose to override
+        const parts = msg.split(':');
+        const conflictingEventName = parts[1] || 'another event';
+        const overlapDescription = parts.slice(2).join(':');
+        setAdminConflictWarning({ conflictingEventName, overlapDescription });
+      } else {
+        addToast({ type: 'error', title: 'Registration Failed', message: msg || 'Could not complete registration.' });
+      }
+    }
+  };
+
+  const handleOverrideAndRegister = async () => {
+    setOverrideConflict(true);
+    setAdminConflictWarning(null);
+    await new Promise(r => setTimeout(r, 200));
+    // Re-submit with override flag — the server-side guard is bypassed when overrideConflict is set
+    // (admin privilege: we skip the overlap guard and call registerParticipant directly)
+    try {
+      // Pass a flag to skip the overlap check for admin-initiated override registrations
+      await registerParticipant(event.id, {
+        ...form,
+        ticketId: tempTicketId,
+        userId: user?.id,
+        totalPaid: totalAmount,
+        registeredAt: new Date().toISOString(),
+        adminOverrideConflict: true,
+      });
+      setStep(3);
+      addToast({ type: 'warning', title: 'Registered with Conflict Override ⚠️', message: `Admin override: ${form.fullName || form.email} registered despite scheduling conflict.` });
+    } catch (err2) {
+      addToast({ type: 'error', title: 'Registration Failed', message: err2?.message || 'Could not complete registration.' });
+    } finally {
+      setOverrideConflict(false);
+    }
   };
 
   return (
     <AnimatePresence>
       <motion.div className="reg-modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={step !== 3 ? onClose : undefined}>
         <motion.div className="reg-modal-container" initial={{ opacity: 0, y: 30, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.98 }} transition={{ type: 'spring', stiffness: 350, damping: 30 }} onClick={e => e.stopPropagation()}>
+          {/* Admin Conflict Warning Banner */}
+          <AnimatePresence>
+            {adminConflictWarning && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                style={{
+                  background: 'rgba(245,158,11,0.12)',
+                  border: '1.5px solid #F59E0B',
+                  borderRadius: '12px',
+                  padding: '14px 18px',
+                  margin: '16px 20px 0',
+                  display: 'flex',
+                  gap: 12,
+                  alignItems: 'flex-start',
+                }}
+              >
+                <span style={{ fontSize: '1.5rem', flexShrink: 0 }}>⚠️</span>
+                <div style={{ flex: 1 }}>
+                  <strong style={{ color: '#F59E0B', display: 'block', fontSize: '0.875rem', marginBottom: 4 }}>
+                    Conflict Warning (Admin Override Available)
+                  </strong>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', lineHeight: 1.5, margin: 0 }}>
+                    This participant already has a registration for{' '}
+                    <strong>&ldquo;{adminConflictWarning.conflictingEventName}&rdquo;</strong>
+                    {adminConflictWarning.overlapDescription && <> ({adminConflictWarning.overlapDescription})</>}{' '}
+                    which overlaps with <strong>&ldquo;{event.name}&rdquo;</strong>.
+                  </p>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                    <button
+                      type="button"
+                      onClick={handleOverrideAndRegister}
+                      style={{ background: '#F59E0B', color: '#000', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: '0.8125rem', fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      Register Anyway
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAdminConflictWarning(null)}
+                      style={{ background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '6px 14px', fontSize: '0.8125rem', cursor: 'pointer' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {event.bannerUrl && (
             <div className="reg-modal-banner" style={{ backgroundImage: `url(${event.bannerUrl})` }}>
               <div className="reg-modal-banner-overlay" />

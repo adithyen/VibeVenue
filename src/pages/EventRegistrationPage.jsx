@@ -31,6 +31,7 @@ const EventRegistrationPage = () => {
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
+  const [conflictInfo, setConflictInfo] = useState(null); // { conflictingEventName, overlapDescription }
 
   const regInfo = useMemo(() => getRegistrationStatusInfo(event), [event]);
 
@@ -300,7 +301,17 @@ const EventRegistrationPage = () => {
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-      addToast({ type: 'error', title: 'Registration Failed', message: err?.message || 'Could not confirm registration.' });
+      const msg = err?.message || '';
+      if (msg.startsWith('OVERLAP:')) {
+        // e.g. "OVERLAP:TechFest 2026:3 Sep 2026, 10:00 AM – 12:00 PM"
+        const parts = msg.split(':');
+        const conflictingEventName = parts[1] || 'another event';
+        const overlapDescription = parts.slice(2).join(':');
+        setConflictInfo({ conflictingEventName, overlapDescription });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        addToast({ type: 'error', title: 'Registration Failed', message: msg || 'Could not confirm registration.' });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -352,7 +363,64 @@ const EventRegistrationPage = () => {
         </div>
       </div>
 
-      {/* Registration Status Banners */}
+      {/* Scheduling Conflict Card */}
+      <AnimatePresence>
+        {conflictInfo && (
+          <motion.div
+            initial={{ opacity: 0, y: -12, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.97 }}
+            style={{
+              background: 'rgba(225, 29, 72, 0.10)',
+              border: '1.5px solid var(--accent-rose)',
+              borderRadius: 'var(--radius-xl)',
+              padding: '18px 22px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 16,
+              marginBottom: 8,
+            }}
+          >
+            <span style={{ fontSize: '2rem', flexShrink: 0 }}>⚠️</span>
+            <div style={{ flex: 1 }}>
+              <strong style={{ color: 'var(--accent-rose)', display: 'block', fontSize: '0.9375rem', marginBottom: 6 }}>
+                Scheduling Conflict Detected
+              </strong>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', lineHeight: '1.5', margin: 0 }}>
+                You already have a confirmed or waitlisted registration for{' '}
+                <strong style={{ color: 'var(--text-primary)' }}>&ldquo;{conflictInfo.conflictingEventName}&rdquo;</strong>
+                {conflictInfo.overlapDescription && (
+                  <>
+                    {', which runs '}
+                    <strong style={{ color: 'var(--text-primary)' }}>{conflictInfo.overlapDescription}</strong>
+                  </>
+                )}
+                . This event's schedule overlaps with that registration.
+              </p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: 8, marginBottom: 0 }}>
+                To register here, please go to your dashboard and cancel your existing pass for “{conflictInfo.conflictingEventName}” first.
+              </p>
+              <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => navigate('/portal')}
+                >
+                  📄 View My Passes
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setConflictInfo(null)}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {regInfo.isWaitlistFull && (
         <div style={{ background: 'rgba(225, 29, 72, 0.12)', border: '1.5px solid var(--accent-rose)', borderRadius: 'var(--radius-xl)', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
           <span style={{ fontSize: '1.75rem' }}>🔒</span>

@@ -12,6 +12,7 @@ import Modal from '../components/ui/Modal';
 import EditProfileModal from '../components/profile/EditProfileModal';
 import PassBarcodeQR from '../components/common/PassBarcodeQR';
 import { formatDate, formatEventSchedule, getEventFeeDisplay, getComputedEventStatus, getRegistrationStatusInfo } from '../utils/dateUtils';
+import { detectRegistrationConflict } from '../utils/overlapChecker';
 import './ParticipantPortal.css';
 
 const ParticipantPortal = () => {
@@ -73,7 +74,7 @@ const ParticipantPortal = () => {
       });
   }, [events, passes, studentYear]);
 
-  // Handle new self-registration — navigates to full-page registration view
+  // Handle new self-registration — pre-flight overlap check then navigate
   const handleSelfRegister = (event) => {
     const regInfo = getRegistrationStatusInfo(event);
     if (!regInfo.isOpen) {
@@ -84,6 +85,18 @@ const ParticipantPortal = () => {
       });
       return;
     }
+
+    // Pre-flight scheduling conflict check using already-loaded passes
+    const conflict = detectRegistrationConflict(event, passes);
+    if (conflict.hasConflict) {
+      addToast({
+        type: 'error',
+        title: '⚠️ Scheduling Conflict',
+        message: `You're already registered for "${conflict.conflictingEvent.name}" which runs ${conflict.overlapDescription} — this overlaps with "${event.name}". Cancel that registration first if you'd like to switch.`,
+      });
+      return;
+    }
+
     navigate(`/portal/register/${event.id}`);
   };
 

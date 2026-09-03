@@ -317,3 +317,36 @@ export const formatPricingTier = (tier) => {
   return String(tier);
 };
 
+// ── Overlap Detection Helpers ─────────────────────────────────────────────────
+
+/**
+ * Returns the active time window { start: Date, end: Date } for an event.
+ * "start" = event's startDate + startTime
+ * "end"   = event's endDate (or startDate if none) + endTime (or 23:59 if none)
+ * Returns null if start date cannot be parsed.
+ */
+export const getEventWindow = (event) => {
+  if (!event) return null;
+  const startDate = event.startDate || event.date || event.start_date;
+  const startTime = event.startTime || event.time || event.start_time || '00:00';
+  const endDate = event.endDate || event.end_date || startDate;
+  const endTime = event.endTime || event.end_time || '23:59';
+
+  const start = parseEventDateTime(startDate, startTime);
+  const end = parseEventDateTime(endDate, endTime);
+
+  if (!start) return null;
+  return { start, end: end || start };
+};
+
+/**
+ * Returns true when the active windows of eventA and eventB overlap.
+ * Uses standard interval overlap: A.start < B.end && A.end > B.start
+ */
+export const eventsOverlap = (eventA, eventB) => {
+  const winA = getEventWindow(eventA);
+  const winB = getEventWindow(eventB);
+  if (!winA || !winB) return false;
+  return winA.start < winB.end && winA.end > winB.start;
+};
+
