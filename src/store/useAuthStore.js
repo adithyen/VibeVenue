@@ -95,6 +95,7 @@ const useAuthStore = create((set, get) => ({
       const role = profile?.role || meta.role || savedRole || 'participant';
       const name = profile?.name || meta.full_name || meta.name || authUser.email?.split('@')[0] || 'User';
       const avatar = profile?.avatar_url || meta.avatar_url || meta.picture || null;
+      const designation = meta.designation || meta.roleTitle || (role === 'admin' ? (profile?.student_id || meta.studentId || meta.rollNumber || '') : '');
 
       return {
         id: userId,
@@ -102,6 +103,8 @@ const useAuthStore = create((set, get) => ({
         email: authUser.email,
         avatar,
         role,
+        designation: designation || (role === 'admin' ? 'Lead Organizer' : ''),
+        roleTitle: designation || (role === 'admin' ? 'Lead Organizer' : ''),
         studentId: profile?.student_id || meta.studentId || meta.student_id || meta.rollNumber || '',
         college: profile?.college || meta.college || '',
         department: profile?.department || meta.department || '',
@@ -117,12 +120,16 @@ const useAuthStore = create((set, get) => ({
       if (!authUser) return null;
       const meta = authUser.user_metadata || {};
       const name = meta.full_name || meta.name || authUser.email?.split('@')[0] || 'User';
+      const role = meta.role || localStorage.getItem('vibe_intended_role') || 'participant';
+      const designation = meta.designation || meta.roleTitle || (role === 'admin' ? (meta.studentId || meta.rollNumber || '') : '');
       return {
         id: userId,
         name,
         email: authUser.email,
         avatar: meta.avatar_url || meta.picture || null,
-        role: meta.role || localStorage.getItem('vibe_intended_role') || 'participant',
+        role,
+        designation: designation || (role === 'admin' ? 'Lead Organizer' : ''),
+        roleTitle: designation || (role === 'admin' ? 'Lead Organizer' : ''),
         studentId: meta.studentId || meta.student_id || meta.rollNumber || '',
         college: meta.college || '',
         department: meta.department || '',
@@ -198,13 +205,15 @@ const useAuthStore = create((set, get) => ({
     const { user } = get();
     if (!user) return false;
     try {
+      const designationValue = updates.designation || updates.roleTitle || updates.studentId || updates.rollNumber || '';
+
       // 1. Update Supabase profiles table
       const profileUpdates = {
         name: updates.name,
-        student_id: updates.studentId || updates.rollNumber,
-        college: updates.college,
-        department: updates.department,
-        year: updates.year,
+        student_id: updates.studentId || updates.rollNumber || designationValue,
+        college: updates.college || '',
+        department: updates.department || '',
+        year: updates.year || '',
         phone: updates.phone,
         avatar_url: updates.avatar || updates.avatarUrl,
       };
@@ -219,11 +228,13 @@ const useAuthStore = create((set, get) => ({
         data: {
           full_name: updates.name,
           phone: updates.phone,
-          college: updates.college,
-          studentId: updates.studentId || updates.rollNumber,
-          rollNumber: updates.studentId || updates.rollNumber,
-          year: updates.year,
-          department: updates.department,
+          college: updates.college || '',
+          studentId: updates.studentId || updates.rollNumber || designationValue,
+          rollNumber: updates.studentId || updates.rollNumber || designationValue,
+          designation: designationValue,
+          roleTitle: designationValue,
+          year: updates.year || '',
+          department: updates.department || '',
           avatar_url: updates.avatar || updates.avatarUrl,
         },
       });
@@ -231,6 +242,8 @@ const useAuthStore = create((set, get) => ({
       const updatedUser = {
         ...user,
         ...updates,
+        designation: designationValue || user.designation,
+        roleTitle: designationValue || user.roleTitle,
         initials: (updates.name || user.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
       };
       set({ user: updatedUser });

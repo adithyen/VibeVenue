@@ -128,8 +128,8 @@ const TopBar = ({ onAddEvent }) => {
             <Avatar name={user.name} initials={user.initials} src={user.avatar} size="sm" />
             <div className="convener-info">
               <span className="convener-name">{user.name}</span>
-              <span className="convener-role">
-                {user.role === 'admin' ? 'Lead Organizer' : 'Student Delegate'}
+              <span className="convener-role" title={user.designation || user.roleTitle || (user.role === 'admin' ? (user.studentId || 'Lead Organizer') : (user.studentId || 'Student Delegate'))}>
+                {user.designation || user.roleTitle || (user.role === 'admin' ? (user.studentId || 'Lead Organizer') : (user.studentId || 'Student Delegate'))}
               </span>
             </div>
             <svg
@@ -158,6 +158,9 @@ const TopBar = ({ onAddEvent }) => {
                 <div className="dropdown-user-details">
                   <p className="dropdown-username">{user.name}</p>
                   <p className="dropdown-email font-mono">{user.email}</p>
+                  <p className="dropdown-designation font-mono" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '4px 0 0' }}>
+                    {user.designation || user.roleTitle || (user.role === 'admin' ? (user.studentId || 'Lead Organizer') : (user.studentId || 'Student Delegate'))}
+                  </p>
                 </div>
                 
                 <div className="dropdown-divider" />

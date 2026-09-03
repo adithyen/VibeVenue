@@ -53,7 +53,7 @@ export const ORGANIZERS = [
   {
     id: 'org-4',
     name: 'Ms. Kavitha Nair',
-    role: 'CSI Student Branch Advisor',
+    role: 'Faculty Advisor',
     department: 'Information Technology',
     email: 'kavitha.n@campus.edu',
     phone: '+91 98840 56789',
@@ -216,7 +216,7 @@ const RAW_EVENTS = [
     fee: 'Free',
     tags: ['ctf','infosec','pwn','crypto','forensics'],
     schedule: [
-      { time: '10:00 AM', title: 'Briefing & VPN Token Distribution', speaker: 'CSI Core Team', room: 'Cyber Lab', duration: '30 min' },
+      { time: '10:00 AM', title: 'Briefing & VPN Token Distribution', speaker: 'µLearn Core Team', room: 'Cyber Lab', duration: '30 min' },
       { time: '10:30 AM', title: 'Scoreboard Live: Jeopardy Challenges Released', speaker: null, room: 'Cyber Range', duration: '5 hrs' },
       { time: '03:30 PM', title: 'Attack-Defense Live Round', speaker: null, room: 'Range Matrix', duration: '90 min' },
       { time: '05:00 PM', title: 'Scoreboard Freeze & Challenge Write-up Review', speaker: 'Admin Jury', room: 'Auditorium B', duration: '45 min' },

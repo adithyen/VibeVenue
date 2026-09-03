@@ -19,6 +19,7 @@ const EditProfileModal = ({ open, onClose }) => {
     phone: user?.phone || '',
     college: user?.college || '',
     studentId: user?.studentId || user?.rollNumber || '',
+    designation: user?.designation || user?.roleTitle || user?.studentId || '',
     year: user?.year || '1st Year',
     department: user?.department || '',
     avatar: user?.avatar || '',
@@ -35,6 +36,7 @@ const EditProfileModal = ({ open, onClose }) => {
         phone: user.phone || '',
         college: user.college || '',
         studentId: user.studentId || user.rollNumber || '',
+        designation: user.designation || user.roleTitle || user.studentId || '',
         year: user.year || '1st Year',
         department: user.department || '',
         avatar: user.avatar || '',
@@ -69,11 +71,13 @@ const EditProfileModal = ({ open, onClose }) => {
       const success = await updateProfile({
         name: formData.name.trim(),
         phone: formData.phone.trim(),
-        college: formData.college.trim(),
-        studentId: formData.studentId.trim(),
-        rollNumber: formData.studentId.trim(),
-        year: formData.year,
-        department: formData.department.trim(),
+        college: isParticipant ? formData.college.trim() : '',
+        studentId: isParticipant ? formData.studentId.trim() : (formData.designation.trim() || 'Lead Organizer'),
+        rollNumber: isParticipant ? formData.studentId.trim() : (formData.designation.trim() || 'Lead Organizer'),
+        designation: isParticipant ? '' : (formData.designation.trim() || 'Lead Organizer'),
+        roleTitle: isParticipant ? '' : (formData.designation.trim() || 'Lead Organizer'),
+        year: isParticipant ? formData.year : '',
+        department: isParticipant ? formData.department.trim() : '',
         avatar: formData.avatar,
       });
 
@@ -193,19 +197,30 @@ const EditProfileModal = ({ open, onClose }) => {
                 />
               </div>
 
-              <div className="form-field-group">
-                <label className="craft-label">College / Institution</label>
-                <input
-                  type="text"
-                  className="craft-input"
-                  value={formData.college}
-                  onChange={e => setFormData(p => ({ ...p, college: e.target.value }))}
-                  placeholder="e.g. SCT College of Engineering"
-                />
-              </div>
-
-              {isParticipant ? (
+              {!isParticipant ? (
+                <div className="form-field-group">
+                  <label className="craft-label">Designation / Role Title</label>
+                  <input
+                    type="text"
+                    className="craft-input"
+                    value={formData.designation}
+                    onChange={e => setFormData(p => ({ ...p, designation: e.target.value }))}
+                    placeholder="e.g. Event Coordinator -2, Lead Organizer"
+                  />
+                </div>
+              ) : (
                 <>
+                  <div className="form-field-group">
+                    <label className="craft-label">College / Institution</label>
+                    <input
+                      type="text"
+                      className="craft-input"
+                      value={formData.college}
+                      onChange={e => setFormData(p => ({ ...p, college: e.target.value }))}
+                      placeholder="e.g. SCT College of Engineering"
+                    />
+                  </div>
+
                   <div className="form-field-group">
                     <label className="craft-label">Roll Number / Student ID</label>
                     <input
@@ -232,30 +247,19 @@ const EditProfileModal = ({ open, onClose }) => {
                       <option value="Postgraduate">Postgraduate</option>
                     </select>
                   </div>
-                </>
-              ) : (
-                <div className="form-field-group">
-                  <label className="craft-label">Designation / Role Title</label>
-                  <input
-                    type="text"
-                    className="craft-input"
-                    value={formData.studentId}
-                    onChange={e => setFormData(p => ({ ...p, studentId: e.target.value }))}
-                    placeholder="e.g. Lead Organizer, Faculty Coordinator"
-                  />
-                </div>
-              )}
 
-              <div className="form-field-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="craft-label">Department / Branch</label>
-                <input
-                  type="text"
-                  className="craft-input"
-                  value={formData.department}
-                  onChange={e => setFormData(p => ({ ...p, department: e.target.value }))}
-                  placeholder="e.g. Computer Science & Engineering"
-                />
-              </div>
+                  <div className="form-field-group" style={{ gridColumn: '1 / -1' }}>
+                    <label className="craft-label">Department / Branch</label>
+                    <input
+                      type="text"
+                      className="craft-input"
+                      value={formData.department}
+                      onChange={e => setFormData(p => ({ ...p, department: e.target.value }))}
+                      placeholder="e.g. Computer Science & Engineering"
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Actions */}

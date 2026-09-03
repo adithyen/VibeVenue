@@ -103,7 +103,7 @@ const wrapEmailTemplate = ({ title, preheader, content, badgeText, badgeColor = 
           <tr>
             <td style="padding: 24px 32px; background-color:#0A0F1D; border-top: 1px solid #1E293B; text-align:center;">
               <p style="margin:0 0 8px; font-size:12px; color:#64748B; font-family:monospace;">
-                SCT College of Engineering • CSI Student Chapter
+                SCT College of Engineering • µLearn
               </p>
               <p style="margin:0; font-size:11px; color:#475569;">
                 This is an automated operational notification regarding your event registration.

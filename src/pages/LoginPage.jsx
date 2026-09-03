@@ -20,6 +20,7 @@ const LoginPage = () => {
   const [phone, setPhone]     = useState('');
   const [college, setCollege] = useState('');
   const [studentId, setStudentId] = useState('');
+  const [designation, setDesignation] = useState('');
   const [year, setYear]       = useState('1st Year');
   const [department, setDepartment] = useState('');
   const [formError, setFormError] = useState('');
@@ -92,11 +93,13 @@ const LoginPage = () => {
       const result = await signUp(email, password, role, {
         name,
         phone,
-        college,
-        studentId,
-        rollNumber: studentId,
-        year,
-        department,
+        college: role === 'admin' ? '' : college,
+        studentId: role === 'admin' ? designation : studentId,
+        rollNumber: role === 'admin' ? designation : studentId,
+        designation: role === 'admin' ? (designation || 'Lead Organizer') : '',
+        roleTitle: role === 'admin' ? (designation || 'Lead Organizer') : '',
+        year: role === 'admin' ? '' : year,
+        department: role === 'admin' ? '' : department,
       });
       if (result === true) {
         addToast({ type: 'success', title: 'Account Created!', message: 'Welcome to VibeVenue 🎉' });
@@ -183,7 +186,32 @@ const LoginPage = () => {
                   />
                 </div>
 
-                {role === 'participant' && (
+                {role === 'admin' ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div className="form-field-group">
+                      <label htmlFor="login-phone" className="craft-label">Phone Number</label>
+                      <input
+                        id="login-phone"
+                        type="tel"
+                        className="craft-input font-mono"
+                        placeholder="+91 98765 43210"
+                        value={phone}
+                        onChange={e => setPhone(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-field-group">
+                      <label htmlFor="login-designation" className="craft-label">Designation / Role Title</label>
+                      <input
+                        id="login-designation"
+                        type="text"
+                        className="craft-input"
+                        placeholder="e.g. Event Coordinator, Lead Organizer"
+                        value={designation}
+                        onChange={e => setDesignation(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                ) : (
                   <>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                       <div className="form-field-group">

@@ -888,7 +888,7 @@ const RegistrationDetailPage = ({ attendeeId: propId, isOverlay = false, onClose
                     rows={3}
                     placeholder={
                       activeAction === 'needs_info'
-                        ? 'e.g. CSI Membership ID card photo is illegible. Please re-upload or share student ID.'
+                        ? 'e.g. Student ID or membership card photo is illegible. Please re-upload or share ID.'
                         : 'e.g. Invalid UTR or payment screenshot not verified.'
                     }
                     value={actionReason}

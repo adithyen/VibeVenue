@@ -43,10 +43,8 @@ const freshData = () => ({
   pricingType: 'flat', // 'flat' | 'tiered'
   openTo: ['All'],
   pricingTiers: [
-    { id: 'tier-1', label: 'CSI Member (SCTians)', price: '600', requiresProof: true, proofLabel: 'CSI Membership ID' },
-    { id: 'tier-2', label: 'CSI Member (Non-SCTians)', price: '700', requiresProof: true, proofLabel: 'CSI Membership ID' },
-    { id: 'tier-3', label: 'SCTians', price: '750', requiresProof: false, proofLabel: '' },
-    { id: 'tier-4', label: 'Non-SCTians', price: '850', requiresProof: false, proofLabel: '' },
+    { id: 'tier-1', label: 'SCTians', price: '600', requiresProof: false, proofLabel: '' },
+    { id: 'tier-2', label: 'Non-SCTians', price: '750', requiresProof: false, proofLabel: '' },
   ],
   individualPrice: '',
   groupPrice: '',
@@ -213,17 +211,16 @@ const EventForm = ({ event = null, onClose }) => {
 
   const applyTierPreset = (presetType) => {
     let presets = [];
-    if (presetType === 'csi') {
+    if (presetType === 'sctians') {
       presets = [
-        { id: 'tier-1', label: 'CSI Member (SCTians)', price: '600', requiresProof: true, proofLabel: 'CSI Membership ID' },
-        { id: 'tier-2', label: 'CSI Member (Non-SCTians)', price: '700', requiresProof: true, proofLabel: 'CSI Membership ID' },
-        { id: 'tier-3', label: 'SCTians', price: '750', requiresProof: false, proofLabel: '' },
-        { id: 'tier-4', label: 'Non-SCTians', price: '850', requiresProof: false, proofLabel: '' },
+        { id: 'tier-1', label: 'SCTians', price: '600', requiresProof: false, proofLabel: '' },
+        { id: 'tier-2', label: 'Non-SCTians', price: '750', requiresProof: false, proofLabel: '' },
       ];
-    } else if (presetType === 'sctians') {
+    } else if (presetType === 'delegates') {
       presets = [
-        { id: 'tier-1', label: 'SCTians', price: '750', requiresProof: false, proofLabel: '' },
-        { id: 'tier-2', label: 'Non-SCTians', price: '850', requiresProof: false, proofLabel: '' },
+        { id: 'tier-1', label: 'Early Bird Pass', price: '450', requiresProof: false, proofLabel: '' },
+        { id: 'tier-2', label: 'Regular Delegate Pass', price: '600', requiresProof: false, proofLabel: '' },
+        { id: 'tier-3', label: 'VIP / All-Access Pass', price: '900', requiresProof: false, proofLabel: '' },
       ];
     }
     setFormData(prev => ({ ...prev, pricingType: 'tiered', pricingTiers: presets }));
@@ -798,7 +795,7 @@ const EventForm = ({ event = null, onClose }) => {
                           className={`mode-toggle-btn ${formData.pricingType === 'tiered' ? 'mode-toggle-active' : ''}`}
                           onClick={() => {
                             set('pricingType', 'tiered');
-                            if (!formData.pricingTiers?.length) applyTierPreset('csi');
+                            if (!formData.pricingTiers?.length) applyTierPreset('sctians');
                           }}
                         >
                           📊 Dynamic Pricing
@@ -865,11 +862,11 @@ const EventForm = ({ event = null, onClose }) => {
                         {/* Quick Presets */}
                         <div className="tier-presets-row">
                           <span className="tier-presets-label font-mono">Templates:</span>
-                          <button type="button" className="tier-preset-btn" onClick={() => applyTierPreset('csi')}>
-                            + CSI Member Tiers
-                          </button>
                           <button type="button" className="tier-preset-btn" onClick={() => applyTierPreset('sctians')}>
                             + SCTians / Non-SCTians
+                          </button>
+                          <button type="button" className="tier-preset-btn" onClick={() => applyTierPreset('delegates')}>
+                            + Early Bird / Regular / VIP
                           </button>
 
                           {/* Custom Saved Templates */}
@@ -905,7 +902,7 @@ const EventForm = ({ event = null, onClose }) => {
                                 <input
                                   type="text"
                                   className="craft-input tier-name-input"
-                                  placeholder="Category Name (e.g. CSI Member (SCTians))"
+                                  placeholder="Category Name (e.g. SCTians / External Delegations)"
                                   value={tier.label}
                                   onChange={e => updatePricingTier(idx, 'label', e.target.value)}
                                 />
@@ -939,7 +936,7 @@ const EventForm = ({ event = null, onClose }) => {
                                   <input
                                     type="text"
                                     className="craft-input tier-proof-input"
-                                    placeholder="Proof Prompt for Student (e.g. CSI Membership ID / Student ID)"
+                                    placeholder="Proof Prompt for Student (e.g. College ID / Student ID)"
                                     value={tier.proofLabel}
                                     onChange={e => updatePricingTier(idx, 'proofLabel', e.target.value)}
                                   />

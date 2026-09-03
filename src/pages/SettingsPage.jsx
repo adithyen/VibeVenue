@@ -50,6 +50,7 @@ const SettingsPage = () => {
     phone: user?.phone || '',
     college: user?.college || '',
     studentId: user?.studentId || user?.rollNumber || '',
+    designation: user?.designation || user?.roleTitle || user?.studentId || '',
     year: user?.year || '1st Year',
     department: user?.department || '',
     avatar: user?.avatar || '',
@@ -66,6 +67,7 @@ const SettingsPage = () => {
         phone: user.phone || '',
         college: user.college || '',
         studentId: user.studentId || user.rollNumber || '',
+        designation: user.designation || user.roleTitle || user.studentId || '',
         year: user.year || '1st Year',
         department: user.department || '',
         avatar: user.avatar || '',
@@ -98,11 +100,13 @@ const SettingsPage = () => {
       const success = await updateProfile({
         name: profileForm.name.trim(),
         phone: profileForm.phone.trim(),
-        college: profileForm.college.trim(),
-        studentId: profileForm.studentId.trim(),
-        rollNumber: profileForm.studentId.trim(),
-        year: profileForm.year,
-        department: profileForm.department.trim(),
+        college: isParticipant ? profileForm.college.trim() : '',
+        studentId: isParticipant ? profileForm.studentId.trim() : (profileForm.designation.trim() || 'Lead Organizer'),
+        rollNumber: isParticipant ? profileForm.studentId.trim() : (profileForm.designation.trim() || 'Lead Organizer'),
+        designation: isParticipant ? '' : (profileForm.designation.trim() || 'Lead Organizer'),
+        roleTitle: isParticipant ? '' : (profileForm.designation.trim() || 'Lead Organizer'),
+        year: isParticipant ? profileForm.year : '',
+        department: isParticipant ? profileForm.department.trim() : '',
         avatar: profileForm.avatar,
       });
 
@@ -223,19 +227,30 @@ const SettingsPage = () => {
                 />
               </div>
 
-              <div className="form-field-group">
-                <label className="craft-label">College / Institution</label>
-                <input
-                  type="text"
-                  className="craft-input"
-                  value={profileForm.college}
-                  onChange={e => setProfileForm(p => ({ ...p, college: e.target.value }))}
-                  placeholder="College or Organization"
-                />
-              </div>
-
-              {isParticipant ? (
+              {!isParticipant ? (
+                <div className="form-field-group">
+                  <label className="craft-label">Designation / Role Title</label>
+                  <input
+                    type="text"
+                    className="craft-input"
+                    value={profileForm.designation}
+                    onChange={e => setProfileForm(p => ({ ...p, designation: e.target.value }))}
+                    placeholder="e.g. Event Coordinator -2, Lead Organizer"
+                  />
+                </div>
+              ) : (
                 <>
+                  <div className="form-field-group">
+                    <label className="craft-label">College / Institution</label>
+                    <input
+                      type="text"
+                      className="craft-input"
+                      value={profileForm.college}
+                      onChange={e => setProfileForm(p => ({ ...p, college: e.target.value }))}
+                      placeholder="College or Organization"
+                    />
+                  </div>
+
                   <div className="form-field-group">
                     <label className="craft-label">Roll Number / Student ID</label>
                     <input
@@ -262,30 +277,19 @@ const SettingsPage = () => {
                       <option value="Postgraduate">Postgraduate</option>
                     </select>
                   </div>
-                </>
-              ) : (
-                <div className="form-field-group">
-                  <label className="craft-label">Designation / Role Title</label>
-                  <input
-                    type="text"
-                    className="craft-input"
-                    value={profileForm.studentId}
-                    onChange={e => setProfileForm(p => ({ ...p, studentId: e.target.value }))}
-                    placeholder="e.g. Convenor, Lead Organizer"
-                  />
-                </div>
-              )}
 
-              <div className="form-field-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="craft-label">Department / Branch</label>
-                <input
-                  type="text"
-                  className="craft-input"
-                  value={profileForm.department}
-                  onChange={e => setProfileForm(p => ({ ...p, department: e.target.value }))}
-                  placeholder="e.g. Computer Science & Engineering"
-                />
-              </div>
+                  <div className="form-field-group" style={{ gridColumn: '1 / -1' }}>
+                    <label className="craft-label">Department / Branch</label>
+                    <input
+                      type="text"
+                      className="craft-input"
+                      value={profileForm.department}
+                      onChange={e => setProfileForm(p => ({ ...p, department: e.target.value }))}
+                      placeholder="e.g. Computer Science & Engineering"
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="settings-form-actions">

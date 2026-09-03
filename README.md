@@ -37,7 +37,7 @@ Built with **React 18**, **Vite**, **Supabase Postgres (Live Realtime WebSockets
 | Role | Email | Password | Access Rights |
 | :--- | :--- | :--- | :--- |
 | **Lead Organizer Admin** | \`organizer.admin@vibevenue.tech\` | \`VibeVenueAdmin#2026\` | Full Root Access, Event Creation, Dossier Approval, Gate Scanning |
-| **CSI Staff Lead & Admin** | \`csi.lead@vibevenue.tech\` | \`CSIAdmin#2026\` | Event Ops, Attendance Management, Spot Pass Clearance |
+| **Operations Lead & Admin** | \`lead@vibevenue.tech\` | \`VibeVenueAdmin#2026\` | Event Ops, Attendance Management, Spot Pass Clearance |
 
 ### 👥 2. 30 Pre-Seeded Student / Participant Test Accounts
 All 30 accounts are pre-configured with the default password: **\`VibeVenue#2026\`**
@@ -54,20 +54,20 @@ Sample test logins:
 
 ---
 
-## ⚡ 10 Distinct CSI Event Tracks (Pre-Seeded)
+## ⚡ 10 Distinct Event Tracks (Pre-Seeded)
 
-The database includes 10 live CSI events covering every creation combination:
+The database includes 10 live events covering every creation combination:
 
-1. **CSI TECHPULSE '26 (Tomorrow — 23 Aug 2026)**: In-Person Flagship Summit, Tiered (CSI Member ₹100, General ₹250, External ₹400), Add-ons (Kit, Lunch), Capacity: 300.
-2. **CSI CodeCraft (24 Aug 2026)**: Free Online Distributed Systems & Rust Webinar with Google Meet integration.
-3. **CSI HACKVERSE '26 (26 Aug 2026)**: 24-Hour In-Person Autonomous Agentic Hackathon, 2–4 Member Team Pass (₹600 Flat), Add-ons.
-4. **CSI AlgoBlitz (28 Aug 2026)**: Free Competitive Programming Contest, Strictly restricted to 1st & 2nd Year, 60 Seat Capacity Limit.
-5. **CSI EmbeddedX (30 Aug 2026)**: Hands-on Edge AI with ESP32 & TinyML Bootcamp, Tiered (CSI Member ₹300, Non-CSI ₹550), Hardware Kit Add-on, WhatsApp Group.
-6. **CSI PixelForge (02 Sep 2026)**: 6-Hour UI/UX Prototyping & Product Design Sprint, Individual Flat Fee (₹150).
-7. **CSI CyberStrike (05 Sep 2026)**: 5v5 Collegiate Valorant & Esports Championship, 5-Member Team Pass (₹500 Flat).
-8. **CSI PromptX (08 Sep 2026)**: Free Enterprise GenAI & RAG Architecture Masterclass with Live Meet Link.
-9. **CSI INVENTRON '26 (12 Sep 2026)**: National Paper & Project Expo, Bank Transfer + UPI (\`adityenh@oksbi\`), Tiered Author & Delegate passes.
-10. **CSI RedTeam CTF (15 Sep 2026)**: Capture The Flag & Offensive Security WarGames, Solo or Duo Team Passes (₹250 / ₹450).
+1. **TECHPULSE '26 (Tomorrow — 23 Aug 2026)**: In-Person Flagship Summit, Tiered (Member ₹100, General ₹250, External ₹400), Add-ons (Kit, Lunch), Capacity: 300.
+2. **CodeCraft (24 Aug 2026)**: Free Online Distributed Systems & Rust Webinar with Google Meet integration.
+3. **HACKVERSE '26 (26 Aug 2026)**: 24-Hour In-Person Autonomous Agentic Hackathon, 2–4 Member Team Pass (₹600 Flat), Add-ons.
+4. **AlgoBlitz (28 Aug 2026)**: Free Competitive Programming Contest, Strictly restricted to 1st & 2nd Year, 60 Seat Capacity Limit.
+5. **EmbeddedX (30 Aug 2026)**: Hands-on Edge AI with ESP32 & TinyML Bootcamp, Tiered (Member ₹300, Non-Member ₹550), Hardware Kit Add-on, WhatsApp Group.
+6. **PixelForge (02 Sep 2026)**: 6-Hour UI/UX Prototyping & Product Design Sprint, Individual Flat Fee (₹150).
+7. **CyberStrike (05 Sep 2026)**: 5v5 Collegiate Valorant & Esports Championship, 5-Member Team Pass (₹500 Flat).
+8. **PromptX (08 Sep 2026)**: Free Enterprise GenAI & RAG Architecture Masterclass with Live Meet Link.
+9. **INVENTRON '26 (12 Sep 2026)**: National Paper & Project Expo, Bank Transfer + UPI (\`adityenh@oksbi\`), Tiered Author & Delegate passes.
+10. **RedTeam CTF (15 Sep 2026)**: Capture The Flag & Offensive Security WarGames, Solo or Duo Team Passes (₹250 / ₹450).
 
 ---
 
@@ -87,26 +87,26 @@ The database includes 10 live CSI events covering every creation combination:
 - **Spot Walk-in Pass Issuance**: Issue on-desk emergency passes and auto-check in delegates on the fly.
 - **CSV Export**: 1-Click download of complete turnout records with check-in timestamps.
 
-### 3. 👥 Dynamic Team Roster Builder (\`/portal/register/:id\`)
-- **Leader + Member Cards**: Auto-binds the primary applicant as Team Leader and provides dynamic \`+ Add Team Member\` / \`✕ Remove\` controls.
+### 3. 👥 Dynamic Team Roster Builder (`/portal/register/:id`)
+- **Leader + Member Cards**: Auto-binds the primary applicant as Team Leader and provides dynamic `+ Add Team Member` / `✕ Remove` controls.
 - **Granular Member Profiles**: Collects Name, Email, Phone, Roll Number, and Department for every teammate.
 - **Enforced Constraints**: Strictly validates min and max squad bounds (e.g. 2 to 4 hackers).
 
-### 4. 🏷️ Multi-Tier Pricing & CSI Membership Verification
-- **Dynamic Tier Matrix**: Automatic price computation for CSI Members, Non-Members, Early Birds, and General passes.
+### 4. 🏷️ Multi-Tier Pricing & Membership Verification
+- **Dynamic Tier Matrix**: Automatic price computation for Members, Non-Members, Early Birds, and General passes.
 - **Eligibility Proof Auditing**: Captures and validates Membership IDs on checkout and highlights them in the organizer verification dossier.
 
-### 5. 🎟️ Digital Pass Wallet & Offline QR Tickets (\`/portal\`)
+### 5. 🎟️ Digital Pass Wallet & Offline QR Tickets (`/portal`)
 - **Mobile-Responsive Pass Dossier**: Displays Ticket ID, Category, Venue, Schedule, Gate Instructions, and QR Code.
 - **Live Pass Filtering**: Dynamically moves registered passes out of available tracks into the active pass wallet.
 
-### 6. 📁 Attendee Verification Dossier & Receipt Desk (\`/registrations/:id\`)
+### 6. 📁 Attendee Verification Dossier & Receipt Desk (`/registrations/:id`)
 - **High-Resolution Receipt Viewer**: Preview payment screenshot with zoom-modal.
 - **1-Click Replace / Upload Image**: Organizers can attach or update original payment proofs directly in Supabase.
 - **Add-ons Distribution Checklist**: Real-time toggles to hand over merchandise, hoodies, badges, and lunch coupons at the desk.
 
 ### 7. 🔄 Realtime Multi-Desk Sync
-- Powered by **Supabase Postgres Realtime channels** (\`postgres_changes\`). Turnout counts, check-ins, and registrations sync instantly across multiple laptops and mobile scanner devices.
+- Powered by **Supabase Postgres Realtime channels** (`postgres_changes`). Turnout counts, check-ins, and registrations sync instantly across multiple laptops and mobile scanner devices.
 
 ---
 
@@ -114,22 +114,22 @@ The database includes 10 live CSI events covering every creation combination:
 
 ### 🧪 Test 1: Register for an Event (Individual & Team)
 1. Navigate to [https://vibe-venue.vercel.app/portal](https://vibe-venue.vercel.app/portal)
-2. Log in using a student test account (e.g. \`test.student01@vibevenue.tech\` / \`VibeVenue#2026\`).
-3. Click **"Register Now"** on **CSI HACKVERSE '26** (Team Event).
-4. Enter Team Name (e.g. \`NeuralKnights\`), add 2 additional teammates with their emails and roll numbers, pick any add-ons, and enter Transaction ID.
+2. Log in using a student test account (e.g. `test.student01@vibevenue.tech` / `VibeVenue#2026`).
+3. Click **"Register Now"** on **HACKVERSE '26** (Team Event).
+4. Enter Team Name (e.g. `NeuralKnights`), add 2 additional teammates with their emails and roll numbers, pick any add-ons, and enter Transaction ID.
 5. Confirm registration — your digital pass with QR code will appear under **"My Digital Passes"**.
 
 ### 🧪 Test 2: Gate Check-In via Scanner
-1. Open [https://vibe-venue.vercel.app/scanner](https://vibe-venue.vercel.app/scanner) (log in as Admin: \`organizer.admin@vibevenue.tech\` / \`VibeVenueAdmin#2026\`).
+1. Open [https://vibe-venue.vercel.app/scanner](https://vibe-venue.vercel.app/scanner) (log in as Admin: `organizer.admin@vibevenue.tech` / `VibeVenueAdmin#2026`).
 2. Point your camera at the pass QR code (or type the Ticket ID into the USB Barcode search input and press Enter).
 3. **Team Modal Pops Up**: Select which members are present (or leave all checked) and click **"Confirm Gate Check-In"**.
 4. The success chime plays, and the attendee is marked as present in real time.
 
 ### 🧪 Test 3: Manage Attendance & Individual Team Members
 1. Open [https://vibe-venue.vercel.app/attendance](https://vibe-venue.vercel.app/attendance).
-2. Filter by **"CSI HACKVERSE '26"** using the top gate track pills.
+2. Filter by **"HACKVERSE '26"** using the top gate track pills.
 3. Click on the **"Teams"** tab (or the **TEAMS & SPOT PASSES** stat card).
-4. Click **\`Team Roster ▼\`** on your team row — toggle any individual member between **\`✓ Present\`** and **\`○ Mark Present\`**.
+4. Click **`Team Roster ▼`** on your team row — toggle any individual member between **`✓ Present`** and **`○ Mark Present`**.
 5. Click **"Export CSV"** to download the live attendance roster.
 
 ### 🧪 Test 4: Issue On-Desk Spot Walk-In Pass
