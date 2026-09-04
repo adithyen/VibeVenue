@@ -402,7 +402,14 @@ const EventRegistrationPage = () => {
       </div>
 
       {/* Hero Event Banner Summary */}
-      <div className="full-reg-hero craft-card" style={{ backgroundImage: event.bannerUrl ? `linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.85) 100%), url(${event.bannerUrl})` : undefined }}>
+      <div
+        className="full-reg-hero"
+        style={{
+          backgroundImage: event.bannerUrl
+            ? `linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.85) 100%), url(${event.bannerUrl})`
+            : `radial-gradient(ellipse at top right, rgba(99, 102, 241, 0.35), transparent 70%), linear-gradient(135deg, #090D16 0%, #111827 50%, #1E1B4B 100%)`
+        }}
+      >
         <div className="full-reg-hero-content">
           <div className="full-reg-hero-left">
             {event.logoUrl && <img src={event.logoUrl} alt={event.name} className="full-reg-hero-logo" />}
