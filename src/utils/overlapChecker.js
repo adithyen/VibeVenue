@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 //  VIBEVENUE — Overlap Checker
 //  Pure utility: detects scheduling conflicts between a user's
 //  existing registrations and an event they want to register for.
@@ -46,9 +46,11 @@ export const detectRegistrationConflict = (candidateEvent, userPasses) => {
   }
 
   for (const pass of userPasses) {
-    // Only check confirmed/waitlisted passes — cancelled ones don't block
-    const passStatus = pass.status?.toLowerCase() || '';
-    if (passStatus === 'cancelled') continue;
+    // Only check active confirmed or waitlisted passes — cancelled/revoked passes NEVER create a conflict
+    const passStatus = String(pass.status || '').toLowerCase().trim();
+    if (passStatus !== 'confirmed' && passStatus !== 'waitlisted') {
+      continue;
+    }
 
     // Build an event-shaped object from the pass joined event data
     // Works for both getParticipantPasses (camelCase) and raw Supabase query (snake_case)
@@ -67,7 +69,7 @@ export const detectRegistrationConflict = (candidateEvent, userPasses) => {
           startDate: pass.eventDate,
           startTime: pass.eventTime,
           endDate:   pass.eventDate,
-          endTime:   null,
+          endTime:   pass.eventEndTime || null,
         };
 
     // Don't check the same event (re-registration handled separately)

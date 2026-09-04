@@ -309,7 +309,10 @@ const useAuthStore = create((set, get) => ({
     if (error) { console.error('getParticipantPasses error:', error); return []; }
 
     return (data || [])
-      .filter(r => r.status !== 'cancelled')
+      .filter(r => {
+        const s = String(r.status || '').toLowerCase().trim();
+        return s === 'confirmed' || s === 'waitlisted';
+      })
       .map(r => {
       const tm = r.team_members;
       let checkInStatus = r.check_in_status || 'Not Checked In';
@@ -336,6 +339,7 @@ const useAuthStore = create((set, get) => ({
         eventCategory: r.events?.category,
         eventDate: r.events?.start_date,
         eventTime: r.events?.start_time,
+        eventEndTime: r.events?.end_time,
         eventVenue: r.events?.venue || r.events?.meeting_link,
         eventStatus: r.events?.status,
       };

@@ -63,8 +63,18 @@ const ParticipantPortal = () => {
   }, [refreshPasses]);
 
   // Compute upcoming & ongoing events available for registration
-  // Filter out registered events AND filter by target academic year if restricted
-  const registeredEventIds = new Set(passes.map(p => p.eventId));
+  // Filter out registered events (only active passes) AND filter by target academic year if restricted
+  const activePasses = useMemo(() => {
+    return (passes || []).filter(p => {
+      const s = String(p.status || '').toLowerCase().trim();
+      return s === 'confirmed' || s === 'waitlisted';
+    });
+  }, [passes]);
+
+  const registeredEventIds = useMemo(() => {
+    return new Set(activePasses.map(p => p.eventId).filter(Boolean));
+  }, [activePasses]);
+
   const studentYear = user?.year || '';
 
   const availableEvents = useMemo(() => {
@@ -80,7 +90,7 @@ const ParticipantPortal = () => {
         if (!studentYear) return true;
         return openTo.includes(studentYear);
       });
-  }, [events, passes, studentYear]);
+  }, [events, registeredEventIds, studentYear]);
 
   // Handle new self-registration — pre-flight overlap check then navigate
   const handleSelfRegister = (event) => {
@@ -94,8 +104,9 @@ const ParticipantPortal = () => {
       return;
     }
 
-    // Pre-flight scheduling conflict check using already-loaded passes
-    const conflict = detectRegistrationConflict(event, passes);
+    // Pre-flight scheduling conflict check using ONLY active confirmed/waitlisted passes (excluding the same event)
+    const passesForConflictCheck = activePasses.filter(p => p.eventId !== event.id);
+    const conflict = detectRegistrationConflict(event, passesForConflictCheck);
     if (conflict.hasConflict) {
       addToast({
         type: 'error',
@@ -114,12 +125,14 @@ const ParticipantPortal = () => {
     setIsRevoking(true);
     const ok = await removeParticipant(pass.eventId, pass.id, pass);
     if (ok) {
-      setPasses(prev => prev.filter(p => p.id !== pass.id));
+      setPasses(prev => prev.filter(p => p.id !== pass.id && p.eventId !== pass.eventId));
       addToast({
         type: 'success',
         title: 'Pass Revoked',
         message: `Your registration for "${pass.eventName}" has been cancelled.`,
       });
+      // Synchronize in background
+      try { refreshPasses(); } catch {}
     } else {
       addToast({ type: 'error', title: 'Error', message: 'Could not cancel registration.' });
     }
