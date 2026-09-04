@@ -368,8 +368,14 @@ const useEventStore = create((set, get) => ({
     }
 
     const latestRegs = dbEvt.registrations || [];
-    const liveConfirmed = latestRegs.filter(r => r.status === 'confirmed').length;
-    const liveWaitlisted = latestRegs.filter(r => r.status === 'waitlisted').length;
+    const liveConfirmed = Math.max(
+      latestRegs.filter(r => r.status === 'confirmed').length,
+      typeof dbEvt.amenities?.confirmedCount === 'number' ? dbEvt.amenities.confirmedCount : 0
+    );
+    const liveWaitlisted = Math.max(
+      latestRegs.filter(r => r.status === 'waitlisted').length,
+      typeof dbEvt.amenities?.waitlistCount === 'number' ? dbEvt.amenities.waitlistCount : 0
+    );
 
     const maxParticipants = dbEvt.has_capacity_limit ? (parseInt(dbEvt.max_participants, 10) || 9999) : 9999;
     const hasCapacityLimit = Boolean(dbEvt.has_capacity_limit && !dbEvt.is_online);
@@ -462,10 +468,10 @@ const useEventStore = create((set, get) => ({
     await syncEventCountsInDatabase(eventId);
 
     // Trigger Email Dispatch asynchronously
-    const eventName = event?.name || formData.eventName || 'Campus Event';
-    const eventDate = event?.date || event?.startDate || '';
-    const eventTime = event?.time || event?.startTime || '';
-    const eventVenue = event?.venue || 'Campus Venue';
+    const eventName = dbEvt?.name || formData.eventName || 'Campus Event';
+    const eventDate = dbEvt?.start_date || formData.eventDate || '';
+    const eventTime = dbEvt?.start_time || formData.eventTime || '';
+    const eventVenue = dbEvt?.venue || 'Campus Venue';
 
     if (formData.email) {
       if (isWaitlist) {
@@ -1162,23 +1168,23 @@ function normaliseEvent(row) {
 
     // Live counts computed from registrations relation (if admin) or persisted amenities (for participants)
     registrationCount: (() => {
-      if (Array.isArray(row.registrations)) {
-        return row.registrations.filter(r => r.status === 'confirmed').length;
-      }
-      if (typeof amenities?.confirmedCount === 'number') {
-        return amenities.confirmedCount;
-      }
-      return parseInt(row.registration_count, 10) || 0;
+      const regFiltered = Array.isArray(row.registrations)
+        ? row.registrations.filter(r => r.status === 'confirmed').length
+        : 0;
+      const amenityCount = typeof amenities?.confirmedCount === 'number'
+        ? amenities.confirmedCount
+        : (parseInt(row.registration_count, 10) || 0);
+      return Math.max(regFiltered, amenityCount);
     })(),
 
     waitlistCount: (() => {
-      if (Array.isArray(row.registrations)) {
-        return row.registrations.filter(r => r.status === 'waitlisted').length;
-      }
-      if (typeof amenities?.waitlistCount === 'number') {
-        return amenities.waitlistCount;
-      }
-      return 0;
+      const regFiltered = Array.isArray(row.registrations)
+        ? row.registrations.filter(r => r.status === 'waitlisted').length
+        : 0;
+      const amenityCount = typeof amenities?.waitlistCount === 'number'
+        ? amenities.waitlistCount
+        : (parseInt(row.waitlist_count, 10) || 0);
+      return Math.max(regFiltered, amenityCount);
     })(),
 
     checkedInCount: Array.isArray(row.registrations) && row.registrations.length > 0

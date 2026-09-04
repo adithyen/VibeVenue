@@ -418,7 +418,7 @@ const ParticipantPortal = () => {
           <div className="portal-ticket-inspect">
             <div className="ticket-brand font-mono" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
               <VibeVenueMark size={18} idPrefix="inspect-modal-vv" />
-              <span>VIBEVENUE '26 GATE PASS</span>
+              <span>{inspectPass.status === 'waitlisted' ? 'VIBEVENUE WAITLIST PASS' : "VIBEVENUE '26 GATE PASS"}</span>
             </div>
             <h3 className="ticket-inspect-title">{inspectPass.eventName}</h3>
             
@@ -436,9 +436,9 @@ const ParticipantPortal = () => {
                 <span className="tig-val">{inspectPass.eventVenue}</span>
               </div>
               <div className="tig-item">
-                <span className="tig-lbl">Gate Check-in</span>
-                <span className={`tig-val ${inspectPass.checkInStatus === 'Checked In' ? 'text-emerald' : 'text-amber'}`}>
-                  {inspectPass.checkInStatus || 'Not Checked'}
+                <span className="tig-lbl">{inspectPass.status === 'waitlisted' ? 'Pass Status' : 'Gate Check-in'}</span>
+                <span className={`tig-val ${inspectPass.status === 'waitlisted' ? 'text-amber' : (inspectPass.checkInStatus === 'Checked In' ? 'text-emerald' : 'text-amber')}`}>
+                  {inspectPass.status === 'waitlisted' ? '📋 Waitlisted (In Queue)' : (inspectPass.checkInStatus || 'Not Checked')}
                 </span>
               </div>
               {inspectPass.pricingTier && (
