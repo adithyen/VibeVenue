@@ -13,13 +13,6 @@ import { formatEventSchedule, getRegistrationStatusInfo, getComputedEventStatus,
 import { getCategoryById } from '../data/mockData';
 import './EventRegistrationPage.css';
 
-const STEP_TITLES = [
-  { id: 0, title: 'Personal Details', icon: '👤' },
-  { id: 1, title: 'Category & Pricing', icon: '📊' },
-  { id: 2, title: 'Payment Verification', icon: '💳' },
-  { id: 3, title: 'Confirmed Pass', icon: '🎟️' },
-];
-
 const EventRegistrationPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -42,6 +35,13 @@ const EventRegistrationPage = () => {
   const [conflictInfo, setConflictInfo] = useState(null); // { conflictingEventName, overlapDescription }
 
   const regInfo = useMemo(() => getRegistrationStatusInfo(event), [event]);
+
+  const stepTitles = useMemo(() => [
+    { id: 0, title: 'Personal Details', icon: '👤' },
+    { id: 1, title: 'Category & Pricing', icon: '📊' },
+    { id: 2, title: 'Payment Verification', icon: '💳' },
+    { id: 3, title: regInfo.isWaitlistActive ? 'Waitlist Pass' : 'Confirmed Pass', icon: regInfo.isWaitlistActive ? '📋' : '🎟️' },
+  ], [regInfo.isWaitlistActive]);
 
   // Generate unique Ticket ID
   const tempTicketId = useMemo(() => `TCK-${Math.floor(100000 + Math.random() * 900000)}`, []);
@@ -325,7 +325,7 @@ const EventRegistrationPage = () => {
       ] : [];
 
       const isWaitlist = !!regInfo.isWaitlistActive;
-      await registerParticipant(event.id, {
+      const result = await registerParticipant(event.id, {
         ...form,
         teamMembers: fullTeamMembers,
         ticketId: tempTicketId,
@@ -334,12 +334,13 @@ const EventRegistrationPage = () => {
         status: isWaitlist ? 'waitlisted' : 'confirmed',
         registeredAt: new Date().toISOString(),
       });
+      const wasWaitlisted = result?.status === 'waitlisted' || isWaitlist;
       setStep(3);
       addToast({
-        type: isWaitlist ? 'warning' : 'success',
-        title: isWaitlist ? 'Added to Waiting List! 📋' : 'Registration Confirmed! 🎉',
-        message: isWaitlist
-          ? `You are #${regInfo.waitlistPosition} in queue. You will be automatically promoted if a seat opens.`
+        type: wasWaitlisted ? 'warning' : 'success',
+        title: wasWaitlisted ? 'Added to Waiting List! 📋' : 'Registration Confirmed! 🎉',
+        message: wasWaitlisted
+          ? `You are #${result?.queuePosition || regInfo.waitlistPosition || 1} in queue. You will be automatically promoted if a seat opens.`
           : `Your pass ${tempTicketId} is now live in your dashboard.`,
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -527,7 +528,7 @@ const EventRegistrationPage = () => {
       <div className="full-reg-stepper-container craft-card">
         <div className="full-reg-stepper">
           {visibleSteps.map((sIdx, i) => {
-            const stepInfo = STEP_TITLES[sIdx] || { title: `Step ${sIdx + 1}`, icon: '📌' };
+            const stepInfo = stepTitles[sIdx] || { title: `Step ${sIdx + 1}`, icon: '📌' };
             const isActive = step === sIdx;
             const isDone = visibleSteps.indexOf(step) > i;
 
