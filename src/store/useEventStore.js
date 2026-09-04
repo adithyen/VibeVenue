@@ -15,6 +15,65 @@ import {
 } from '../services/emailService';
 import { detectRegistrationConflict } from '../utils/overlapChecker';
 
+export async function syncEventCountsInDatabase(eventId) {
+  if (!eventId) return;
+  try {
+    const admin = await getAdminSupabaseClient();
+    const { data: regs, error } = await admin
+      .from('registrations')
+      .select('id, status')
+      .eq('event_id', eventId);
+
+    if (error) {
+      console.warn('syncEventCountsInDatabase error querying regs:', error);
+      return;
+    }
+
+    const confirmedCount = (regs || []).filter(r => r.status === 'confirmed').length;
+    const waitlistCount = (regs || []).filter(r => r.status === 'waitlisted').length;
+
+    const { data: currentDbEvt } = await admin
+      .from('events')
+      .select('amenities')
+      .eq('id', eventId)
+      .maybeSingle();
+
+    const updatedAmenities = {
+      ...(currentDbEvt?.amenities || {}),
+      confirmedCount,
+      waitlistCount,
+    };
+
+    await admin
+      .from('events')
+      .update({
+        registration_count: confirmedCount,
+        amenities: updatedAmenities,
+      })
+      .eq('id', eventId);
+
+    // Also update Zustand store state
+    useEventStore.setState(state => ({
+      events: state.events.map(e =>
+        e.id === eventId
+          ? {
+              ...e,
+              registrationCount: confirmedCount,
+              waitlistCount: waitlistCount,
+              amenities: {
+                ...(e.amenities || {}),
+                confirmedCount,
+                waitlistCount,
+              },
+            }
+          : e
+      ),
+    }));
+  } catch (err) {
+    console.warn('syncEventCountsInDatabase catch:', err);
+  }
+}
+
 const useEventStore = create((set, get) => ({
   // ── State ───────────────────────────────────────────────────
   events: [],
@@ -215,6 +274,7 @@ const useEventStore = create((set, get) => ({
 
     // Insert child rows
     await insertChildRows(event.id, formData);
+    await syncEventCountsInDatabase(event.id);
     await get().fetchEvents();
     return event;
   },
@@ -247,6 +307,7 @@ const useEventStore = create((set, get) => ({
     await supabase.from('event_links').delete().eq('event_id', id);
     await insertChildRows(id, formData);
 
+    await syncEventCountsInDatabase(id);
     await get().fetchEvents();
     return true;
   },
@@ -297,19 +358,25 @@ const useEventStore = create((set, get) => ({
 
     // Real-time server capacity verification via admin client to avoid RLS count mismatch
     const admin = await getAdminSupabaseClient();
-    const { data: latestRegs } = await admin
-      .from('registrations')
-      .select('id, status')
-      .eq('event_id', eventId);
+    const { data: dbEvt, error: dbEvtErr } = await admin
+      .from('events')
+      .select('*, registrations(id, status)')
+      .eq('id', eventId)
+      .single();
 
-    const liveConfirmed = (latestRegs || []).filter(r => r.status === 'confirmed').length;
-    const liveWaitlisted = (latestRegs || []).filter(r => r.status === 'waitlisted').length;
+    if (dbEvtErr || !dbEvt) {
+      throw new Error(dbEvtErr?.message || 'Event not found or unavailable');
+    }
 
-    const event = get().events.find(e => e.id === eventId);
-    const maxParticipants = event?.maxParticipants || 9999;
-    const hasCapacityLimit = event?.hasCapacityLimit && !event?.isOnline;
-    const enableWaitlist = Boolean(event?.enableWaitlist);
-    const waitlistCapacity = parseInt(event?.waitlistCapacity || 30, 10);
+    const latestRegs = dbEvt.registrations || [];
+    const liveConfirmed = latestRegs.filter(r => r.status === 'confirmed').length;
+    const liveWaitlisted = latestRegs.filter(r => r.status === 'waitlisted').length;
+
+    const maxParticipants = dbEvt.has_capacity_limit ? (parseInt(dbEvt.max_participants, 10) || 9999) : 9999;
+    const hasCapacityLimit = Boolean(dbEvt.has_capacity_limit && !dbEvt.is_online);
+    const amenities = dbEvt.amenities || {};
+    const enableWaitlist = Boolean(amenities.enableWaitlist);
+    const waitlistCapacity = parseInt(amenities.waitlistCapacity, 10) || 30;
 
     const isFull = hasCapacityLimit && liveConfirmed >= maxParticipants;
     let effectiveStatus = 'confirmed';
@@ -392,37 +459,8 @@ const useEventStore = create((set, get) => ({
     const nextConfirmedCount = isWaitlist ? liveConfirmed : liveConfirmed + 1;
     const nextWaitlistCount = isWaitlist ? liveWaitlisted + 1 : liveWaitlisted;
 
-    // Optimistically update store state
-    set(state => ({
-      events: state.events.map(e =>
-        e.id === eventId
-          ? {
-              ...e,
-              registrationCount: nextConfirmedCount,
-              waitlistCount: nextWaitlistCount,
-              amenities: {
-                ...(e.amenities || {}),
-                confirmedCount: nextConfirmedCount,
-                waitlistCount: nextWaitlistCount,
-              },
-            }
-          : e
-      ),
-    }));
-
-    // Synchronize to Supabase events table so all other sessions immediately get Realtime event updates
-    try {
-      const { data: currentDbEvt } = await admin.from('events').select('amenities').eq('id', eventId).single();
-      await admin.from('events').update({
-        amenities: {
-          ...(currentDbEvt?.amenities || {}),
-          confirmedCount: nextConfirmedCount,
-          waitlistCount: nextWaitlistCount,
-        }
-      }).eq('id', eventId);
-    } catch (syncErr) {
-      console.warn('Count synchronization warning:', syncErr);
-    }
+    // Optimistically update store state & synchronize Supabase
+    await syncEventCountsInDatabase(eventId);
 
     // Trigger Email Dispatch asynchronously
     const eventName = event?.name || formData.eventName || 'Campus Event';
@@ -482,21 +520,7 @@ const useEventStore = create((set, get) => ({
         .order('registered_at', { ascending: true });
 
       if (error || !waitlistRows || waitlistRows.length === 0) {
-        // Still synchronize event counts in case they changed
-        const { data: allRegs } = await admin
-          .from('registrations')
-          .select('id, status')
-          .eq('event_id', eventId);
-        const liveConfirmed = (allRegs || []).filter(r => r.status === 'confirmed').length;
-        const liveWaitlist = (allRegs || []).filter(r => r.status === 'waitlisted').length;
-        const { data: currentDbEvt } = await admin.from('events').select('amenities').eq('id', eventId).single();
-        await admin.from('events').update({
-          amenities: {
-            ...(currentDbEvt?.amenities || {}),
-            confirmedCount: liveConfirmed,
-            waitlistCount: liveWaitlist,
-          }
-        }).eq('id', eventId);
+        await syncEventCountsInDatabase(eventId);
         return null;
       }
 
@@ -517,41 +541,8 @@ const useEventStore = create((set, get) => ({
         return null;
       }
 
-      // Recalculate true counts
-      const { data: allRegs } = await admin
-        .from('registrations')
-        .select('id, status')
-        .eq('event_id', eventId);
-      const liveConfirmed = (allRegs || []).filter(r => r.status === 'confirmed').length;
-      const liveWaitlist = (allRegs || []).filter(r => r.status === 'waitlisted').length;
-
-      // Update store state
-      set(state => ({
-        events: state.events.map(e =>
-          e.id === eventId
-            ? {
-                ...e,
-                registrationCount: liveConfirmed,
-                waitlistCount: liveWaitlist,
-                amenities: {
-                  ...(e.amenities || {}),
-                  confirmedCount: liveConfirmed,
-                  waitlistCount: liveWaitlist,
-                },
-              }
-            : e
-        ),
-      }));
-
-      // Persist to events table for instant Realtime sync across all clients
-      const { data: currentDbEvt } = await admin.from('events').select('amenities').eq('id', eventId).single();
-      await admin.from('events').update({
-        amenities: {
-          ...(currentDbEvt?.amenities || {}),
-          confirmedCount: liveConfirmed,
-          waitlistCount: liveWaitlist,
-        }
-      }).eq('id', eventId);
+      // Synchronize database and Zustand store counts
+      await syncEventCountsInDatabase(eventId);
 
       // Find event metadata for emails
       const event = get().events.find(e => e.id === eventId);
@@ -617,38 +608,7 @@ const useEventStore = create((set, get) => ({
 
       if (updateErr) return false;
 
-      const { data: allRegs } = await admin
-        .from('registrations')
-        .select('id, status')
-        .eq('event_id', eventId);
-      const liveConfirmed = (allRegs || []).filter(r => r.status === 'confirmed').length;
-      const liveWaitlist = (allRegs || []).filter(r => r.status === 'waitlisted').length;
-
-      set(state => ({
-        events: state.events.map(e =>
-          e.id === eventId
-            ? {
-                ...e,
-                registrationCount: liveConfirmed,
-                waitlistCount: liveWaitlist,
-                amenities: {
-                  ...(e.amenities || {}),
-                  confirmedCount: liveConfirmed,
-                  waitlistCount: liveWaitlist,
-                },
-              }
-            : e
-        ),
-      }));
-
-      const { data: currentDbEvt } = await admin.from('events').select('amenities').eq('id', eventId).single();
-      await admin.from('events').update({
-        amenities: {
-          ...(currentDbEvt?.amenities || {}),
-          confirmedCount: liveConfirmed,
-          waitlistCount: liveWaitlist,
-        }
-      }).eq('id', eventId);
+      await syncEventCountsInDatabase(eventId);
 
       const event = get().events.find(e => e.id === eventId);
       if (targetReg.email) {
@@ -734,39 +694,7 @@ const useEventStore = create((set, get) => ({
     if (wasConfirmed) {
       await get().promoteNextWaitlisted(eventId);
     } else {
-      // Recalculate true counts
-      const { data: allRegs } = await admin
-        .from('registrations')
-        .select('id, status')
-        .eq('event_id', eventId);
-      const liveConfirmed = (allRegs || []).filter(r => r.status === 'confirmed').length;
-      const liveWaitlist = (allRegs || []).filter(r => r.status === 'waitlisted').length;
-
-      set(state => ({
-        events: state.events.map(e =>
-          e.id === eventId
-            ? {
-                ...e,
-                registrationCount: liveConfirmed,
-                waitlistCount: liveWaitlist,
-                amenities: {
-                  ...(e.amenities || {}),
-                  confirmedCount: liveConfirmed,
-                  waitlistCount: liveWaitlist,
-                },
-              }
-            : e
-        ),
-      }));
-
-      const { data: currentDbEvt } = await admin.from('events').select('amenities').eq('id', eventId).single();
-      await admin.from('events').update({
-        amenities: {
-          ...(currentDbEvt?.amenities || {}),
-          confirmedCount: liveConfirmed,
-          waitlistCount: liveWaitlist,
-        }
-      }).eq('id', eventId);
+      await syncEventCountsInDatabase(eventId);
     }
 
     return true;
@@ -1235,23 +1163,23 @@ function normaliseEvent(row) {
 
     // Live counts computed from registrations relation (if admin) or persisted amenities (for participants)
     registrationCount: (() => {
-      const dbConfirmed = Array.isArray(row.registrations) && row.registrations.length > 0
-        ? row.registrations.filter(r => r.status === 'confirmed').length
-        : null;
-      const amenitiesConfirmed = typeof amenities?.confirmedCount === 'number' ? amenities.confirmedCount : null;
-      if (dbConfirmed !== null && dbConfirmed > (amenitiesConfirmed ?? 0)) return dbConfirmed;
-      if (amenitiesConfirmed !== null) return amenitiesConfirmed;
-      return dbConfirmed ?? (parseInt(row.registration_count, 10) || 0);
+      if (Array.isArray(row.registrations)) {
+        return row.registrations.filter(r => r.status === 'confirmed').length;
+      }
+      if (typeof amenities?.confirmedCount === 'number') {
+        return amenities.confirmedCount;
+      }
+      return parseInt(row.registration_count, 10) || 0;
     })(),
 
     waitlistCount: (() => {
-      const dbWaitlist = Array.isArray(row.registrations) && row.registrations.length > 0
-        ? row.registrations.filter(r => r.status === 'waitlisted').length
-        : null;
-      const amenitiesWaitlist = typeof amenities?.waitlistCount === 'number' ? amenities.waitlistCount : null;
-      if (dbWaitlist !== null && dbWaitlist > (amenitiesWaitlist ?? 0)) return dbWaitlist;
-      if (amenitiesWaitlist !== null) return amenitiesWaitlist;
-      return dbWaitlist ?? 0;
+      if (Array.isArray(row.registrations)) {
+        return row.registrations.filter(r => r.status === 'waitlisted').length;
+      }
+      if (typeof amenities?.waitlistCount === 'number') {
+        return amenities.waitlistCount;
+      }
+      return 0;
     })(),
 
     checkedInCount: Array.isArray(row.registrations) && row.registrations.length > 0

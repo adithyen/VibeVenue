@@ -31,6 +31,7 @@ const EventRegistrationPage = () => {
 
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registrationResult, setRegistrationResult] = useState(null);
   const [copiedField, setCopiedField] = useState(null);
   const [conflictInfo, setConflictInfo] = useState(null); // { conflictingEventName, overlapDescription }
 
@@ -334,14 +335,15 @@ const EventRegistrationPage = () => {
         status: isWaitlist ? 'waitlisted' : 'confirmed',
         registeredAt: new Date().toISOString(),
       });
-      const wasWaitlisted = result?.status === 'waitlisted' || isWaitlist;
+      setRegistrationResult(result);
+      const isActuallyWaitlisted = result?.status === 'waitlisted';
       setStep(3);
       addToast({
-        type: wasWaitlisted ? 'warning' : 'success',
-        title: wasWaitlisted ? 'Added to Waiting List! 📋' : 'Registration Confirmed! 🎉',
-        message: wasWaitlisted
-          ? `You are #${result?.queuePosition || regInfo.waitlistPosition || 1} in queue. You will be automatically promoted if a seat opens.`
-          : `Your pass ${tempTicketId} is now live in your dashboard.`,
+        type: isActuallyWaitlisted ? 'warning' : 'success',
+        title: isActuallyWaitlisted ? 'Added to Waiting List! 📋' : 'Registration Confirmed! 🎉',
+        message: isActuallyWaitlisted
+          ? `You are #${result?.queuePosition || 1} in queue. You will be automatically promoted if a seat opens.`
+          : `Your pass ${result?.ticketId || tempTicketId} is now live in your dashboard.`,
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
@@ -1026,97 +1028,104 @@ const EventRegistrationPage = () => {
         )}
 
         {/* ── STEP 3: Confirmed Gate Pass or Waitlist Pass ── */}
-        {step === 3 && (
-          <div className="full-reg-confirmed-box">
-            <div className="confirmed-celebration-badge">
-              <div className="celebration-icon">{regInfo.isWaitlistActive ? '📋' : '🎉'}</div>
-              <h2 className="confirmed-title">
-                {regInfo.isWaitlistActive ? 'Added to Waiting List!' : 'Registration Confirmed!'}
-              </h2>
-              <p className="confirmed-sub">
-                {regInfo.isWaitlistActive
-                  ? `You have secured Queue Position #${regInfo.waitlistPosition}. If a confirmed participant cancels their registration, your pass will automatically be upgraded to Confirmed!`
-                  : 'Your digital gate pass is ready. Present this pass at the venue entrance desk.'}
-              </p>
-            </div>
+        {step === 3 && (() => {
+          const isPassWaitlisted = registrationResult ? (registrationResult.status === 'waitlisted') : regInfo.isWaitlistActive;
+          const passQueuePosition = registrationResult?.queuePosition || regInfo.waitlistPosition || 1;
+          const finalTicketId = registrationResult?.ticketId || tempTicketId;
 
-            {/* Official Pass Ticket Card */}
-            <div className="full-reg-pass-ticket craft-card" style={regInfo.isWaitlistActive ? { border: '1.5px solid #F59E0B' } : undefined}>
-              <div className="pass-ticket-left">
-                <div className="ticket-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <VibeVenueMark size={18} idPrefix="pass-reg-vv" />
-                    <span className="ticket-brand font-mono">
-                      {regInfo.isWaitlistActive ? 'VIBEVENUE WAITLIST PASS' : 'VIBEVENUE GATE PASS'}
-                    </span>
+          return (
+            <div className="full-reg-confirmed-box">
+              <div className="confirmed-celebration-badge">
+                <div className="celebration-icon">{isPassWaitlisted ? '📋' : '🎉'}</div>
+                <h2 className="confirmed-title">
+                  {isPassWaitlisted ? 'Added to Waiting List!' : 'Registration Confirmed!'}
+                </h2>
+                <p className="confirmed-sub">
+                  {isPassWaitlisted
+                    ? `You have secured Queue Position #${passQueuePosition}. If a confirmed participant cancels their registration, your pass will automatically be upgraded to Confirmed!`
+                    : 'Your digital gate pass is ready. Present this pass at the venue entrance desk.'}
+                </p>
+              </div>
+
+              {/* Official Pass Ticket Card */}
+              <div className="full-reg-pass-ticket craft-card" style={isPassWaitlisted ? { border: '1.5px solid #F59E0B' } : undefined}>
+                <div className="pass-ticket-left">
+                  <div className="ticket-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <VibeVenueMark size={18} idPrefix="pass-reg-vv" />
+                      <span className="ticket-brand font-mono">
+                        {isPassWaitlisted ? 'VIBEVENUE WAITLIST PASS' : 'VIBEVENUE GATE PASS'}
+                      </span>
+                    </div>
+                    <span className="ticket-category-tag font-mono">{event.category?.toUpperCase()}</span>
                   </div>
-                  <span className="ticket-category-tag font-mono">{event.category?.toUpperCase()}</span>
+                  <h3 className="ticket-event-name">{event.name}</h3>
+                  <p className="ticket-venue-meta font-mono">📍 {event.venue || (event.isOnline ? 'Online' : 'Campus Venue')}</p>
+                  <p className="ticket-date-meta font-mono">📅 {formatEventSchedule(event.date || event.startDate, event.time || event.startTime, event.endTime)}</p>
+
+                  <div className="ticket-delegate-grid font-mono">
+                    <div>
+                      <span className="t-lbl">DELEGATE</span>
+                      <span className="t-val">{form.fullName}</span>
+                    </div>
+                    <div>
+                      <span className="t-lbl">ROLL NO</span>
+                      <span className="t-val">{form.rollNumber || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="t-lbl">CATEGORY</span>
+                      <span className="t-val">
+                        {(typeof formatPricingTier === 'function' && form.pricingTier ? formatPricingTier(form.pricingTier) : '') ||
+                         (form.registrationType === 'group' ? 'Team Delegate' : 'Individual Delegate')}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="t-lbl">{isPassWaitlisted ? 'QUEUE POSITION' : 'AMOUNT PAID'}</span>
+                      <span className="t-val" style={isPassWaitlisted ? { color: '#F59E0B', fontWeight: 700 } : undefined}>
+                        {isPassWaitlisted ? `#${passQueuePosition}` : (totalAmount > 0 ? `₹${totalAmount}` : 'Free Entry')}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="ticket-event-name">{event.name}</h3>
-                <p className="ticket-venue-meta font-mono">📍 {event.venue || (event.isOnline ? 'Online' : 'Campus Venue')}</p>
-                <p className="ticket-date-meta font-mono">📅 {formatEventSchedule(event.date || event.startDate, event.time || event.startTime, event.endTime)}</p>
 
-                <div className="ticket-delegate-grid font-mono">
-                  <div>
-                    <span className="t-lbl">DELEGATE</span>
-                    <span className="t-val">{form.fullName}</span>
+                <div className="pass-ticket-right font-mono">
+                  <div className="ticket-qr-box">
+                    <QRCodeSVG value={finalTicketId} size={110} />
                   </div>
-                  <div>
-                    <span className="t-lbl">ROLL NO</span>
-                    <span className="t-val">{form.rollNumber || '—'}</span>
-                  </div>
-                  <div>
-                    <span className="t-lbl">CATEGORY</span>
-                    <span className="t-val">
-                      {(typeof formatPricingTier === 'function' && form.pricingTier ? formatPricingTier(form.pricingTier) : '') ||
-                       (form.registrationType === 'group' ? 'Team Delegate' : 'Individual Delegate')}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="t-lbl">{regInfo.isWaitlistActive ? 'QUEUE POSITION' : 'AMOUNT PAID'}</span>
-                    <span className="t-val" style={regInfo.isWaitlistActive ? { color: '#F59E0B', fontWeight: 700 } : undefined}>
-                      {regInfo.isWaitlistActive ? `#${regInfo.waitlistPosition}` : (totalAmount > 0 ? `₹${totalAmount}` : 'Free Entry')}
-                    </span>
-                  </div>
+                  <span className="ticket-id-code">{finalTicketId}</span>
+                  <span
+                    className="ticket-status-pill"
+                    style={isPassWaitlisted ? { background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', borderColor: '#F59E0B' } : undefined}
+                  >
+                    {isPassWaitlisted ? `STATUS: WAITLISTED (#${passQueuePosition})` : 'STATUS: CONFIRMED'}
+                  </span>
                 </div>
               </div>
 
-              <div className="pass-ticket-right font-mono">
-                <div className="ticket-qr-box">
-                  <QRCodeSVG value={tempTicketId} size={110} />
-                </div>
-                <span className="ticket-id-code">{tempTicketId}</span>
-                <span
-                  className="ticket-status-pill"
-                  style={regInfo.isWaitlistActive ? { background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', borderColor: '#F59E0B' } : undefined}
+              {/* Actions */}
+              <div className="confirmed-actions-row">
+                {event.whatsappLink && (
+                  <a
+                    href={event.whatsappLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="full-reg-whatsapp-btn"
+                  >
+                    💬 Join Event WhatsApp Community
+                  </a>
+                )}
+                <Button
+                  id="full-reg-finish-btn"
+                  variant="primary"
+                  size="lg"
+                  onClick={() => navigate('/portal')}
                 >
-                  {regInfo.isWaitlistActive ? `STATUS: WAITLISTED (#${regInfo.waitlistPosition})` : 'STATUS: CONFIRMED'}
-                </span>
+                  Return to My Dashboard →
+                </Button>
               </div>
             </div>
-
-            {/* Actions */}
-            <div className="confirmed-actions-row">
-              {event.whatsappLink && (
-                <a
-                  href={event.whatsappLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="full-reg-whatsapp-btn"
-                >
-                  💬 Join Event WhatsApp Community
-                </a>
-              )}
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={() => navigate('/portal')}
-              >
-                Return to My Dashboard →
-              </Button>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Cancellation & Refund Policy Card (Displayed before confirmation) */}
         {step < 3 && (event.cancellationPolicy || event.acceptCancellationsUntil) && (
