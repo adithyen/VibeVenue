@@ -923,11 +923,11 @@ function formDataToRow(f, bannerUrl, logoUrl) {
     meeting_link:          f.meetingLink || null,
     whatsapp_link:         f.whatsappLink || null,
     registration_type:     f.registrationType || 'individual',
-    is_paid:               f.isPaid || false,
-    pricing_type:          f.pricingType || (f.pricingTiers?.length ? 'tiered' : 'flat'),
-    pricing_tiers:         f.pricingTiers || [],
-    individual_price:      f.individualPrice ? parseFloat(f.individualPrice) : null,
-    group_price:           f.groupPrice       ? parseFloat(f.groupPrice)       : null,
+    is_paid:               Boolean(f.isPaid),
+    pricing_type:          f.isPaid ? (f.pricingType || (f.pricingTiers?.length ? 'tiered' : 'flat')) : 'free',
+    pricing_tiers:         f.isPaid ? (f.pricingTiers || []) : [],
+    individual_price:      f.isPaid && f.individualPrice ? parseFloat(f.individualPrice) : null,
+    group_price:           f.isPaid && f.groupPrice       ? parseFloat(f.groupPrice)       : null,
     group_min_size:        parseInt(f.groupMinSize, 10) || 2,
     group_max_size:        parseInt(f.groupMaxSize, 10) || 5,
     has_capacity_limit:    f.hasCapacityLimit || false,
@@ -1025,7 +1025,7 @@ function normaliseEvent(row) {
     openTo = ['All'];
   }
 
-  const isTiered = (row.pricing_type === 'tiered' || pricingTiers.length > 0) && pricingTiers.length > 0;
+  const isTiered = Boolean(row.is_paid && ((row.pricing_type === 'tiered') || (pricingTiers.length > 0)) && pricingTiers.length > 0);
   const minTierPrice = isTiered
     ? Math.min(...pricingTiers.map(t => parseFloat(t.price) || 0))
     : 0;
@@ -1074,9 +1074,9 @@ function normaliseEvent(row) {
     whatsappLink:      row.whatsapp_link,
 
     registrationType:  row.registration_type,
-    isPaid:            row.is_paid,
+    isPaid:            Boolean(row.is_paid),
     pricingType:       isTiered ? 'tiered' : (row.pricing_type || 'flat'),
-    pricingTiers:      pricingTiers,
+    pricingTiers:      row.is_paid ? pricingTiers : [],
     openTo:            openTo,
     allowRegistrationsUntil: row.allow_registrations_until || null,
     enableSpotRegistrations: row.enable_spot_registrations || false,

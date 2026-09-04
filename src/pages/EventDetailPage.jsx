@@ -95,6 +95,8 @@ const EventDetailPage = () => {
   const pendingCount   = participants.filter(p => p.status === 'pending').length || event.statusBreakdown?.pending || 0;
   const availableSeats = Math.max(0, (event.maxParticipants || 100) - (event.registrationCount || 0));
 
+  const isPaid = Boolean(event.isPaid || (event.fee && event.fee !== 'Free' && event.fee !== '0' && event.fee !== '₹0'));
+
   const chartData = [
     { name: 'Confirmed Attendees', value: confirmedCount, color: '#10B981' },
     { name: 'Pending Approvals',  value: pendingCount,   color: '#F59E0B' },
@@ -352,8 +354,8 @@ const EventDetailPage = () => {
             )}
 
 
-            {/* Dynamic Pricing Tiers */}
-            {(event.pricingType === 'tiered' || (Array.isArray(event.pricingTiers) && event.pricingTiers.length > 0)) && event.pricingTiers?.length > 0 && (
+            {/* Dynamic Pricing Tiers (Only for Paid Tiered Events) */}
+            {isPaid && event.pricingType === 'tiered' && Array.isArray(event.pricingTiers) && event.pricingTiers.length > 0 && (
               <div className="craft-card detail-tiers-card">
                 <h3 className="card-section-title">Dynamic Pricing Tiers</h3>
                 <div className="detail-tiers-grid">
