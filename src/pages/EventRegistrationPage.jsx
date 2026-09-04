@@ -8,7 +8,7 @@ import useEventStore from '../store/useEventStore';
 import useUIStore from '../store/useUIStore';
 import Button from '../components/ui/Button';
 import Avatar from '../components/ui/Avatar';
-import { formatEventSchedule, getRegistrationStatusInfo, getComputedEventStatus } from '../utils/dateUtils';
+import { formatEventSchedule, getRegistrationStatusInfo, getComputedEventStatus, formatPricingTier } from '../utils/dateUtils';
 import { getCategoryById } from '../data/mockData';
 import './EventRegistrationPage.css';
 
@@ -23,8 +23,15 @@ const EventRegistrationPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { events, registerParticipant } = useEventStore();
+  const { events, isLoading: eventsLoading, fetchEvents, registerParticipant } = useEventStore();
   const { addToast } = useUIStore();
+
+  // Ensure events are always fetched if navigating directly
+  useEffect(() => {
+    if ((!events || events.length === 0) && fetchEvents) {
+      fetchEvents();
+    }
+  }, [events?.length, fetchEvents]);
 
   const event = events.find(e => e.id === id);
 
@@ -38,12 +45,13 @@ const EventRegistrationPage = () => {
   // Generate unique Ticket ID
   const tempTicketId = useMemo(() => `TCK-${Math.floor(100000 + Math.random() * 900000)}`, []);
 
-  const isPaid = event?.isPaid || (event?.fee && event?.fee !== 'Free' && event?.fee !== '');
+  const isPaid = Boolean(event?.isPaid || (event?.fee && event?.fee !== 'Free' && event?.fee !== '' && event?.fee !== '0' && event?.fee !== '₹0'));
   const hasGroup = event?.registrationType === 'group' || event?.registrationType === 'both';
   const hasIndividual = event?.registrationType === 'individual' || event?.registrationType === 'both';
   const hasTiers = isPaid && (event?.pricingType === 'tiered' || (Array.isArray(event?.pricingTiers) && event?.pricingTiers.length > 0)) && Array.isArray(event?.pricingTiers) && event?.pricingTiers.length > 0;
   const defaultTier = hasTiers ? (event.pricingTiers[0]?.label || '') : '';
-  const needsPreferences = hasGroup || (event?.addOns && event?.addOns.length > 0) || hasTiers;
+  const hasAddOns = Array.isArray(event?.addOns) && event.addOns.length > 0;
+  const needsPreferences = hasTiers || hasAddOns;
 
   const visibleSteps = useMemo(() => {
     const steps = [0];
@@ -61,9 +69,9 @@ const EventRegistrationPage = () => {
     department: user?.department || '',
     year: user?.year || '',
     rollNumber: user?.studentId || user?.rollNumber || '',
-    registrationType: hasIndividual ? 'individual' : 'group',
+    registrationType: event?.registrationType === 'group' ? 'group' : 'individual',
     teamName: '',
-    teamMembers: [{ name: '', email: '' }],
+    teamMembers: [{ name: '', email: '', phone: '', rollNumber: '', department: '' }],
     pricingTier: defaultTier,
     membershipProof: '',
     selectedAddOns: (event?.addOns || []).filter(a => a.required).map(a => a.label),
@@ -73,6 +81,25 @@ const EventRegistrationPage = () => {
   });
 
   const [errors, setErrors] = useState({});
+
+  // Dynamically sync registrationType & pricingTier when event arrives
+  useEffect(() => {
+    if (event) {
+      const allowedIndividual = event.registrationType === 'individual' || event.registrationType === 'both';
+      const allowedGroup = event.registrationType === 'group' || event.registrationType === 'both';
+      setForm(prev => {
+        let nextType = prev.registrationType;
+        if (!allowedGroup && nextType === 'group') nextType = 'individual';
+        if (!allowedIndividual && nextType === 'individual') nextType = 'group';
+        if (!nextType) nextType = allowedIndividual ? 'individual' : (allowedGroup ? 'group' : 'individual');
+        return {
+          ...prev,
+          registrationType: nextType,
+          pricingTier: prev.pricingTier || (event.pricingTiers?.[0]?.label || ''),
+        };
+      });
+    }
+  }, [event]);
 
   // Sync user profile if loaded asynchronously
   useEffect(() => {
@@ -231,7 +258,22 @@ const EventRegistrationPage = () => {
       if (needsShot && !form.screenshotBase64) e.screenshot = 'Please upload your payment screenshot.';
     }
     setErrors(e);
-    return Object.keys(e).length === 0;
+    const isValid = Object.keys(e).length === 0;
+    if (!isValid) {
+      const firstMsg = Object.values(e)[0] || 'Please complete all required fields marked with *';
+      addToast({
+        type: 'warning',
+        title: 'Required Field Missing',
+        message: firstMsg,
+      });
+      setTimeout(() => {
+        const firstErr = document.querySelector('.input-error, .field-error-msg, [class*="error"]');
+        if (firstErr) {
+          firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 50);
+    }
+    return isValid;
   };
 
   const currentVisibleIdx = visibleSteps.indexOf(step);
@@ -316,6 +358,16 @@ const EventRegistrationPage = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (eventsLoading && !event) {
+    return (
+      <div className="full-reg-container" style={{ textAlign: 'center', padding: '5rem 1rem' }}>
+        <div className="craft-spinner" style={{ margin: '0 auto 1.5rem', width: 36, height: 36 }} />
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Loading Event Registration...</h2>
+        <p style={{ color: 'var(--text-muted)' }}>Retrieving event specifications and track details</p>
+      </div>
+    );
+  }
 
   if (!event) {
     return (
@@ -582,25 +634,36 @@ const EventRegistrationPage = () => {
             </div>
 
             {/* Team Option if event allows group */}
-            {hasGroup && hasIndividual && (
+            {hasGroup && (
               <div className="full-reg-group-section">
-                <label className="craft-label">Registration Type</label>
-                <div className="full-reg-toggle-row">
-                  <button
-                    type="button"
-                    className={`full-reg-toggle-btn ${form.registrationType === 'individual' ? 'active' : ''}`}
-                    onClick={() => setF('registrationType', 'individual')}
-                  >
-                    👤 Individual Delegate
-                  </button>
-                  <button
-                    type="button"
-                    className={`full-reg-toggle-btn ${form.registrationType === 'group' ? 'active' : ''}`}
-                    onClick={() => setF('registrationType', 'group')}
-                  >
-                    👥 Team Registration
-                  </button>
-                </div>
+                {hasIndividual ? (
+                  <>
+                    <label className="craft-label">Registration Type</label>
+                    <div className="full-reg-toggle-row">
+                      <button
+                        type="button"
+                        className={`full-reg-toggle-btn ${form.registrationType === 'individual' ? 'active' : ''}`}
+                        onClick={() => setF('registrationType', 'individual')}
+                      >
+                        👤 Individual Delegate
+                      </button>
+                      <button
+                        type="button"
+                        className={`full-reg-toggle-btn ${form.registrationType === 'group' ? 'active' : ''}`}
+                        onClick={() => setF('registrationType', 'group')}
+                      >
+                        👥 Team Registration
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ marginBottom: '1.25rem', padding: '12px 16px', background: 'rgba(99, 102, 241, 0.08)', borderRadius: 10, border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                    <strong style={{ color: 'var(--accent-iris, #6366F1)', fontSize: '0.875rem' }}>👥 Team Only Track</strong>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                      This track requires group/team registration. Please specify your team name and delegate roster below.
+                    </p>
+                  </div>
+                )}
 
                 {form.registrationType === 'group' && (
                   <div className="team-roster-builder" style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -989,12 +1052,15 @@ const EventRegistrationPage = () => {
                   </div>
                   <div>
                     <span className="t-lbl">CATEGORY</span>
-                    <span className="t-val">{formatPricingTier(form.pricingTier) || 'Individual'}</span>
+                    <span className="t-val">
+                      {(typeof formatPricingTier === 'function' && form.pricingTier ? formatPricingTier(form.pricingTier) : '') ||
+                       (form.registrationType === 'group' ? 'Team Delegate' : 'Individual Delegate')}
+                    </span>
                   </div>
                   <div>
                     <span className="t-lbl">{regInfo.isWaitlistActive ? 'QUEUE POSITION' : 'AMOUNT PAID'}</span>
                     <span className="t-val" style={regInfo.isWaitlistActive ? { color: '#F59E0B', fontWeight: 700 } : undefined}>
-                      {regInfo.isWaitlistActive ? `#${regInfo.waitlistPosition}` : `₹${totalAmount}`}
+                      {regInfo.isWaitlistActive ? `#${regInfo.waitlistPosition}` : (totalAmount > 0 ? `₹${totalAmount}` : 'Free Entry')}
                     </span>
                   </div>
                 </div>
@@ -1104,4 +1170,45 @@ const EventRegistrationPage = () => {
   );
 };
 
-export default EventRegistrationPage;
+class RegistrationErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('Registration Page render error:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="full-reg-container" style={{ textAlign: 'center', padding: '5rem 1rem' }}>
+          <span style={{ fontSize: '3rem', display: 'block', marginBottom: '1rem' }}>🎟️</span>
+          <h2>Registration View Recovered</h2>
+          <p style={{ color: 'var(--text-secondary)', maxWidth: 480, margin: '0.5rem auto 1.5rem' }}>
+            Your registration details have been saved. If your pass has generated, it is ready in your student portal.
+          </p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <Button variant="primary" onClick={() => window.location.href = '/portal'}>
+              View My Passes in Dashboard →
+            </Button>
+            <Button variant="secondary" onClick={() => this.setState({ hasError: false })}>
+              Try Again
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const EventRegistrationPageWrapper = () => (
+  <RegistrationErrorBoundary>
+    <EventRegistrationPage />
+  </RegistrationErrorBoundary>
+);
+
+export default EventRegistrationPageWrapper;

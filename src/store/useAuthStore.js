@@ -5,6 +5,7 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { formatPricingTier } from '../utils/dateUtils';
+import useEventStore from './useEventStore';
 
 const useAuthStore = create((set, get) => ({
   user: null,          // { id, name, email, avatar, role, studentId, department, year, initials }
@@ -21,13 +22,22 @@ const useAuthStore = create((set, get) => ({
       window.location.search.includes('code=')
     );
 
+    // Helper to sync events whenever auth session becomes active
+    const syncEventStore = () => {
+      try {
+        useEventStore.getState().fetchEvents();
+      } catch {}
+    };
+
     // Listen for auth state changes (OAuth callback, token refresh, sign-in/out)
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         const profile = await get()._fetchProfile(session.user.id, session.user);
         set({ session, user: profile, isLoading: false });
+        syncEventStore();
       } else if (event === 'SIGNED_OUT') {
         set({ session: null, user: null, isLoading: false });
+        syncEventStore();
       }
     });
 
@@ -36,6 +46,7 @@ const useAuthStore = create((set, get) => ({
       if (session?.user) {
         const profile = await get()._fetchProfile(session.user.id, session.user);
         set({ session, user: profile, isLoading: false });
+        syncEventStore();
       } else if (!hasAuthHash) {
         set({ session: null, user: null, isLoading: false });
       }
@@ -150,6 +161,9 @@ const useAuthStore = create((set, get) => ({
     }
     const profile = await get()._fetchProfile(data.user.id);
     set({ session: data.session, user: profile, isLoading: false });
+    try {
+      useEventStore.getState().fetchEvents();
+    } catch {}
     return true;
   },
 
@@ -175,6 +189,9 @@ const useAuthStore = create((set, get) => ({
     if (data.session) {
       const profile = await get()._fetchProfile(data.user.id);
       set({ session: data.session, user: profile, isLoading: false });
+      try {
+        useEventStore.getState().fetchEvents();
+      } catch {}
       return true;
     }
     set({ isLoading: false });

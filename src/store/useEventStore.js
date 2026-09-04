@@ -333,14 +333,28 @@ const useEventStore = create((set, get) => ({
       throw new Error(error.message || 'Registration failed');
     }
 
-    // Insert selected add-ons
+    // Insert selected add-ons safely
     if (formData.selectedAddOns?.length) {
-      const addonRows = formData.selectedAddOns.map(addonId => ({
-        registration_id: reg.id,
-        addon_id: addonId,
-        quantity: 1,
-      }));
-      await supabase.from('registration_addons').insert(addonRows);
+      const currentEvt = get().events.find(e => e.id === eventId);
+      const configuredAddOns = currentEvt?.addOns || [];
+      const addonRows = formData.selectedAddOns.map(item => {
+        const match = configuredAddOns.find(a => a.id === item || a.label === item);
+        const resolvedId = match?.id || item;
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedId);
+        return isUuid ? {
+          registration_id: reg.id,
+          addon_id: resolvedId,
+          quantity: 1,
+        } : null;
+      }).filter(Boolean);
+
+      if (addonRows.length > 0) {
+        try {
+          await supabase.from('registration_addons').insert(addonRows);
+        } catch (addonErr) {
+          console.warn('registration_addons insert warning:', addonErr);
+        }
+      }
     }
 
     const isWaitlist = (formData.status || 'confirmed') === 'waitlisted';

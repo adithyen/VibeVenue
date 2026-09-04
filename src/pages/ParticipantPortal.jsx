@@ -18,7 +18,7 @@ import './ParticipantPortal.css';
 const ParticipantPortal = () => {
   const navigate = useNavigate();
   const { user, logout, getParticipantPasses } = useAuthStore();
-  const { events, removeParticipant, updateEvent } = useEventStore();
+  const { events, isLoading: eventsLoading, fetchEvents, removeParticipant, updateEvent } = useEventStore();
   const { addToast } = useUIStore();
 
   const [inspectPass, setInspectPass] = useState(null);
@@ -39,6 +39,13 @@ const ParticipantPortal = () => {
   useEffect(() => {
     refreshPasses();
   }, [user?.id, refreshPasses]);
+
+  // Ensure events are always loaded on mount without requiring manual refresh
+  useEffect(() => {
+    if ((!events || events.length === 0) && fetchEvents) {
+      fetchEvents();
+    }
+  }, [events?.length, fetchEvents]);
 
   // Realtime subscription — any pass change refreshes dashboard instantly
   useEffect(() => {
@@ -317,9 +324,16 @@ const ParticipantPortal = () => {
                 );
               })}
 
-              {availableEvents.length === 0 && (
+              {eventsLoading && availableEvents.length === 0 ? (
+                <div style={{ gridColumn: '1 / -1', padding: '3rem 1rem', textAlign: 'center', background: 'var(--surface-card)', borderRadius: 'var(--radius-xl)', border: '1px dashed var(--border-default)' }}>
+                  <div className="craft-spinner" style={{ margin: '0 auto 1rem', width: 28, height: 28 }} />
+                  <p className="font-mono" style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                    Loading available technical tracks...
+                  </p>
+                </div>
+              ) : availableEvents.length === 0 ? (
                 <p className="no-more-tracks font-mono">You are registered for all available upcoming tracks.</p>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
