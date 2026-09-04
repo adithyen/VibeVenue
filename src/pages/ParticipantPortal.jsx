@@ -111,7 +111,7 @@ const ParticipantPortal = () => {
   // Revoke self registration pass
   const handleRevokePass = async (pass) => {
     setIsRevoking(true);
-    const ok = await removeParticipant(pass.eventId, pass.id);
+    const ok = await removeParticipant(pass.eventId, pass.id, pass);
     if (ok) {
       setPasses(prev => prev.filter(p => p.id !== pass.id));
       addToast({

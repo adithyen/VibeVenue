@@ -302,11 +302,15 @@ const useAuthStore = create((set, get) => ({
       query = query.eq('email', user.email);
     }
 
+    query = query.neq('status', 'cancelled');
+
     const { data, error } = await query.order('registered_at', { ascending: false });
 
     if (error) { console.error('getParticipantPasses error:', error); return []; }
 
-    return (data || []).map(r => {
+    return (data || [])
+      .filter(r => r.status !== 'cancelled')
+      .map(r => {
       const tm = r.team_members;
       let checkInStatus = r.check_in_status || 'Not Checked In';
       if (Array.isArray(tm) && tm.length > 0) {

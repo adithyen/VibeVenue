@@ -576,18 +576,33 @@ const useEventStore = create((set, get) => ({
     }
   },
 
-  removeParticipant: async (eventId, registrationId) => {
+  removeParticipant: async (eventId, registrationId, passFallback = null) => {
+    // Fetch current registration data from DB
     const { data: currentReg } = await supabase
       .from('registrations')
       .select('status, full_name, email, ticket_id')
       .eq('id', registrationId)
       .maybeSingle();
 
-    const wasConfirmed = currentReg ? currentReg.status === 'confirmed' : true;
-    const wasWaitlisted = currentReg ? currentReg.status === 'waitlisted' : false;
+    const regData = currentReg || passFallback || {};
+    const wasConfirmed = regData.status ? regData.status === 'confirmed' : true;
+    const wasWaitlisted = regData.status === 'waitlisted';
 
-    const { error } = await supabase.from('registrations').delete().eq('id', registrationId);
-    if (error) return false;
+    // 1. Mark status as 'cancelled' (allowed by RLS for participants and admins)
+    const { error: updateErr } = await supabase
+      .from('registrations')
+      .update({ status: 'cancelled' })
+      .eq('id', registrationId);
+
+    if (updateErr) {
+      console.error('removeParticipant error updating status:', updateErr);
+      return false;
+    }
+
+    // 2. Also attempt hard delete if allowed
+    try {
+      await supabase.from('registrations').delete().eq('id', registrationId);
+    } catch {}
 
     set(state => ({
       events: state.events.map(e =>
@@ -601,13 +616,15 @@ const useEventStore = create((set, get) => ({
       ),
     }));
 
+    // 3. Dispatch Cancellation Email
     const event = get().events.find(e => e.id === eventId);
-    if (currentReg?.email) {
+    const emailTo = regData.email || passFallback?.email;
+    if (emailTo) {
       sendCancellationEmail({
-        to: currentReg.email,
-        name: currentReg.full_name,
-        eventName: event?.name || 'Campus Event',
-        ticketId: currentReg.ticket_id,
+        to: emailTo,
+        name: regData.full_name || regData.name || passFallback?.name || 'Participant',
+        eventName: event?.name || regData.eventName || passFallback?.eventName || 'Campus Event',
+        ticketId: regData.ticket_id || regData.ticketId || passFallback?.ticketId || 'TCK-REVOKED',
         wasWaitlisted,
       }).catch(err => console.error('[useEventStore] sendCancellationEmail err:', err));
     }
@@ -621,10 +638,6 @@ const useEventStore = create((set, get) => ({
 
   updateParticipantStatus: async (registrationId, status, reason = null, eventId = null) => {
     const payload = { status };
-    if (reason !== undefined) {
-      payload.status_reason = reason;
-      payload.admin_notes = reason;
-    }
 
     let targetEventId = eventId;
     let wasConfirmed = false;
