@@ -1112,18 +1112,18 @@ const EventRegistrationPage = () => {
 
         {/* Cancellation & Refund Policy Card (Displayed before confirmation) */}
         {step < 3 && (event.cancellationPolicy || event.acceptCancellationsUntil) && (
-          <div className="craft-card font-mono" style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '14px 18px', borderRadius: 10, marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <span style={{ fontSize: '1.1rem' }}>🛡️</span>
-              <strong style={{ fontSize: '0.8125rem', color: '#818CF8' }}>CANCELLATION & REFUND POLICY</strong>
+          <div className="full-reg-policy-card font-mono">
+            <div className="full-reg-policy-header">
+              <span className="policy-icon">🛡️</span>
+              <strong className="policy-title">CANCELLATION & REFUND POLICY</strong>
             </div>
             {event.acceptCancellationsUntil && (
-              <p style={{ margin: '0 0 6px', fontSize: '0.75rem', color: '#CBD5E1' }}>
+              <p className="policy-cutoff-text">
                 ⏱️ <strong>Self-cancellation cutoff:</strong> Open until {new Date(event.acceptCancellationsUntil).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
               </p>
             )}
             {event.cancellationPolicy && (
-              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              <p className="policy-desc-text">
                 {event.cancellationPolicy}
               </p>
             )}

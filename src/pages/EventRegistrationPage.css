@@ -208,12 +208,60 @@
 .full-reg-content-card {
   padding: 32px 36px;
   border-radius: var(--radius-2xl, 20px);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .full-reg-step-box {
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+/* Policy Banner Card */
+.full-reg-policy-card {
+  background: rgba(99, 102, 241, 0.05);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  padding: 16px 20px;
+  border-radius: var(--radius-lg, 12px);
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.full-reg-policy-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.full-reg-policy-header .policy-icon {
+  font-size: 1.1rem;
+}
+
+.full-reg-policy-header .policy-title {
+  font-size: 0.8125rem;
+  color: #818CF8;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.policy-cutoff-text {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #CBD5E1;
+  line-height: 1.4;
+}
+
+.policy-desc-text {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.55;
 }
 
 .full-reg-step-header {
