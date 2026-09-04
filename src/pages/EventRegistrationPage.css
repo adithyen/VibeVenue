@@ -55,13 +55,13 @@
   min-height: 140px;
   background-size: cover;
   background-position: center;
-  background-color: #0B0F19;
-  background-image: radial-gradient(ellipse at top right, rgba(99, 102, 241, 0.35), transparent 70%), linear-gradient(135deg, #090D16 0%, #111827 50%, #1E1B4B 100%);
+  background-color: #181E36;
+  background-image: radial-gradient(circle at top right, rgba(99, 102, 241, 0.45) 0%, rgba(139, 92, 246, 0.25) 45%, transparent 80%), linear-gradient(135deg, #181E36 0%, #22294C 50%, #2E2568 100%);
   display: flex;
   align-items: flex-end;
   color: #FFFFFF !important;
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   overflow: hidden;
 }
 

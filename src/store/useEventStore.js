@@ -549,8 +549,13 @@ const useEventStore = create((set, get) => ({
       // Synchronize database and Zustand store counts
       await syncEventCountsInDatabase(eventId);
 
-      // Find event metadata for emails
-      const event = get().events.find(e => e.id === eventId);
+      // Find event metadata for emails from store or directly from DB
+      let event = get().events.find(e => e.id === eventId);
+      if (!event) {
+        const { data: dbEvtRow } = await admin.from('events').select('*').eq('id', eventId).maybeSingle();
+        event = dbEvtRow ? normaliseEvent(dbEvtRow) : null;
+      }
+
       const eventName = event?.name || 'Campus Event';
       const eventDate = event?.date || event?.startDate || '';
       const eventTime = event?.time || event?.startTime || '';
@@ -558,32 +563,44 @@ const useEventStore = create((set, get) => ({
 
       // 2. Dispatch "Promoted to Confirmed" Email to attendee #1
       if (nextInLine.email) {
-        sendWaitlistPromotedEmail({
-          to: nextInLine.email,
-          name: nextInLine.full_name,
-          eventName,
-          date: eventDate,
-          time: eventTime,
-          venue: eventVenue,
-          ticketId: nextInLine.ticket_id,
-        }).catch(err => console.error('[useEventStore] sendWaitlistPromotedEmail err:', err));
+        try {
+          await sendWaitlistPromotedEmail({
+            to: nextInLine.email,
+            name: nextInLine.full_name,
+            eventName,
+            date: eventDate,
+            time: eventTime,
+            venue: eventVenue,
+            ticketId: nextInLine.ticket_id,
+          });
+        } catch (mailErr) {
+          console.error('[useEventStore] sendWaitlistPromotedEmail err:', mailErr);
+        }
       }
 
       // 3. Dispatch "Queue Shift" Emails to remaining waitlisted attendees
-      remainingWaitlist.forEach((attendee, idx) => {
-        if (attendee.email) {
-          const oldPos = idx + 2;
-          const newPos = idx + 1;
-          sendWaitlistQueueShiftEmail({
-            to: attendee.email,
-            name: attendee.full_name,
-            eventName,
-            oldPosition: oldPos,
-            newPosition: newPos,
-            ticketId: attendee.ticket_id,
-          }).catch(err => console.error('[useEventStore] sendWaitlistQueueShiftEmail err:', err));
-        }
-      });
+      if (remainingWaitlist.length > 0) {
+        await Promise.all(
+          remainingWaitlist.map(async (attendee, idx) => {
+            if (attendee.email) {
+              const oldPos = idx + 2;
+              const newPos = idx + 1;
+              try {
+                await sendWaitlistQueueShiftEmail({
+                  to: attendee.email,
+                  name: attendee.full_name,
+                  eventName,
+                  oldPosition: oldPos,
+                  newPosition: newPos,
+                  ticketId: attendee.ticket_id,
+                });
+              } catch (shiftErr) {
+                console.error('[useEventStore] sendWaitlistQueueShiftEmail err:', shiftErr);
+              }
+            }
+          })
+        );
+      }
 
       return nextInLine;
     } catch (err) {

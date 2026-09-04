@@ -460,7 +460,7 @@ const EventRegistrationPage = () => {
         style={{
           backgroundImage: event.bannerUrl
             ? `linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.85) 100%), url(${event.bannerUrl})`
-            : `radial-gradient(ellipse at top right, rgba(99, 102, 241, 0.35), transparent 70%), linear-gradient(135deg, #090D16 0%, #111827 50%, #1E1B4B 100%)`
+            : `radial-gradient(circle at top right, rgba(99, 102, 241, 0.45) 0%, rgba(139, 92, 246, 0.25) 45%, transparent 80%), linear-gradient(135deg, #181E36 0%, #22294C 50%, #2E2568 100%)`
         }}
       >
         <div className="full-reg-hero-content">

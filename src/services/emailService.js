@@ -363,7 +363,7 @@ export const sendWaitlistQueueShiftEmail = async ({
         Hi <strong>${name}</strong>, a seat vacancy or queue change has occurred. Your waiting list standing has advanced closer to confirmation!
       </p>
 
-      <div style="background-color: #0A0F1D; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px;">
+      <div style="background-color: #0A0F1D; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; margin-bottom: 16px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
           <span style="color: #94A3B8;">PASS ID:</span>
           <span style="color: #F8FAFC; font-weight: 700;">${ticketId}</span>
@@ -371,6 +371,23 @@ export const sendWaitlistQueueShiftEmail = async ({
         <div style="display: flex; justify-content: space-between;">
           <span style="color: #94A3B8;">NEW STANDING:</span>
           <span style="color: #10B981; font-weight: 800;">#${newPosition} IN LINE</span>
+        </div>
+      </div>
+
+      <!-- Waitlist QR Tracking Badge -->
+      <div style="text-align: center; margin: 16px 0 12px;">
+        <div style="display: inline-block; background-color: #FFFFFF; padding: 10px; border-radius: 10px; border: 2px solid #0EA5E9; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+          <img
+            src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(ticketId)}&margin=4"
+            width="140"
+            height="140"
+            alt="Waitlist QR Pass"
+            style="display: block; border-radius: 4px;"
+          />
+        </div>
+        <div style="margin-top: 8px;">
+          <span style="font-size: 11px; color: #94A3B8; font-family: monospace; display: block;">UPDATED QUEUE PASS</span>
+          <span style="font-size: 18px; font-weight: 800; color: #38BDF8; letter-spacing: 2px; font-family: monospace;">${ticketId}</span>
         </div>
       </div>
     </div>
