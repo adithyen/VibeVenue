@@ -53,9 +53,9 @@ const freshData = () => ({
   hasCapacityLimit: true,
   maxParticipants: '100',
   enableWaitlist: true,
-  waitlistCapacity: '25',
+  waitlistCapacity: '10',
   acceptCancellationsUntil: '',
-  cancellationPolicy: '100% refund processed automatically for cancellations requested at least 24 hours prior to event start. Vacated seats are promoted immediately to the waiting list.',
+  cancellationPolicy: '100% refund for cancellations requested up to 48 hours before the event. Cancellations within 48 hours of kickoff are non-refundable. Vacated seats are automatically offered to the waitlist queue.',
   allowRegistrationsUntil: '',
   enableSpotRegistrations: false,
   allowSpotRegistrationsUntil: '',
@@ -79,12 +79,12 @@ const freshData = () => ({
 
 const POLICY_TEMPLATES = [
   {
-    label: '⭐ Standard 24h Refund',
-    text: 'Full 100% refund processed automatically for cancellations requested at least 24 hours prior to event start. Vacated seats are promoted immediately to the waiting list.',
+    label: '⭐ Flexible 48h Refund (Default)',
+    text: '100% refund for cancellations requested up to 48 hours before the event. Cancellations within 48 hours of kickoff are non-refundable. Vacated seats are automatically offered to the waitlist queue.',
   },
   {
-    label: '🔄 Flexible 48h Cutoff',
-    text: '100% refund for cancellations requested up to 48 hours before the event. Cancellations within 48 hours of kickoff are non-refundable.',
+    label: '⚡ Standard 24h Refund',
+    text: 'Full 100% refund processed automatically for cancellations requested at least 24 hours prior to event start. Vacated seats are promoted immediately to the waiting list.',
   },
   {
     label: '🔒 Strict / Non-Refundable',
@@ -110,7 +110,7 @@ const EventForm = ({ event = null, onClose }) => {
           hasCapacityLimit: event.hasCapacityLimit ?? (event.capacity !== 'Unlimited' && Boolean(event.capacity || event.maxParticipants)),
           maxParticipants: String(event.capacity || event.maxParticipants || '100'),
           enableWaitlist: event.enableWaitlist ?? event.amenities?.enableWaitlist ?? true,
-          waitlistCapacity: String(event.waitlistCapacity ?? event.amenities?.waitlistCapacity ?? '25'),
+          waitlistCapacity: String(event.waitlistCapacity ?? event.amenities?.waitlistCapacity ?? '10'),
           acceptCancellationsUntil: event.acceptCancellationsUntil ?? event.amenities?.acceptCancellationsUntil ?? '',
           cancellationPolicy: event.cancellationPolicy ?? event.amenities?.cancellationPolicy ?? freshData().cancellationPolicy,
           allowRegistrationsUntil: event.allowRegistrationsUntil || '',
@@ -1135,7 +1135,7 @@ const EventForm = ({ event = null, onClose }) => {
                               />
                               <div className="capacity-stepper-pills">
                                 <span className="font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginRight: 2 }}>Preset:</span>
-                                {['10', '25', '50', '100'].map(val => (
+                                {['5', '10', '15', '25', '50'].map(val => (
                                   <button
                                     key={val}
                                     type="button"
@@ -1153,41 +1153,72 @@ const EventForm = ({ event = null, onClose }) => {
                     )}
                   </AnimatePresence>
 
-                  {/* 3. Live Architecture Status Visualization (Clean Metric Cards — No Robotic Jargon) */}
-                  <div className="capacity-stat-grid font-mono">
-                    {formData.hasCapacityLimit ? (
-                      <>
-                        <div className="capacity-stat-card confirmed">
-                          <span className="capacity-stat-icon">🎟️</span>
-                          <div className="capacity-stat-info">
-                            <span className="capacity-stat-val text-emerald">
-                              {formData.maxParticipants ? `${formData.maxParticipants} Confirmed Seats` : 'Cap Not Set'}
+                  {/* 3. Live Architecture Status Visualization (Total Allowed Registrations Overview) */}
+                  {formData.hasCapacityLimit ? (
+                    (() => {
+                      const confirmed = parseInt(formData.maxParticipants, 10) || 0;
+                      const waitlist = formData.enableWaitlist ? (parseInt(formData.waitlistCapacity, 10) || 0) : 0;
+                      const total = confirmed + waitlist;
+                      return (
+                        <div className="total-registrations-card font-mono">
+                          <div className="total-reg-header">
+                            <div className="total-reg-main">
+                              <span className="total-reg-kicker">📊 REGISTRATION CAPACITY OVERVIEW</span>
+                              <div className="total-reg-number-row">
+                                <span className="total-reg-title-text">Total Allowed Registrations:</span>
+                                <span className="total-reg-highlight">{total} Max Seats</span>
+                              </div>
+                            </div>
+                            <div className="total-reg-pills-row">
+                              <span className="reg-badge confirmed">
+                                🎟️ {confirmed} Confirmed
+                              </span>
+                              {formData.enableWaitlist ? (
+                                <span className="reg-badge waitlist">
+                                  📋 {waitlist} Waitlist
+                                </span>
+                              ) : (
+                                <span className="reg-badge disabled">
+                                  🚫 Waitlist Disabled
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="total-reg-summary-bar">
+                            <span className="total-reg-bullet" />
+                            <span className="total-reg-summary-text">
+                              {formData.enableWaitlist
+                                ? `Accepting ${confirmed} confirmed seats + ${waitlist} waitlisted registrations.`
+                                : `Accepting up to ${confirmed} confirmed seats (waitlist queue is disabled).`}
                             </span>
-                            <span className="capacity-stat-lbl">Confirmed Seat Quota</span>
                           </div>
                         </div>
-                        <div className="capacity-stat-card waitlist">
-                          <span className="capacity-stat-icon">📋</span>
-                          <div className="capacity-stat-info">
-                            <span className="capacity-stat-val text-indigo">
-                              {formData.enableWaitlist ? `${formData.waitlistCapacity || 25} Waitlist Slots` : 'Queue Disabled'}
-                            </span>
-                            <span className="capacity-stat-lbl">Waiting List Pipeline</span>
+                      );
+                    })()
+                  ) : (
+                    <div className="total-registrations-card unlimited font-mono">
+                      <div className="total-reg-header">
+                        <div className="total-reg-main">
+                          <span className="total-reg-kicker">♾️ OPEN ADMISSION PIPELINE</span>
+                          <div className="total-reg-number-row">
+                            <span className="total-reg-title-text">Total Allowed Registrations:</span>
+                            <span className="total-reg-highlight text-cyan">Unlimited</span>
                           </div>
                         </div>
-                      </>
-                    ) : (
-                      <div className="capacity-stat-card unlimited">
-                        <span className="capacity-stat-icon">♾️</span>
-                        <div className="capacity-stat-info">
-                          <span className="capacity-stat-val" style={{ color: '#06B6D4' }}>
-                            Open Admission (Unlimited Seats)
+                        <div className="total-reg-pills-row">
+                          <span className="reg-badge unlimited">
+                            ✨ Open Entry (No Registration Cap)
                           </span>
-                          <span className="capacity-stat-lbl">Direct registration without capacity cap or waitlist queue</span>
                         </div>
                       </div>
-                    )}
-                  </div>
+                      <div className="total-reg-summary-bar">
+                        <span className="total-reg-bullet cyan" />
+                        <span className="total-reg-summary-text">
+                          Delegates can register freely with instant confirmed passes. No capacity cap or waitlist queue.
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* 4. Spacious Cancellation Cutoff & Policy Editor */}
                   <div className="policy-card-container">
@@ -1239,7 +1270,7 @@ const EventForm = ({ event = null, onClose }) => {
                     </div>
 
                     {/* Cancellation & Refund Policy Editor */}
-                    <div>
+                    <div style={{ width: '100%' }}>
                       <div className="form-label-row">
                         <label htmlFor="evt-cancel-policy" className="craft-label" style={{ fontSize: '0.8125rem' }}>
                           Cancellation & Refund Policy Terms 📝
@@ -1251,7 +1282,7 @@ const EventForm = ({ event = null, onClose }) => {
                       <textarea
                         id="evt-cancel-policy"
                         rows={4}
-                        className="craft-textarea cancellation-textarea font-mono"
+                        className="craft-input craft-textarea cancellation-textarea font-mono"
                         placeholder="Detail refund conditions, cutoff timelines, and seat release policies shown to participants..."
                         value={formData.cancellationPolicy}
                         onChange={e => set('cancellationPolicy', e.target.value)}
