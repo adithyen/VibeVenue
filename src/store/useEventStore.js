@@ -47,7 +47,6 @@ export async function syncEventCountsInDatabase(eventId) {
     await admin
       .from('events')
       .update({
-        registration_count: confirmedCount,
         amenities: updatedAmenities,
       })
       .eq('id', eventId);

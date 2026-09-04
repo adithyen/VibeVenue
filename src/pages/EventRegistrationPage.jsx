@@ -11,6 +11,7 @@ import Avatar from '../components/ui/Avatar';
 import { VibeVenueLogo, VibeVenueMark } from '../components/common/VibeVenueLogo';
 import { formatEventSchedule, getRegistrationStatusInfo, getComputedEventStatus, formatPricingTier } from '../utils/dateUtils';
 import { getCategoryById } from '../data/mockData';
+import { getAdminSupabaseClient } from '../lib/supabase';
 import './EventRegistrationPage.css';
 
 const EventRegistrationPage = () => {
@@ -19,6 +20,34 @@ const EventRegistrationPage = () => {
   const { user } = useAuthStore();
   const { events, isLoading: eventsLoading, fetchEvents, registerParticipant } = useEventStore();
   const { addToast } = useUIStore();
+
+  const [liveCounts, setLiveCounts] = useState(null);
+
+  // Fetch live registrations fresh from DB on mount
+  useEffect(() => {
+    let active = true;
+    async function fetchLiveCapacity() {
+      try {
+        const admin = await getAdminSupabaseClient();
+        const { data: dbEvt } = await admin
+          .from('events')
+          .select('*, registrations(id, status)')
+          .eq('id', id)
+          .single();
+
+        if (dbEvt && active) {
+          const regs = dbEvt.registrations || [];
+          const confirmed = regs.filter(r => r.status === 'confirmed').length;
+          const waitlisted = regs.filter(r => r.status === 'waitlisted').length;
+          setLiveCounts({ confirmed, waitlisted });
+        }
+      } catch (err) {
+        console.warn('fetchLiveCapacity error:', err);
+      }
+    }
+    if (id) fetchLiveCapacity();
+    return () => { active = false; };
+  }, [id]);
 
   // Ensure events are always fetched if navigating directly
   useEffect(() => {
@@ -29,20 +58,34 @@ const EventRegistrationPage = () => {
 
   const event = events.find(e => e.id === id);
 
+  const effectiveEvent = useMemo(() => {
+    if (!event) return null;
+    if (!liveCounts) return event;
+    return {
+      ...event,
+      registrationCount: liveCounts.confirmed,
+      waitlistCount: liveCounts.waitlisted,
+    };
+  }, [event, liveCounts]);
+
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationResult, setRegistrationResult] = useState(null);
   const [copiedField, setCopiedField] = useState(null);
   const [conflictInfo, setConflictInfo] = useState(null); // { conflictingEventName, overlapDescription }
 
-  const regInfo = useMemo(() => getRegistrationStatusInfo(event), [event]);
+  const regInfo = useMemo(() => getRegistrationStatusInfo(effectiveEvent), [effectiveEvent]);
+
+  const isCurrentlyWaitlist = registrationResult
+    ? registrationResult.status === 'waitlisted'
+    : regInfo.isWaitlistActive;
 
   const stepTitles = useMemo(() => [
     { id: 0, title: 'Personal Details', icon: '👤' },
     { id: 1, title: 'Category & Pricing', icon: '📊' },
     { id: 2, title: 'Payment Verification', icon: '💳' },
-    { id: 3, title: regInfo.isWaitlistActive ? 'Waitlist Pass' : 'Confirmed Pass', icon: regInfo.isWaitlistActive ? '📋' : '🎟️' },
-  ], [regInfo.isWaitlistActive]);
+    { id: 3, title: isCurrentlyWaitlist ? 'Waitlist Pass' : 'Confirmed Pass', icon: isCurrentlyWaitlist ? '📋' : '🎟️' },
+  ], [isCurrentlyWaitlist]);
 
   // Generate unique Ticket ID
   const tempTicketId = useMemo(() => `TCK-${Math.floor(100000 + Math.random() * 900000)}`, []);
@@ -487,7 +530,7 @@ const EventRegistrationPage = () => {
         )}
       </AnimatePresence>
 
-      {regInfo.isWaitlistFull && (
+      {step < 3 && regInfo.isWaitlistFull && (
         <div style={{ background: 'rgba(225, 29, 72, 0.12)', border: '1.5px solid var(--accent-rose)', borderRadius: 'var(--radius-xl)', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
           <span style={{ fontSize: '1.75rem' }}>🔒</span>
           <div>
@@ -499,7 +542,7 @@ const EventRegistrationPage = () => {
         </div>
       )}
 
-      {!regInfo.isWaitlistFull && regInfo.isWaitlistActive && (
+      {step < 3 && !regInfo.isWaitlistFull && regInfo.isWaitlistActive && (
         <div style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1.5px solid #F59E0B', borderRadius: 'var(--radius-xl)', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
           <span style={{ fontSize: '1.75rem' }}>📋</span>
           <div>
@@ -513,7 +556,7 @@ const EventRegistrationPage = () => {
         </div>
       )}
 
-      {!regInfo.isWaitlistActive && !regInfo.isWaitlistFull && regInfo.isClosed && (
+      {step < 3 && !regInfo.isWaitlistActive && !regInfo.isWaitlistFull && regInfo.isClosed && (
         <div style={{ background: 'rgba(225, 29, 72, 0.1)', border: '1.5px solid var(--accent-rose)', borderRadius: 'var(--radius-xl)', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: '1.5rem' }}>🔒</span>
           <div>
@@ -523,7 +566,7 @@ const EventRegistrationPage = () => {
         </div>
       )}
 
-      {regInfo.isSpot && (
+      {step < 3 && regInfo.isSpot && (
         <div style={{ background: 'rgba(217, 119, 6, 0.1)', border: '1.5px solid #D97706', borderRadius: 'var(--radius-xl)', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: '1.5rem' }}>⚡</span>
           <div>
