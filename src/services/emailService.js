@@ -41,6 +41,47 @@ const sendRawEmail = async ({ to, subject, html }) => {
     const data = await res.json();
     if (!res.ok) {
       console.warn('[EmailService] Resend API error response:', data);
+
+      // Handle Resend free testing sandbox restriction
+      // Error message example: "You can only send testing emails to your own email address (adityenh@gmail.com)..."
+      const sandboxMatch = data.message?.match(/own email address \(([^)]+)\)/);
+      if (sandboxMatch && sandboxMatch[1] && sandboxMatch[1].toLowerCase() !== to.toLowerCase()) {
+        const allowedEmail = sandboxMatch[1];
+        console.info(`[EmailService] Resend sandbox reroute: delivering to verified account ${allowedEmail} (intended: ${to})`);
+
+        const sandboxHeader = `
+          <div style="background:#1E1B4B; border:1.5px solid #6366F1; color:#C7D2FE; padding:12px 18px; border-radius:10px; margin-bottom:20px; font-family:sans-serif; font-size:12px; line-height:1.5;">
+            <strong style="color:#A5B4FC; font-size:13px;">⚠️ Resend Sandbox Delivery Notice</strong><br/>
+            Intended recipient: <strong>${to}</strong><br/>
+            Delivered to verified Resend account: <strong>${allowedEmail}</strong>.<br/>
+            <span style="color:#818CF8; font-size:11px;">To deliver emails directly to all third-party participants, verify a custom sending domain at <a href="https://resend.com/domains" style="color:#60A5FA; text-decoration:underline;" target="_blank">resend.com/domains</a>.</span>
+          </div>
+        `;
+
+        try {
+          const fallbackRes = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${RESEND_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: FROM_EMAIL,
+              to: [allowedEmail],
+              subject: `[${to}] ${subject}`,
+              html: sandboxHeader + html,
+            }),
+          });
+          const fallbackData = await fallbackRes.json();
+          if (fallbackRes.ok) {
+            console.log(`[EmailService] Delivered via Resend sandbox to ${allowedEmail} (ID: ${fallbackData.id})`);
+            return { success: true, id: fallbackData.id, sandboxRedirect: allowedEmail };
+          }
+        } catch (fbErr) {
+          console.error('[EmailService] Sandbox fallback error:', fbErr);
+        }
+      }
+
       return { success: false, error: data.message || 'Resend API failed' };
     }
 
