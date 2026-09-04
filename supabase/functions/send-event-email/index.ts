@@ -83,17 +83,37 @@ function wrapEmailTemplate({
         <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; background-color: #0B0F19; border: 1px solid #1E293B; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
           <!-- Header Branding -->
           <tr>
-            <td style="padding: 28px 32px 20px; border-bottom: 1px solid #1E293B; background: linear-gradient(180deg, #111827 0%, #0B0F19 100%);">
+            <td style="padding: 24px 32px 20px; border-bottom: 1px solid #1E293B; background: linear-gradient(180deg, #131B2E 0%, #0B0F19 100%);">
               <table border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
-                  <td>
-                    <span style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: #FFFFFF;">
-                      Vibe<span style="color: #6366F1;">Venue</span>
-                    </span>
-                    <span style="font-size: 11px; font-family: monospace; color: #64748B; margin-left: 8px; letter-spacing: 1px;">OPERATIONS</span>
+                  <td valign="middle">
+                    <table border="0" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td valign="middle" style="padding-right: 12px;">
+                          <!-- Email Compatible Brand Mark Icon -->
+                          <div style="width: 36px; height: 36px; background-color: #141B2D; border: 1.5px solid #6366F1; border-radius: 10px; text-align: center; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(99,102,241,0.25);">
+                            <svg width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block; margin:auto;">
+                              <path d="M17 11.5C19.1 9.8 21.4 9 24 9C26.6 9 28.9 9.8 31 11.5" stroke="#818CF8" stroke-width="2.5" stroke-linecap="round"/>
+                              <circle cx="24" cy="12" r="2.5" fill="#38BDF8"/>
+                              <path d="M11 15L24 38L27.5 31L18 15H11Z" fill="#818CF8"/>
+                              <path d="M37 15L24 38L20.5 31L30 15H37Z" fill="#06B6D4"/>
+                              <path d="M24 19L20 27.5H28L24 19Z" fill="#FFFFFF"/>
+                            </svg>
+                          </div>
+                        </td>
+                        <td valign="middle">
+                          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 19px; font-weight: 800; letter-spacing: -0.5px; color: #FFFFFF; line-height: 1.2;">
+                            Vibe<span style="color: #06B6D4;">Venue</span>
+                          </div>
+                          <div style="font-family: 'JetBrains Mono', Monaco, Consolas, monospace; font-size: 10px; font-weight: 600; color: #818CF8; letter-spacing: 1.2px; text-transform: uppercase; margin-top: 2px;">
+                            Event Operations
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
-                  <td align="right">
-                    <span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; font-family: monospace; background-color: ${badgeColor}22; color: ${badgeColor}; border: 1px solid ${badgeColor}55;">
+                  <td align="right" valign="middle">
+                    <span style="display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; font-family: monospace; background-color: ${badgeColor}22; color: ${badgeColor}; border: 1px solid ${badgeColor}55; letter-spacing: 0.5px; text-transform: uppercase;">
                       ${badgeText}
                     </span>
                   </td>

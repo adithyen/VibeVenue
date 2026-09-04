@@ -3,6 +3,7 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useUIStore from '../../store/useUIStore';
+import { VibeVenueMark } from '../common/VibeVenueLogo';
 import './Sidebar.css';
 
 const NAV_ITEMS = [
@@ -107,13 +108,8 @@ const Sidebar = () => {
     >
       {/* Brand Header */}
       <div className="sidebar-brand">
-        <div className="brand-badge-icon" title="VibeVenue Event Platform">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <rect width="24" height="24" rx="6" fill="#6366F1" fillOpacity="0.2"/>
-            <path d="M12 4L4 8L12 12L20 8L12 4Z" stroke="#818CF8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M4 12L12 16L20 12" stroke="#818CF8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M4 16L12 20L20 16" stroke="#818CF8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+        <div className="brand-badge-icon" title="VibeVenue Event Operations">
+          <VibeVenueMark size={24} idPrefix="sidebar-vv" />
         </div>
 
         <AnimatePresence>
@@ -126,9 +122,12 @@ const Sidebar = () => {
               transition={{ duration: 0.15 }}
             >
               <div className="brand-name-row">
-                <span className="brand-name">VibeVenue</span>
+                <span className="brand-name font-display">
+                  <span>Vibe</span>
+                  <span style={{ background: 'linear-gradient(135deg, #6366F1, #06B6D4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginLeft: '1px' }}>Venue</span>
+                </span>
               </div>
-              <span className="brand-sub">Event Management Platform</span>
+              <span className="brand-sub font-mono">Operations Platform</span>
             </motion.div>
           )}
         </AnimatePresence>

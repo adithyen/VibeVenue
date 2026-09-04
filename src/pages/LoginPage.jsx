@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../store/useAuthStore';
 import useUIStore from '../store/useUIStore';
 import Button from '../components/ui/Button';
+import VibeVenueLogo from '../components/common/VibeVenueLogo';
 import './LoginPage.css';
 
 const LoginPage = () => {
@@ -127,17 +128,8 @@ const LoginPage = () => {
         transition={{ type: 'spring', stiffness: 350, damping: 30 }}
       >
         {/* Brand */}
-        <div className="login-brand-header">
-          <div className="login-brand-logo">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <rect width="24" height="24" rx="6" fill="#6366F1" fillOpacity="0.2"/>
-              <path d="M12 4L4 8L12 12L20 8L12 4Z" stroke="#818CF8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M4 12L12 16L20 12" stroke="#818CF8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M4 16L12 20L20 16" stroke="#818CF8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <h1 className="login-title font-display">VibeVenue</h1>
-          <p className="login-subtitle">Event Management Platform</p>
+        <div className="login-brand-header" style={{ marginBottom: '0.5rem' }}>
+          <VibeVenueLogo size="hero" taglineText="Collegiate Event Operations" />
         </div>
 
         {/* Mode tabs */}

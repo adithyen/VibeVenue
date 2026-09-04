@@ -1,4 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg">
+  <symbol id="vibevenue-icon" viewBox="0 0 48 48">
+    <rect x="2" y="2" width="44" height="44" rx="13" fill="#0B0F19" stroke="#6366F1" stroke-width="1.5" />
+    <path d="M17 11.5C19.1 9.8 21.4 9 24 9C26.6 9 28.9 9.8 31 11.5" stroke="#818CF8" stroke-width="2" stroke-linecap="round" />
+    <circle cx="24" cy="12" r="2" fill="#38BDF8" />
+    <path d="M11 15L24 38L27.5 31L18 15H11Z" fill="#818CF8" />
+    <path d="M37 15L24 38L20.5 31L30 15H37Z" fill="#06B6D4" />
+    <path d="M24 19L20 27.5H28L24 19Z" fill="#FFFFFF" />
+  </symbol>
   <symbol id="bluesky-icon" viewBox="0 0 16 17">
     <g clip-path="url(#bluesky-clip)"><path fill="#08060d" d="M7.75 7.735c-.693-1.348-2.58-3.86-4.334-5.097-1.68-1.187-2.32-.981-2.74-.79C.188 2.065.1 2.812.1 3.251s.241 3.602.398 4.13c.52 1.744 2.367 2.333 4.07 2.145-2.495.37-4.71 1.278-1.805 4.512 3.196 3.309 4.38-.71 4.987-2.746.608 2.036 1.307 5.91 4.93 2.746 2.72-2.746.747-4.143-1.747-4.512 1.702.189 3.55-.4 4.07-2.145.156-.528.397-3.691.397-4.13s-.088-1.186-.575-1.406c-.42-.19-1.06-.395-2.741.79-1.755 1.24-3.64 3.752-4.334 5.099"/></g>
     <defs><clipPath id="bluesky-clip"><path fill="#fff" d="M.1.85h15.3v15.3H.1z"/></clipPath></defs>

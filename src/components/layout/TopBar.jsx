@@ -7,6 +7,7 @@ import useAuthStore from '../../store/useAuthStore';
 import Button from '../ui/Button';
 import Avatar from '../ui/Avatar';
 import EditProfileModal from '../profile/EditProfileModal';
+import { VibeVenueLogo, VibeVenueMark } from '../common/VibeVenueLogo';
 import './TopBar.css';
 
 
@@ -75,7 +76,7 @@ const TopBar = ({ onAddEvent }) => {
     return (
       <header className="craft-topbar topbar-participant">
         <div className="topbar-breadcrumbs">
-          <span className="breadcrumb-current">VibeVenue</span>
+          <VibeVenueLogo size="sm" showTagline={false} />
         </div>
       </header>
     );
@@ -89,6 +90,11 @@ const TopBar = ({ onAddEvent }) => {
     >
       {/* Left: Breadcrumbs */}
       <div className="topbar-breadcrumbs">
+        {isParticipant && (
+          <Link to="/portal" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none', marginRight: '14px' }}>
+            <VibeVenueLogo size="sm" showTagline={false} />
+          </Link>
+        )}
         <span className="breadcrumb-section">{breadcrumb.section}</span>
         <span className="breadcrumb-slash">/</span>
         <span className="breadcrumb-current">{breadcrumb.current}</span>

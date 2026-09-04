@@ -8,6 +8,7 @@ import useEventStore from '../store/useEventStore';
 import useUIStore from '../store/useUIStore';
 import Button from '../components/ui/Button';
 import Avatar from '../components/ui/Avatar';
+import { VibeVenueLogo, VibeVenueMark } from '../components/common/VibeVenueLogo';
 import { formatEventSchedule, getRegistrationStatusInfo, getComputedEventStatus, formatPricingTier } from '../utils/dateUtils';
 import { getCategoryById } from '../data/mockData';
 import './EventRegistrationPage.css';
@@ -385,12 +386,15 @@ const EventRegistrationPage = () => {
     <div className="full-reg-page">
       {/* Top Header & Breadcrumb */}
       <div className="full-reg-topbar">
-        <button className="full-reg-back-btn" onClick={() => navigate('/portal')} type="button">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-          Back to Dashboard
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button className="full-reg-back-btn" onClick={() => navigate('/portal')} type="button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back to Dashboard
+          </button>
+          <VibeVenueLogo size="sm" showTagline={false} />
+        </div>
         <div className="full-reg-event-pill font-mono">
           <span>{cat.icon} {event.name}</span>
         </div>
@@ -1031,10 +1035,13 @@ const EventRegistrationPage = () => {
             {/* Official Pass Ticket Card */}
             <div className="full-reg-pass-ticket craft-card" style={regInfo.isWaitlistActive ? { border: '1.5px solid #F59E0B' } : undefined}>
               <div className="pass-ticket-left">
-                <div className="ticket-header">
-                  <span className="ticket-brand font-mono">
-                    {regInfo.isWaitlistActive ? 'VIBEVENUE WAITLIST PASS' : 'VIBEVENUE GATE PASS'}
-                  </span>
+                <div className="ticket-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <VibeVenueMark size={18} idPrefix="pass-reg-vv" />
+                    <span className="ticket-brand font-mono">
+                      {regInfo.isWaitlistActive ? 'VIBEVENUE WAITLIST PASS' : 'VIBEVENUE GATE PASS'}
+                    </span>
+                  </div>
                   <span className="ticket-category-tag font-mono">{event.category?.toUpperCase()}</span>
                 </div>
                 <h3 className="ticket-event-name">{event.name}</h3>

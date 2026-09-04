@@ -11,6 +11,7 @@ import ProgressBar from '../components/ui/ProgressBar';
 import Modal from '../components/ui/Modal';
 import EditProfileModal from '../components/profile/EditProfileModal';
 import PassBarcodeQR from '../components/common/PassBarcodeQR';
+import { VibeVenueLogo, VibeVenueMark } from '../components/common/VibeVenueLogo';
 import { formatDate, formatEventSchedule, getEventFeeDisplay, getComputedEventStatus, getRegistrationStatusInfo } from '../utils/dateUtils';
 import { detectRegistrationConflict } from '../utils/overlapChecker';
 import './ParticipantPortal.css';
@@ -402,7 +403,10 @@ const ParticipantPortal = () => {
       >
         {inspectPass && (
           <div className="portal-ticket-inspect">
-            <div className="ticket-brand font-mono">VIBEVENUE '26</div>
+            <div className="ticket-brand font-mono" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
+              <VibeVenueMark size={18} idPrefix="inspect-modal-vv" />
+              <span>VIBEVENUE '26 GATE PASS</span>
+            </div>
             <h3 className="ticket-inspect-title">{inspectPass.eventName}</h3>
             
             <div className="ticket-inspect-grid font-mono">
