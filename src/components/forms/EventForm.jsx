@@ -50,12 +50,12 @@ const freshData = () => ({
   groupPrice: '',
   groupMinSize: '2',
   groupMaxSize: '5',
-  hasCapacityLimit: false,
-  maxParticipants: '',
-  enableWaitlist: false,
-  waitlistCapacity: '30',
+  hasCapacityLimit: true,
+  maxParticipants: '100',
+  enableWaitlist: true,
+  waitlistCapacity: '25',
   acceptCancellationsUntil: '',
-  cancellationPolicy: '',
+  cancellationPolicy: '100% refund processed automatically for cancellations requested at least 24 hours prior to event start. Vacated seats are promoted immediately to the waiting list.',
   allowRegistrationsUntil: '',
   enableSpotRegistrations: false,
   allowSpotRegistrationsUntil: '',
@@ -77,6 +77,25 @@ const freshData = () => ({
   confirmationMessage: 'Thank you for registering! We look forward to seeing you.',
 });
 
+const POLICY_TEMPLATES = [
+  {
+    label: '⭐ Standard 24h Refund',
+    text: 'Full 100% refund processed automatically for cancellations requested at least 24 hours prior to event start. Vacated seats are promoted immediately to the waiting list.',
+  },
+  {
+    label: '🔄 Flexible 48h Cutoff',
+    text: '100% refund for cancellations requested up to 48 hours before the event. Cancellations within 48 hours of kickoff are non-refundable.',
+  },
+  {
+    label: '🔒 Strict / Non-Refundable',
+    text: 'All registrations and pass purchases are final and non-refundable. Delegate passes may be transferred upon organizer approval.',
+  },
+  {
+    label: '🎓 Free Track Self-Release',
+    text: 'This is a free collegiate track. If your schedule changes, please cancel your pass in the student portal before the deadline to release your seat to waitlisted peers.',
+  },
+];
+
 const EventForm = ({ event = null, onClose }) => {
   const isEdit = !!event;
   const [step, setStep] = useState(0);
@@ -88,10 +107,12 @@ const EventForm = ({ event = null, onClose }) => {
           pricingType: event.pricingType || (event.pricingTiers?.length ? 'tiered' : 'flat'),
           pricingTiers: event.pricingTiers?.length ? event.pricingTiers : freshData().pricingTiers,
           openTo: event.openTo?.length ? event.openTo : ['All'],
-          enableWaitlist: event.enableWaitlist ?? event.amenities?.enableWaitlist ?? false,
-          waitlistCapacity: String(event.waitlistCapacity ?? event.amenities?.waitlistCapacity ?? '30'),
+          hasCapacityLimit: event.hasCapacityLimit ?? (event.capacity !== 'Unlimited' && Boolean(event.capacity || event.maxParticipants)),
+          maxParticipants: String(event.capacity || event.maxParticipants || '100'),
+          enableWaitlist: event.enableWaitlist ?? event.amenities?.enableWaitlist ?? true,
+          waitlistCapacity: String(event.waitlistCapacity ?? event.amenities?.waitlistCapacity ?? '25'),
           acceptCancellationsUntil: event.acceptCancellationsUntil ?? event.amenities?.acceptCancellationsUntil ?? '',
-          cancellationPolicy: event.cancellationPolicy ?? event.amenities?.cancellationPolicy ?? '',
+          cancellationPolicy: event.cancellationPolicy ?? event.amenities?.cancellationPolicy ?? freshData().cancellationPolicy,
           allowRegistrationsUntil: event.allowRegistrationsUntil || '',
           enableSpotRegistrations: event.enableSpotRegistrations || false,
           allowSpotRegistrationsUntil: event.allowSpotRegistrationsUntil || '',
@@ -145,6 +166,38 @@ const EventForm = ({ event = null, onClose }) => {
 
   const setNested = (key, subKey, val) => {
     setFormData(prev => ({ ...prev, [key]: { ...prev[key], [subKey]: val } }));
+  };
+
+  const setCancellationPreset = (offsetHours) => {
+    if (!formData.startDate) {
+      addToast({
+        type: 'warning',
+        title: 'Start Date Required',
+        message: 'Please specify the event start date in Step 2 first.',
+      });
+      return;
+    }
+    const timeStr = formData.startTime || '09:00';
+    const startDt = new Date(`${formData.startDate}T${timeStr}`);
+    if (isNaN(startDt.getTime())) return;
+    const cutoffDt = new Date(startDt.getTime() - offsetHours * 60 * 60 * 1000);
+    const pad = (n) => String(n).padStart(2, '0');
+    const isoLocal = `${cutoffDt.getFullYear()}-${pad(cutoffDt.getMonth() + 1)}-${pad(cutoffDt.getDate())}T${pad(cutoffDt.getHours())}:${pad(cutoffDt.getMinutes())}`;
+    set('acceptCancellationsUntil', isoLocal);
+    addToast({
+      type: 'info',
+      title: 'Cutoff Set',
+      message: offsetHours === 0 ? 'Cutoff set to exact kickoff time.' : `Cutoff set to ${offsetHours}h before event kickoff.`,
+    });
+  };
+
+  const applyPolicyTemplate = (templateText) => {
+    set('cancellationPolicy', templateText);
+    addToast({
+      type: 'success',
+      title: 'Policy Applied',
+      message: 'Refund policy template loaded into editor.',
+    });
   };
 
   const readFile = (file) => new Promise((resolve) => {
@@ -965,126 +1018,264 @@ const EventForm = ({ event = null, onClose }) => {
                 )}
 
                 {/* 📋 Capacity, Waiting List & Cancellation Policies */}
-                <div className="form-field-group" style={{ background: 'var(--surface-inset)', padding: '16px 18px', borderRadius: 'var(--radius-lg)', border: '1.5px solid rgba(99, 102, 241, 0.28)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div className="form-field-group" style={{ background: 'var(--surface-inset)', padding: '18px 20px', borderRadius: 'var(--radius-xl)', border: '1.5px solid rgba(99, 102, 241, 0.25)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div>
-                    <h4 className="craft-label" style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                      📋 Capacity, Waiting List & Cancellation Policies
+                    <h4 className="craft-label" style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>👥</span> Capacity, Waiting List & Policy Architecture
                     </h4>
-                    <p className="field-hint-text font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
-                      Configure delegate limits, waitlist queues, cancellation deadlines, and refund policies.
+                    <p className="field-hint-text font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', margin: '3px 0 0' }}>
+                      Configure attendee seat quotas, automated waitlist pipelines, and cancellation refund terms.
                     </p>
                   </div>
 
-                  {/* 1. Regular Seat Capacity */}
-                  <div style={{ padding: '12px 14px', background: 'var(--surface-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-                    <div className="form-label-row">
-                      <label className="craft-label" style={{ fontSize: '0.8125rem' }}>Regular Seat Capacity Limit</label>
-                      <label className="toggle-switch-label">
-                        <input
-                          type="checkbox"
-                          checked={formData.hasCapacityLimit}
-                          onChange={e => set('hasCapacityLimit', e.target.checked)}
-                        />
-                        <span className="toggle-switch-track" />
-                        <span className="toggle-switch-text font-mono">{formData.hasCapacityLimit ? 'Limit Active' : 'Unlimited'}</span>
-                      </label>
-                    </div>
+                  {/* 1. Capacity Mode Selector (Limited vs Unlimited) */}
+                  <div className="capacity-mode-segmented">
+                    <button
+                      type="button"
+                      className={`capacity-mode-btn ${formData.hasCapacityLimit ? 'active' : ''}`}
+                      onClick={() => set('hasCapacityLimit', true)}
+                    >
+                      <span className="mode-icon">🔒</span>
+                      <span>Limited Capacity</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`capacity-mode-btn ${!formData.hasCapacityLimit ? 'active' : ''}`}
+                      onClick={() => set('hasCapacityLimit', false)}
+                    >
+                      <span className="mode-icon">♾️</span>
+                      <span>Unlimited Admission</span>
+                    </button>
+                  </div>
+
+                  {/* 2. Limited Capacity Inputs & Quick Stepper (Only shown when Limited) */}
+                  <AnimatePresence>
                     {formData.hasCapacityLimit && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                        style={{ display: 'flex', flexDirection: 'column', gap: 14, overflow: 'hidden' }}
+                      >
+                        {/* Confirmed Seats Limit */}
+                        <div style={{ padding: '14px 16px', background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
+                          <div className="form-label-row">
+                            <label htmlFor="evt-max-capacity" className="craft-label" style={{ fontSize: '0.8125rem' }}>
+                              Confirmed Seat Capacity
+                            </label>
+                            <span className="font-mono" style={{ fontSize: '0.6875rem', color: '#10B981', fontWeight: 700 }}>
+                              🎟️ {formData.maxParticipants || '0'} Confirmed Seats
+                            </span>
+                          </div>
+                          <input
+                            id="evt-max-capacity"
+                            type="number"
+                            min="1"
+                            className="craft-input font-mono"
+                            placeholder="e.g. 100"
+                            value={formData.maxParticipants}
+                            onChange={e => set('maxParticipants', e.target.value)}
+                          />
+                          <div className="capacity-stepper-pills">
+                            <span className="font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginRight: 2 }}>Quick:</span>
+                            {['30', '50', '100', '150', '250', '500'].map(val => (
+                              <button
+                                key={val}
+                                type="button"
+                                className={`capacity-stepper-btn ${formData.maxParticipants === val ? 'selected' : ''}`}
+                                onClick={() => set('maxParticipants', val)}
+                              >
+                                {val}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Waiting List Configuration (Disappears when Unlimited!) */}
+                        <div style={{ padding: '14px 16px', background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
+                          <div className="form-label-row">
+                            <div>
+                              <label className="craft-label" style={{ fontSize: '0.8125rem', marginBottom: 2 }}>
+                                Allow Waiting List Queue 📋
+                              </label>
+                              <p className="field-hint-text font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', margin: 0 }}>
+                                When regular seats fill, overflow delegates queue on the waitlist and auto-upgrade upon cancellations.
+                              </p>
+                            </div>
+                            <label className="toggle-switch-label" style={{ flexShrink: 0 }}>
+                              <input
+                                type="checkbox"
+                                checked={formData.enableWaitlist}
+                                onChange={e => set('enableWaitlist', e.target.checked)}
+                              />
+                              <span className="toggle-switch-track" />
+                              <span className="toggle-switch-text font-mono">{formData.enableWaitlist ? 'Enabled' : 'Disabled'}</span>
+                            </label>
+                          </div>
+
+                          {formData.enableWaitlist && (
+                            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed var(--border-default)' }}>
+                              <div className="form-label-row">
+                                <label htmlFor="evt-waitlist-capacity" className="craft-label" style={{ fontSize: '0.75rem' }}>
+                                  Max Waitlist Queue Slots
+                                </label>
+                                <span className="font-mono" style={{ fontSize: '0.6875rem', color: '#6366F1', fontWeight: 700 }}>
+                                  📋 {formData.waitlistCapacity || '0'} Waitlist Slots
+                                </span>
+                              </div>
+                              <input
+                                id="evt-waitlist-capacity"
+                                type="number"
+                                min="1"
+                                className="craft-input font-mono"
+                                placeholder="Max waitlist queue (e.g. 25)"
+                                value={formData.waitlistCapacity}
+                                onChange={e => set('waitlistCapacity', e.target.value)}
+                              />
+                              <div className="capacity-stepper-pills">
+                                <span className="font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginRight: 2 }}>Preset:</span>
+                                {['10', '25', '50', '100'].map(val => (
+                                  <button
+                                    key={val}
+                                    type="button"
+                                    className={`capacity-stepper-btn ${formData.waitlistCapacity === val ? 'selected' : ''}`}
+                                    onClick={() => set('waitlistCapacity', val)}
+                                  >
+                                    +{val}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* 3. Live Architecture Status Visualization (Clean Metric Cards — No Robotic Jargon) */}
+                  <div className="capacity-stat-grid font-mono">
+                    {formData.hasCapacityLimit ? (
+                      <>
+                        <div className="capacity-stat-card confirmed">
+                          <span className="capacity-stat-icon">🎟️</span>
+                          <div className="capacity-stat-info">
+                            <span className="capacity-stat-val text-emerald">
+                              {formData.maxParticipants ? `${formData.maxParticipants} Confirmed Seats` : 'Cap Not Set'}
+                            </span>
+                            <span className="capacity-stat-lbl">Confirmed Seat Quota</span>
+                          </div>
+                        </div>
+                        <div className="capacity-stat-card waitlist">
+                          <span className="capacity-stat-icon">📋</span>
+                          <div className="capacity-stat-info">
+                            <span className="capacity-stat-val text-indigo">
+                              {formData.enableWaitlist ? `${formData.waitlistCapacity || 25} Waitlist Slots` : 'Queue Disabled'}
+                            </span>
+                            <span className="capacity-stat-lbl">Waiting List Pipeline</span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="capacity-stat-card unlimited">
+                        <span className="capacity-stat-icon">♾️</span>
+                        <div className="capacity-stat-info">
+                          <span className="capacity-stat-val" style={{ color: '#06B6D4' }}>
+                            Open Admission (Unlimited Seats)
+                          </span>
+                          <span className="capacity-stat-lbl">Direct registration without capacity cap or waitlist queue</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 4. Spacious Cancellation Cutoff & Policy Editor */}
+                  <div className="policy-card-container">
+                    <div>
+                      <h5 className="craft-label" style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>🛡️</span> Self-Cancellation Window & Refund Policy
+                      </h5>
+                      <p className="field-hint-text font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                        Empower participants to self-revoke passes to automatically promote waitlisted peers.
+                      </p>
+                    </div>
+
+                    {/* Accept Cancellations Until */}
+                    <div>
+                      <div className="form-label-row">
+                        <label htmlFor="evt-cancel-until" className="craft-label" style={{ fontSize: '0.8125rem' }}>
+                          Accept Cancellations Until ⏱️
+                        </label>
+                        {formData.acceptCancellationsUntil && (
+                          <button
+                            type="button"
+                            className="craft-btn-text font-mono"
+                            style={{ fontSize: '0.6875rem', color: 'var(--accent-rose)' }}
+                            onClick={() => set('acceptCancellationsUntil', '')}
+                          >
+                            Clear Cutoff
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        id="evt-cancel-until"
+                        type="datetime-local"
+                        className="craft-input font-mono"
+                        value={formData.acceptCancellationsUntil}
+                        onChange={e => set('acceptCancellationsUntil', e.target.value)}
+                      />
+                      <div className="preset-time-row">
+                        <span className="font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginRight: 2 }}>Quick Presets:</span>
+                        <button type="button" className="preset-time-btn" onClick={() => setCancellationPreset(24)}>
+                          ⚡ 24h Before Start
+                        </button>
+                        <button type="button" className="preset-time-btn" onClick={() => setCancellationPreset(48)}>
+                          ⏱️ 48h Before Start
+                        </button>
+                        <button type="button" className="preset-time-btn" onClick={() => setCancellationPreset(0)}>
+                          📍 At Kickoff
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Cancellation & Refund Policy Editor */}
+                    <div>
+                      <div className="form-label-row">
+                        <label htmlFor="evt-cancel-policy" className="craft-label" style={{ fontSize: '0.8125rem' }}>
+                          Cancellation & Refund Policy Terms 📝
+                        </label>
+                        <span className="font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                          {(formData.cancellationPolicy || '').length} characters
+                        </span>
+                      </div>
+                      <textarea
+                        id="evt-cancel-policy"
+                        rows={4}
+                        className="craft-textarea cancellation-textarea font-mono"
+                        placeholder="Detail refund conditions, cutoff timelines, and seat release policies shown to participants..."
+                        value={formData.cancellationPolicy}
+                        onChange={e => set('cancellationPolicy', e.target.value)}
+                      />
+                      
+                      {/* One-Tap Policy Template Pills */}
                       <div style={{ marginTop: 8 }}>
-                        <input
-                          type="number"
-                          min="1"
-                          className="craft-input font-mono"
-                          placeholder="Max regular participants (e.g. 150)"
-                          value={formData.maxParticipants}
-                          onChange={e => set('maxParticipants', e.target.value)}
-                        />
+                        <span className="font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
+                          Load Policy Template:
+                        </span>
+                        <div className="policy-template-pills">
+                          {POLICY_TEMPLATES.map((tmpl) => (
+                            <button
+                              key={tmpl.label}
+                              type="button"
+                              className="policy-template-btn"
+                              onClick={() => applyPolicyTemplate(tmpl.text)}
+                            >
+                              {tmpl.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    )}
-                  </div>
-
-                  {/* 2. Waiting List Configuration */}
-                  <div style={{ padding: '12px 14px', background: 'var(--surface-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-                    <div className="form-label-row">
-                      <label className="craft-label" style={{ fontSize: '0.8125rem' }}>Allow Waiting List 📋</label>
-                      <label className="toggle-switch-label">
-                        <input
-                          type="checkbox"
-                          checked={formData.enableWaitlist}
-                          onChange={e => set('enableWaitlist', e.target.checked)}
-                        />
-                        <span className="toggle-switch-track" />
-                        <span className="toggle-switch-text font-mono">{formData.enableWaitlist ? 'Enabled' : 'Disabled'}</span>
-                      </label>
                     </div>
-                    <p className="field-hint-text font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
-                      When regular seats fill up, delegates are placed on the waiting list and automatically promoted upon cancellations.
-                    </p>
-
-                    {formData.enableWaitlist && (
-                      <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--border-default)' }}>
-                        <label className="craft-label" style={{ fontSize: '0.75rem' }}>Waitlist Queue Capacity</label>
-                        <input
-                          type="number"
-                          min="1"
-                          className="craft-input font-mono"
-                          placeholder="Max waiting list entries (e.g. 30)"
-                          value={formData.waitlistCapacity}
-                          onChange={e => set('waitlistCapacity', e.target.value)}
-                        />
-                        <p className="field-hint-text font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', margin: '3px 0 0' }}>
-                          Students will be blocked from registering once both regular seats and this waitlist capacity are reached.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 3. Live Pipeline Display */}
-                  <div className="font-mono" style={{ background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.28)', borderRadius: 8, padding: '10px 14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-                      <span style={{ fontSize: '0.75rem', color: '#818CF8', fontWeight: 700 }}>🟢 PIPELINE STATUS DISPLAY:</span>
-                      <span style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: 800 }}>
-                        {formData.hasCapacityLimit && formData.maxParticipants ? formData.maxParticipants : 'Unlimited'} Regular Seats + {formData.enableWaitlist ? (formData.waitlistCapacity || 30) : 0} Waitlist Queue
-                      </span>
-                    </div>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.6875rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                      Accepting registrations in <strong>Normal Seats</strong>. If regular capacity fills, registrations continue in the <strong>Waiting List</strong> up to {formData.enableWaitlist ? (formData.waitlistCapacity || 30) : 0} queue positions.
-                    </p>
-                  </div>
-
-                  {/* 4. Accept Cancellations Until */}
-                  <div style={{ padding: '12px 14px', background: 'var(--surface-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-                    <label htmlFor="evt-cancel-until" className="craft-label" style={{ fontSize: '0.8125rem' }}>
-                      Accept Cancellations Until ⏱️
-                    </label>
-                    <input
-                      id="evt-cancel-until"
-                      type="datetime-local"
-                      className="craft-input font-mono"
-                      value={formData.acceptCancellationsUntil}
-                      onChange={e => set('acceptCancellationsUntil', e.target.value)}
-                    />
-                    <p className="field-hint-text font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: 3 }}>
-                      Delegates can self-cancel their pass in the student portal until this deadline. Vacated seats trigger immediate automatic waitlist promotions.
-                    </p>
-                  </div>
-
-                  {/* 5. Cancellation & Refund Policy */}
-                  <div style={{ padding: '12px 14px', background: 'var(--surface-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-                    <label htmlFor="evt-cancel-policy" className="craft-label" style={{ fontSize: '0.8125rem' }}>
-                      Cancellation & Refund Policy 📝
-                    </label>
-                    <textarea
-                      id="evt-cancel-policy"
-                      rows={3}
-                      className="craft-textarea"
-                      placeholder="e.g. 100% refund for cancellations made at least 48 hours prior to the event. Any vacated seats are automatically offered to the next student in the waiting list."
-                      value={formData.cancellationPolicy}
-                      onChange={e => set('cancellationPolicy', e.target.value)}
-                    />
-                    <p className="field-hint-text font-mono" style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: 3 }}>
-                      This policy is displayed to participants during registration and printed on their gate pass receipts.
-                    </p>
                   </div>
                 </div>
 
