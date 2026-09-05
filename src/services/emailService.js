@@ -1,10 +1,10 @@
 // ============================================================
 //  VIBEVENUE — RESEND EMAIL AUTOMATION SERVICE
 //  Delivers responsive, transactional HTML emails for:
-//  - 🎟️ Confirmed Ticket Pass
-//  - 📋 Waiting List Ticket (with Queue Position)
-//  - 📈 Queue Advancement (e.g. #4 -> #3)
-//  - 🚀 Promoted from Waitlist to Confirmed
+//  - 🎟️ Confirmed Ticket Pass (with Scannable QR Gate Pass)
+//  - 📋 Waiting List Ticket (with Dynamic Queue Position & Tracking QR)
+//  - 📈 Queue Advancement (e.g. #2 -> #1 with Updated QR)
+//  - 🚀 Promoted from Waitlist to Confirmed (with Confirmed QR Gate Pass)
 //  - ❌ Registration Cancelled
 // ============================================================
 
@@ -53,7 +53,8 @@ const sendRawEmail = async ({ to, subject, html }) => {
 };
 
 /**
- * Base Email Wrapper with Modern 2026 Dark UI Styling
+ * Base Email Wrapper with Modern 2026 Lite-Darker Gradient Theme
+ * Features a rich luminous slate/navy-indigo gradient backdrop instead of plain pitch black.
  */
 const wrapEmailTemplate = ({ title, preheader, content, badgeText, badgeColor = '#6366F1' }) => `
 <!DOCTYPE html>
@@ -62,28 +63,36 @@ const wrapEmailTemplate = ({ title, preheader, content, badgeText, badgeColor = 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
+  <style>
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #151D2C !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+  </style>
 </head>
-<body style="margin:0; padding:0; background-color:#090D16; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#F8FAFC;">
-  <div style="display:none;font-size:1px;color:#090D16;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
+<body bgcolor="#151D2C" style="background-color: #151D2C; background: linear-gradient(135deg, #182338 0%, #202D48 50%, #151D2C 100%); margin: 0; padding: 0;">
+  <!-- Hidden Preheader Text -->
+  <div style="display: none; font-size: 1px; color: #151D2C; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
     ${preheader || title}
   </div>
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#090D16; width:100%; padding: 40px 12px;">
+
+  <table border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#151D2C" style="background-color: #151D2C; background: linear-gradient(135deg, #182338 0%, #202D48 50%, #151D2C 100%); min-height: 100vh;">
     <tr>
-      <td align="center">
-        <!-- Main Card -->
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:580px; background-color:#0F172A; border:1px solid #1E293B; border-radius:16px; overflow:hidden; box-shadow:0 20px 40px rgba(0,0,0,0.5);">
-          <!-- Top Header -->
+      <td align="center" style="padding: 40px 16px;">
+        <!-- Main Card Container -->
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#1C273C" style="max-width: 590px; background-color: #1C273C; background: linear-gradient(180deg, #202C44 0%, #162032 100%); border: 1.5px solid #364866; border-radius: 18px; overflow: hidden; box-shadow: 0 24px 48px rgba(0,0,0,0.4);">
+          <!-- Header Branding -->
           <tr>
-            <td style="padding: 24px 32px 20px; background: linear-gradient(180deg, #131B2E 0%, #0B0F19 100%); border-bottom: 1px solid #1E293B;">
-              <table width="100%" cellspacing="0" cellpadding="0" border="0">
+            <td bgcolor="#22304A" style="padding: 24px 32px 20px; border-bottom: 1.5px solid #364866; background-color: #22304A; background: linear-gradient(135deg, #2B3D5E 0%, #1D2A42 100%);">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
                   <td valign="middle">
                     <table border="0" cellpadding="0" cellspacing="0">
                       <tr>
-                        <td valign="middle" style="padding-right: 12px;">
-                          <!-- Email Compatible Brand Mark Icon -->
-                          <div style="width: 36px; height: 36px; background-color: #141B2D; border: 1.5px solid #6366F1; border-radius: 10px; text-align: center; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(99,102,241,0.25);">
-                            <svg width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block; margin:auto;">
+                        <td valign="middle" style="padding-right: 14px;">
+                          <!-- Brand Icon -->
+                          <div style="width: 40px; height: 40px; background-color: #1A263D; border: 1.5px solid #818CF8; border-radius: 12px; text-align: center; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(99,102,241,0.3);">
+                            <svg width="26" height="26" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block; margin:auto;">
                               <path d="M17 11.5C19.1 9.8 21.4 9 24 9C26.6 9 28.9 9.8 31 11.5" stroke="#818CF8" stroke-width="2.5" stroke-linecap="round"/>
                               <circle cx="24" cy="12" r="2.5" fill="#38BDF8"/>
                               <path d="M11 15L24 38L27.5 31L18 15H11Z" fill="#818CF8"/>
@@ -93,10 +102,10 @@ const wrapEmailTemplate = ({ title, preheader, content, badgeText, badgeColor = 
                           </div>
                         </td>
                         <td valign="middle">
-                          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 19px; font-weight: 800; letter-spacing: -0.5px; color: #FFFFFF; line-height: 1.2;">
-                            Vibe<span style="color: #06B6D4;">Venue</span>
+                          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: #FFFFFF; line-height: 1.2;">
+                            Vibe<span style="color: #38BDF8;">Venue</span>
                           </div>
-                          <div style="font-family: 'JetBrains Mono', Monaco, Consolas, monospace; font-size: 10px; font-weight: 600; color: #818CF8; letter-spacing: 1.2px; text-transform: uppercase; margin-top: 2px;">
+                          <div style="font-family: 'JetBrains Mono', Monaco, Consolas, monospace; font-size: 10px; font-weight: 700; color: #93C5FD; letter-spacing: 1.2px; text-transform: uppercase; margin-top: 2px;">
                             Event Operations
                           </div>
                         </td>
@@ -104,7 +113,7 @@ const wrapEmailTemplate = ({ title, preheader, content, badgeText, badgeColor = 
                     </table>
                   </td>
                   <td align="right" valign="middle">
-                    <span style="display:inline-block; font-family:monospace; font-size:11px; font-weight:700; color:${badgeColor}; background:rgba(255,255,255,0.06); border:1px solid ${badgeColor}; padding:5px 12px; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">
+                    <span style="display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; font-family: monospace; background-color: ${badgeColor}26; color: ${badgeColor}; border: 1.5px solid ${badgeColor}66; letter-spacing: 0.5px; text-transform: uppercase;">
                       ${badgeText || 'OFFICIAL PASS'}
                     </span>
                   </td>
@@ -113,21 +122,21 @@ const wrapEmailTemplate = ({ title, preheader, content, badgeText, badgeColor = 
             </td>
           </tr>
 
-          <!-- Body Content -->
+          <!-- Main Content Body -->
           <tr>
-            <td style="padding: 32px;">
+            <td style="padding: 34px 32px 28px;">
               ${content}
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="padding: 24px 32px; background-color:#0A0F1D; border-top: 1px solid #1E293B; text-align:center;">
-              <p style="margin:0 0 8px; font-size:12px; color:#64748B; font-family:monospace;">
-                SCT College of Engineering • µLearn
+            <td bgcolor="#151E2E" style="padding: 24px 32px; background-color: #151E2E; background: linear-gradient(180deg, #172234 0%, #111826 100%); border-top: 1.5px solid #2F3E57; text-align: center;">
+              <p style="margin: 0 0 6px; font-size: 12px; color: #94A3B8; font-weight: 500;">
+                VibeVenue Automated Event Management & Gate Credentials
               </p>
-              <p style="margin:0; font-size:11px; color:#475569;">
-                This is an automated operational notification regarding your event registration.
+              <p style="margin: 0; font-size: 11px; color: #64748B; font-family: monospace;">
+                Official Notification · Deliverable to verified student credentials
               </p>
             </td>
           </tr>
@@ -158,60 +167,66 @@ export const sendConfirmedTicketEmail = async ({
   totalPaid = 0,
   whatsappLink = null,
 }) => {
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(ticketId)}&margin=4`;
+
   const content = `
-    <div style="text-align: center; margin-bottom: 24px;">
-      <div style="font-size: 40px; line-height: 1; margin-bottom: 12px;">🎉</div>
-      <h1 style="margin: 0 0 6px; font-size: 22px; font-weight: 700; color: #F8FAFC;">Registration Confirmed!</h1>
-      <p style="margin: 0; font-size: 14px; color: #94A3B8;">Your digital gate pass is ready. Please present this at the venue entrance.</p>
+    <div style="text-align: center; margin-bottom: 26px;">
+      <div style="font-size: 44px; line-height: 1; margin-bottom: 12px;">🎉</div>
+      <h1 style="margin: 0 0 6px; font-size: 24px; font-weight: 800; color: #F8FAFC;">Registration Confirmed!</h1>
+      <p style="margin: 0; font-size: 14px; color: #94A3B8;">Your official digital gate pass is ready. Please present this at the venue entrance.</p>
     </div>
 
     <!-- Ticket Box -->
-    <div style="background-color: #131E36; border: 1.5px solid #2563EB; border-radius: 12px; padding: 22px; margin-bottom: 24px;">
-      <div style="font-family: monospace; font-size: 11px; color: #38BDF8; font-weight: 700; margin-bottom: 4px; text-transform: uppercase;">
-        OFFICIAL GATE CREDENTIAL
-      </div>
-      <h2 style="margin: 0 0 14px; font-size: 18px; color: #FFFFFF; font-weight: 700;">${eventName}</h2>
-      
-      <table width="100%" cellspacing="0" cellpadding="0" border="0" style="font-family: monospace; font-size: 13px; margin-bottom: 16px;">
-        <tr>
-          <td style="padding: 6px 0; color: #94A3B8;">📅 DATE & TIME</td>
-          <td style="padding: 6px 0; color: #F8FAFC; text-align: right; font-weight: 600;">${date || 'Announced Soon'} ${time ? `• ${time}` : ''}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; color: #94A3B8;">📍 VENUE</td>
-          <td style="padding: 6px 0; color: #F8FAFC; text-align: right; font-weight: 600;">${venue || 'Campus Venue'}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; color: #94A3B8;">👤 DELEGATE</td>
-          <td style="padding: 6px 0; color: #F8FAFC; text-align: right; font-weight: 600;">${name}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; color: #94A3B8;">🏷️ CATEGORY</td>
-          <td style="padding: 6px 0; color: #F8FAFC; text-align: right; font-weight: 600;">${pricingTier}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; color: #94A3B8;">💳 AMOUNT PAID</td>
-          <td style="padding: 6px 0; color: #10B981; text-align: right; font-weight: 700;">₹${totalPaid}</td>
-        </tr>
-      </table>
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#19263E" style="background-color: #19263E; background: linear-gradient(135deg, #1F3050 0%, #152035 100%); border: 1.5px solid #3B82F6; border-radius: 14px; margin-bottom: 24px;">
+      <tr>
+        <td style="padding: 22px;">
+          <div style="font-family: monospace; font-size: 11px; color: #38BDF8; font-weight: 700; margin-bottom: 6px; text-transform: uppercase;">
+            OFFICIAL GATE CREDENTIAL
+          </div>
+          <h2 style="margin: 0 0 16px; font-size: 19px; color: #FFFFFF; font-weight: 800;">${eventName}</h2>
+          
+          <table width="100%" cellspacing="0" cellpadding="0" border="0" style="font-family: monospace; font-size: 13px; margin-bottom: 18px;">
+            <tr>
+              <td style="padding: 6px 0; color: #94A3B8;">📅 DATE & TIME</td>
+              <td style="padding: 6px 0; color: #F8FAFC; text-align: right; font-weight: 600;">${date || 'Announced Soon'} ${time ? `• ${time}` : ''}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #94A3B8;">📍 VENUE</td>
+              <td style="padding: 6px 0; color: #F8FAFC; text-align: right; font-weight: 600;">${venue || 'Campus Venue'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #94A3B8;">👤 DELEGATE</td>
+              <td style="padding: 6px 0; color: #F8FAFC; text-align: right; font-weight: 600;">${name}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #94A3B8;">🏷️ CATEGORY</td>
+              <td style="padding: 6px 0; color: #F8FAFC; text-align: right; font-weight: 600;">${pricingTier}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #94A3B8;">💳 AMOUNT PAID</td>
+              <td style="padding: 6px 0; color: #10B981; text-align: right; font-weight: 700;">₹${totalPaid}</td>
+            </tr>
+          </table>
 
-      <!-- Official Scannable QR Badge -->
-      <div style="text-align: center; margin: 18px 0 10px;">
-        <div style="display: inline-block; background-color: #FFFFFF; padding: 12px; border-radius: 12px; border: 2px solid #38BDF8; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
-          <img
-            src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(ticketId)}&margin=4"
-            width="160"
-            height="160"
-            alt="Ticket QR Pass"
-            style="display: block; border-radius: 4px;"
-          />
-        </div>
-        <div style="margin-top: 10px;">
-          <span style="font-size: 11px; color: #94A3B8; font-family: monospace; display: block; letter-spacing: 1px;">PRESENT THIS QR AT GATE CHECK-IN</span>
-          <span style="font-size: 20px; font-weight: 800; color: #60A5FA; letter-spacing: 3px; font-family: monospace;">${ticketId}</span>
-        </div>
-      </div>
-    </div>
+          <!-- Official Scannable QR Badge -->
+          <div style="text-align: center; margin: 18px 0 10px;">
+            <div style="display: inline-block; background-color: #FFFFFF; padding: 12px; border-radius: 12px; border: 2px solid #38BDF8; box-shadow: 0 8px 24px rgba(0,0,0,0.35);">
+              <img
+                src="${qrCodeUrl}"
+                width="160"
+                height="160"
+                alt="Ticket QR Pass"
+                style="display: block; border-radius: 4px;"
+              />
+            </div>
+            <div style="margin-top: 10px;">
+              <span style="font-size: 11px; color: #94A3B8; font-family: monospace; display: block; letter-spacing: 1px;">PRESENT THIS QR AT GATE CHECK-IN</span>
+              <span style="font-size: 20px; font-weight: 800; color: #60A5FA; letter-spacing: 3px; font-family: monospace;">${ticketId}</span>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
 
     ${whatsappLink ? `
       <div style="text-align: center; margin-bottom: 20px;">
@@ -221,7 +236,7 @@ export const sendConfirmedTicketEmail = async ({
       </div>
     ` : ''}
 
-    <p style="margin: 0; font-size: 13px; color: #64748B; text-align: center; line-height: 1.5;">
+    <p style="margin: 0; font-size: 13px; color: #94A3B8; text-align: center; line-height: 1.5;">
       You can access and present this live ticket at any time by logging into your <strong>VibeVenue Student Portal</strong>.
     </p>
   `;
@@ -242,7 +257,7 @@ export const sendConfirmedTicketEmail = async ({
 };
 
 /**
- * 2. Waiting List Ticket Email (with initial Queue Position)
+ * 2. Waiting List Ticket Email (with Dynamic Queue Position & QR Code)
  */
 export const sendWaitlistTicketEmail = async ({
   to,
@@ -255,76 +270,87 @@ export const sendWaitlistTicketEmail = async ({
   position = 1,
   pricingTier = 'General Delegate',
 }) => {
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(ticketId)}&margin=4`;
+
   const content = `
-    <div style="text-align: center; margin-bottom: 24px;">
-      <div style="font-size: 40px; line-height: 1; margin-bottom: 12px;">📋</div>
-      <h1 style="margin: 0 0 6px; font-size: 22px; font-weight: 700; color: #F8FAFC;">You are on the Waiting List</h1>
-      <p style="margin: 0; font-size: 14px; color: #F59E0B; font-weight: 600;">Queue Position #${position}</p>
+    <div style="text-align: center; margin-bottom: 26px;">
+      <div style="font-size: 44px; line-height: 1; margin-bottom: 12px;">📋</div>
+      <h1 style="margin: 0 0 6px; font-size: 24px; font-weight: 800; color: #F8FAFC;">You're on the Waiting List</h1>
+      <p style="margin: 0; font-size: 15px; color: #FBBF24; font-weight: 700;">Queue Position #${position} in Line</p>
     </div>
 
-    <div style="background-color: #1A150B; border: 1.5px solid #F59E0B; border-radius: 12px; padding: 22px; margin-bottom: 24px;">
-      <div style="font-family: monospace; font-size: 11px; color: #FBBF24; font-weight: 700; margin-bottom: 4px; text-transform: uppercase;">
-        WAITLIST REGISTRATION RECEIPT
-      </div>
-      <h2 style="margin: 0 0 14px; font-size: 18px; color: #FFFFFF; font-weight: 700;">${eventName}</h2>
-      
-      <p style="font-size: 13px; color: #CBD5E1; line-height: 1.5; margin: 0 0 16px;">
-        Standard seat capacity for this event is currently full. Your application has been secured at <strong>Position #${position}</strong> in the queue.
-      </p>
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#281C14" style="background-color: #281C14; background: linear-gradient(135deg, #362417 0%, #20150E 100%); border: 1.5px solid #F59E0B; border-radius: 14px; margin-bottom: 24px;">
+      <tr>
+        <td style="padding: 22px;">
+          <div style="font-family: monospace; font-size: 11px; color: #FBBF24; font-weight: 700; margin-bottom: 6px; text-transform: uppercase;">
+            WAITLIST REGISTRATION RECEIPT
+          </div>
+          <h2 style="margin: 0 0 10px; font-size: 19px; color: #FFFFFF; font-weight: 800;">${eventName}</h2>
+          
+          <p style="font-size: 13px; color: #CBD5E1; line-height: 1.5; margin: 0 0 16px;">
+            Standard venue limit for this event has been reached. Your pass has been securely queued at <strong>Position #${position}</strong>.
+          </p>
 
-      <table width="100%" cellspacing="0" cellpadding="0" border="0" style="font-family: monospace; font-size: 13px; margin-bottom: 16px;">
-        <tr>
-          <td style="padding: 6px 0; color: #94A3B8;">🎫 TICKET CODE</td>
-          <td style="padding: 6px 0; color: #FBBF24; text-align: right; font-weight: 700;">${ticketId}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; color: #94A3B8;">👤 DELEGATE</td>
-          <td style="padding: 6px 0; color: #F8FAFC; text-align: right; font-weight: 600;">${name}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; color: #94A3B8;">📅 EVENT DATE</td>
-          <td style="padding: 6px 0; color: #F8FAFC; text-align: right;">${date || 'Announced Soon'}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; color: #94A3B8;">🏷️ TIER</td>
-          <td style="padding: 6px 0; color: #F8FAFC; text-align: right;">${pricingTier}</td>
-        </tr>
-      </table>
+          <table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#1A110A" style="font-family: monospace; font-size: 13px; margin-bottom: 16px; background-color: #1A110A; border-radius: 8px; padding: 12px;">
+            <tr>
+              <td style="padding: 6px 0; color: #94A3B8;">🎫 PASS CODE</td>
+              <td style="padding: 6px 0; color: #FBBF24; text-align: right; font-weight: 700;">${ticketId}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #94A3B8;">🔢 QUEUE POSITION</td>
+              <td style="padding: 6px 0; color: #F59E0B; text-align: right; font-weight: 800;">#${position}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #94A3B8;">👤 DELEGATE</td>
+              <td style="padding: 6px 0; color: #F8FAFC; text-align: right; font-weight: 600;">${name}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #94A3B8;">📅 EVENT DATE</td>
+              <td style="padding: 6px 0; color: #F8FAFC; text-align: right;">${date || 'Announced Soon'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #94A3B8;">🏷️ STATUS</td>
+              <td style="padding: 6px 0; color: #F59E0B; text-align: right; font-weight: 800;">WAITLISTED (#${position})</td>
+            </tr>
+          </table>
 
-      <!-- Waitlist QR Tracking Badge -->
-      <div style="text-align: center; margin: 16px 0 12px;">
-        <div style="display: inline-block; background-color: #FFFFFF; padding: 10px; border-radius: 10px; border: 2px solid #F59E0B; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-          <img
-            src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(ticketId)}&margin=4"
-            width="140"
-            height="140"
-            alt="Waitlist QR Pass"
-            style="display: block; border-radius: 4px;"
-          />
-        </div>
-        <div style="margin-top: 8px;">
-          <span style="font-size: 11px; color: #94A3B8; font-family: monospace; display: block;">WAITLIST TRACKING PASS</span>
-          <span style="font-size: 18px; font-weight: 800; color: #FBBF24; letter-spacing: 2px; font-family: monospace;">${ticketId}</span>
-        </div>
-      </div>
+          <!-- Waitlist Live QR Tracking Badge -->
+          <div style="text-align: center; margin: 18px 0 12px;">
+            <div style="display: inline-block; background-color: #FFFFFF; padding: 12px; border-radius: 12px; border: 2px solid #F59E0B; box-shadow: 0 8px 24px rgba(0,0,0,0.35);">
+              <img
+                src="${qrCodeUrl}"
+                width="150"
+                height="150"
+                alt="Waitlist QR Pass"
+                style="display: block; border-radius: 4px;"
+              />
+            </div>
+            <div style="margin-top: 10px;">
+              <span style="font-size: 11px; color: #94A3B8; font-family: monospace; display: block; letter-spacing: 1px;">WAITLIST QUEUE TRACKING PASS</span>
+              <span style="font-size: 20px; font-weight: 800; color: #FBBF24; letter-spacing: 3px; font-family: monospace;">${ticketId}</span>
+              <span style="display: block; font-size: 13px; font-weight: 700; color: #F59E0B; margin-top: 4px; font-family: monospace;">POSITION #${position}</span>
+            </div>
+          </div>
 
-      <!-- Auto-promotion notice -->
-      <div style="background-color: rgba(245, 158, 11, 0.1); border-left: 3px solid #F59E0B; padding: 12px 14px; border-radius: 4px;">
-        <strong style="color: #FBBF24; font-size: 12px; display: block; margin-bottom: 2px;">⚡ Automatic Upgradation System</strong>
-        <span style="color: #E2E8F0; font-size: 12px; line-height: 1.4; display: block;">
-          Whenever a confirmed participant cancels their registration, the next person in line is <strong>automatically upgraded to a Confirmed ticket</strong> and emailed immediately!
-        </span>
-      </div>
-    </div>
+          <!-- Auto-promotion notice -->
+          <div style="background-color: rgba(245, 158, 11, 0.14); border-left: 3px solid #F59E0B; padding: 14px; border-radius: 6px; margin-top: 16px;">
+            <strong style="color: #FBBF24; font-size: 13px; display: block; margin-bottom: 4px;">⚡ Automatic Upgradation System</strong>
+            <span style="color: #CBD5E1; font-size: 12px; line-height: 1.5; display: block;">
+              If any confirmed participant cancels their registration, the next delegate on the waiting list is <strong>automatically upgraded to a Confirmed Pass</strong> and issued an entrance QR pass instantly!
+            </span>
+          </div>
+        </td>
+      </tr>
+    </table>
 
-    <p style="margin: 0; font-size: 12px; color: #64748B; text-align: center;">
-      You can track your live queue status anytime in your VibeVenue Student Portal.
+    <p style="margin: 0; font-size: 13px; color: #94A3B8; text-align: center; line-height: 1.5;">
+      You can track your live queue standing anytime in your <strong>VibeVenue Student Portal</strong>.
     </p>
   `;
 
   const html = wrapEmailTemplate({
-    title: `Waitlist Entry: ${eventName}`,
-    preheader: `You are #${position} on the waiting list for ${eventName}`,
+    title: `Waiting List Confirmation: ${eventName}`,
+    preheader: `You are #${position} on the waiting list for ${eventName}. Ticket ID: ${ticketId}`,
     content,
     badgeText: `WAITLIST #${position}`,
     badgeColor: '#F59E0B',
@@ -332,13 +358,13 @@ export const sendWaitlistTicketEmail = async ({
 
   return sendRawEmail({
     to,
-    subject: `📋 Waitlist Confirmation: ${eventName} (Position #${position})`,
+    subject: `📋 Waiting List Confirmation: ${eventName} (Position #${position})`,
     html,
   });
 };
 
 /**
- * 3. Queue Position Advancement Email (e.g. #4 -> #3)
+ * 3. Queue Position Advancement Email (e.g. #2 -> #1)
  */
 export const sendWaitlistQueueShiftEmail = async ({
   to,
@@ -348,51 +374,58 @@ export const sendWaitlistQueueShiftEmail = async ({
   newPosition,
   ticketId,
 }) => {
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(ticketId)}&margin=4`;
+
   const content = `
-    <div style="text-align: center; margin-bottom: 24px;">
-      <div style="font-size: 40px; line-height: 1; margin-bottom: 12px;">📈</div>
-      <h1 style="margin: 0 0 6px; font-size: 22px; font-weight: 700; color: #F8FAFC;">You Moved Up in the Queue!</h1>
-      <p style="margin: 0; font-size: 14px; color: #38BDF8; font-weight: 600;">
-        Position ${oldPosition} ➔ <span style="font-size: 18px; color: #10B981; font-weight: 800;">Position #${newPosition}</span>
+    <div style="text-align: center; margin-bottom: 26px;">
+      <div style="font-size: 44px; line-height: 1; margin-bottom: 12px;">📈</div>
+      <h1 style="margin: 0 0 6px; font-size: 24px; font-weight: 800; color: #F8FAFC;">You Moved Up in the Queue!</h1>
+      <p style="margin: 0; font-size: 15px; color: #38BDF8; font-weight: 700;">
+        Position #${oldPosition} ➔ <span style="font-size: 18px; color: #10B981; font-weight: 800;">Position #${newPosition}</span>
       </p>
     </div>
 
-    <div style="background-color: #0F172A; border: 1.5px solid #0EA5E9; border-radius: 12px; padding: 22px; margin-bottom: 24px;">
-      <h2 style="margin: 0 0 10px; font-size: 17px; color: #FFFFFF; font-weight: 700;">${eventName}</h2>
-      <p style="font-size: 13px; color: #CBD5E1; line-height: 1.5; margin: 0 0 16px;">
-        Hi <strong>${name}</strong>, a seat vacancy or queue change has occurred. Your waiting list standing has advanced closer to confirmation!
-      </p>
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#152A42" style="background-color: #152A42; background: linear-gradient(135deg, #1B3654 0%, #112033 100%); border: 1.5px solid #0EA5E9; border-radius: 14px; margin-bottom: 24px;">
+      <tr>
+        <td style="padding: 22px;">
+          <h2 style="margin: 0 0 10px; font-size: 18px; color: #FFFFFF; font-weight: 700;">${eventName}</h2>
+          <p style="font-size: 13px; color: #CBD5E1; line-height: 1.5; margin: 0 0 16px;">
+            Hi <strong>${name}</strong>, a seat vacancy has advanced your standing in the waiting list closer to confirmation!
+          </p>
 
-      <div style="background-color: #0A0F1D; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; margin-bottom: 16px;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-          <span style="color: #94A3B8;">PASS ID:</span>
-          <span style="color: #F8FAFC; font-weight: 700;">${ticketId}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between;">
-          <span style="color: #94A3B8;">NEW STANDING:</span>
-          <span style="color: #10B981; font-weight: 800;">#${newPosition} IN LINE</span>
-        </div>
-      </div>
+          <table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#0D1A29" style="background-color: #0D1A29; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; margin-bottom: 16px;">
+            <tr>
+              <td style="padding: 4px 0; color: #94A3B8;">PASS ID:</td>
+              <td style="padding: 4px 0; color: #F8FAFC; text-align: right; font-weight: 700;">${ticketId}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; color: #94A3B8;">NEW STANDING:</td>
+              <td style="padding: 4px 0; color: #10B981; text-align: right; font-weight: 800;">#${newPosition} IN LINE</td>
+            </tr>
+          </table>
 
-      <!-- Waitlist QR Tracking Badge -->
-      <div style="text-align: center; margin: 16px 0 12px;">
-        <div style="display: inline-block; background-color: #FFFFFF; padding: 10px; border-radius: 10px; border: 2px solid #0EA5E9; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-          <img
-            src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(ticketId)}&margin=4"
-            width="140"
-            height="140"
-            alt="Waitlist QR Pass"
-            style="display: block; border-radius: 4px;"
-          />
-        </div>
-        <div style="margin-top: 8px;">
-          <span style="font-size: 11px; color: #94A3B8; font-family: monospace; display: block;">UPDATED QUEUE PASS</span>
-          <span style="font-size: 18px; font-weight: 800; color: #38BDF8; letter-spacing: 2px; font-family: monospace;">${ticketId}</span>
-        </div>
-      </div>
-    </div>
+          <!-- Waitlist QR Tracking Badge -->
+          <div style="text-align: center; margin: 16px 0 12px;">
+            <div style="display: inline-block; background-color: #FFFFFF; padding: 10px; border-radius: 10px; border: 2px solid #0EA5E9; box-shadow: 0 4px 12px rgba(0,0,0,0.35);">
+              <img
+                src="${qrCodeUrl}"
+                width="140"
+                height="140"
+                alt="Waitlist QR Pass"
+                style="display: block; border-radius: 4px;"
+              />
+            </div>
+            <div style="margin-top: 8px;">
+              <span style="font-size: 11px; color: #94A3B8; font-family: monospace; display: block;">UPDATED QUEUE PASS</span>
+              <span style="font-size: 18px; font-weight: 800; color: #38BDF8; letter-spacing: 2px; font-family: monospace;">${ticketId}</span>
+              <span style="display: block; font-size: 13px; font-weight: 700; color: #10B981; margin-top: 4px; font-family: monospace;">POSITION #${newPosition}</span>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
 
-    <p style="margin: 0; font-size: 12px; color: #64748B; text-align: center;">
+    <p style="margin: 0; font-size: 12px; color: #94A3B8; text-align: center;">
       We will notify you immediately if you are promoted to a Confirmed Pass.
     </p>
   `;
@@ -407,7 +440,7 @@ export const sendWaitlistQueueShiftEmail = async ({
 
   return sendRawEmail({
     to,
-    subject: `📈 Queue Update: #${newPosition} for ${eventName}`,
+    subject: `📈 Queue Update: Advanced to #${newPosition} for ${eventName}`,
     html,
   });
 };
@@ -424,56 +457,62 @@ export const sendWaitlistPromotedEmail = async ({
   venue,
   ticketId,
 }) => {
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(ticketId)}&margin=4`;
+
   const content = `
-    <div style="text-align: center; margin-bottom: 24px;">
-      <div style="font-size: 46px; line-height: 1; margin-bottom: 12px;">🚀</div>
+    <div style="text-align: center; margin-bottom: 26px;">
+      <div style="font-size: 48px; line-height: 1; margin-bottom: 12px;">🚀</div>
       <h1 style="margin: 0 0 6px; font-size: 24px; font-weight: 800; color: #10B981;">You're In! Pass Confirmed</h1>
       <p style="margin: 0; font-size: 14px; color: #CBD5E1;">A seat has opened up and your ticket has been automatically promoted from the waiting list!</p>
     </div>
 
     <!-- Highlight Box -->
-    <div style="background-color: #064E3B; border: 2px solid #10B981; border-radius: 12px; padding: 22px; margin-bottom: 24px;">
-      <div style="font-family: monospace; font-size: 11px; color: #6EE7B7; font-weight: 700; margin-bottom: 4px; text-transform: uppercase;">
-        PROMOTION NOTICE
-      </div>
-      <h2 style="margin: 0 0 14px; font-size: 19px; color: #FFFFFF; font-weight: 800;">${eventName}</h2>
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#113227" style="background-color: #113227; background: linear-gradient(135deg, #174234 0%, #0C251C 100%); border: 2px solid #10B981; border-radius: 14px; margin-bottom: 24px;">
+      <tr>
+        <td style="padding: 22px;">
+          <div style="font-family: monospace; font-size: 11px; color: #6EE7B7; font-weight: 700; margin-bottom: 6px; text-transform: uppercase;">
+            PROMOTION NOTICE
+          </div>
+          <h2 style="margin: 0 0 14px; font-size: 19px; color: #FFFFFF; font-weight: 800;">${eventName}</h2>
 
-      <p style="font-size: 13px; color: #D1FAE5; line-height: 1.5; margin: 0 0 16px;">
-        Congratulations <strong>${name}</strong>! Your waiting list ticket <strong>${ticketId}</strong> is now officially a <strong>CONFIRMED GATE PASS</strong>.
-      </p>
+          <p style="font-size: 13px; color: #D1FAE5; line-height: 1.5; margin: 0 0 16px;">
+            Congratulations <strong>${name}</strong>! Your waiting list ticket <strong>${ticketId}</strong> is now officially a <strong>CONFIRMED GATE PASS</strong>.
+          </p>
 
-      <table width="100%" cellspacing="0" cellpadding="0" border="0" style="font-family: monospace; font-size: 13px; background: rgba(0,0,0,0.25); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-        <tr>
-          <td style="padding: 4px 0; color: #A7F3D0;">📅 DATE</td>
-          <td style="padding: 4px 0; color: #FFFFFF; text-align: right; font-weight: 700;">${date || 'Event Day'} ${time ? `(${time})` : ''}</td>
-        </tr>
-        <tr>
-          <td style="padding: 4px 0; color: #A7F3D0;">📍 LOCATION</td>
-          <td style="padding: 4px 0; color: #FFFFFF; text-align: right; font-weight: 700;">${venue || 'Campus Venue'}</td>
-        </tr>
-        <tr>
-          <td style="padding: 4px 0; color: #A7F3D0;">🎟️ TICKET ID</td>
-          <td style="padding: 4px 0; color: #6EE7B7; text-align: right; font-weight: 800;">${ticketId}</td>
-        </tr>
-      </table>
+          <table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#091A14" style="font-family: monospace; font-size: 13px; background-color: #091A14; border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+            <tr>
+              <td style="padding: 4px 0; color: #A7F3D0;">📅 DATE</td>
+              <td style="padding: 4px 0; color: #FFFFFF; text-align: right; font-weight: 700;">${date || 'Event Day'} ${time ? `(${time})` : ''}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; color: #A7F3D0;">📍 LOCATION</td>
+              <td style="padding: 4px 0; color: #FFFFFF; text-align: right; font-weight: 700;">${venue || 'Campus Venue'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; color: #A7F3D0;">🎟️ TICKET ID</td>
+              <td style="padding: 4px 0; color: #6EE7B7; text-align: right; font-weight: 800;">${ticketId}</td>
+            </tr>
+          </table>
 
-      <!-- Official Scannable QR Badge -->
-      <div style="text-align: center; margin: 18px 0 6px;">
-        <div style="display: inline-block; background-color: #FFFFFF; padding: 12px; border-radius: 12px; border: 2px solid #10B981; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
-          <img
-            src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(ticketId)}&margin=4"
-            width="160"
-            height="160"
-            alt="Ticket QR Pass"
-            style="display: block; border-radius: 4px;"
-          />
-        </div>
-        <div style="margin-top: 10px;">
-          <span style="font-size: 11px; color: #A7F3D0; font-family: monospace; display: block; letter-spacing: 1px;">PRESENT THIS QR AT ENTRANCE</span>
-          <span style="font-size: 20px; font-weight: 800; color: #34D399; letter-spacing: 3px; font-family: monospace;">${ticketId}</span>
-        </div>
-      </div>
-    </div>
+          <!-- Official Scannable QR Badge -->
+          <div style="text-align: center; margin: 18px 0 6px;">
+            <div style="display: inline-block; background-color: #FFFFFF; padding: 12px; border-radius: 12px; border: 2px solid #10B981; box-shadow: 0 8px 24px rgba(0,0,0,0.35);">
+              <img
+                src="${qrCodeUrl}"
+                width="160"
+                height="160"
+                alt="Ticket QR Pass"
+                style="display: block; border-radius: 4px;"
+              />
+            </div>
+            <div style="margin-top: 10px;">
+              <span style="font-size: 11px; color: #A7F3D0; font-family: monospace; display: block; letter-spacing: 1px;">PRESENT THIS QR AT ENTRANCE</span>
+              <span style="font-size: 20px; font-weight: 800; color: #34D399; letter-spacing: 3px; font-family: monospace;">${ticketId}</span>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
 
     <p style="margin: 0; font-size: 13px; color: #94A3B8; text-align: center; line-height: 1.5;">
       Your updated QR credential is now live in your <strong>VibeVenue Student Portal</strong>. Present it at the venue desk on event day.
@@ -481,10 +520,10 @@ export const sendWaitlistPromotedEmail = async ({
   `;
 
   const html = wrapEmailTemplate({
-    title: `Promoted to Confirmed: ${eventName}`,
+    title: `Pass Confirmed: ${eventName}`,
     preheader: `Great news! You have been promoted to Confirmed for ${eventName}`,
     content,
-    badgeText: '✓ PROMOTED CONFIRMED',
+    badgeText: '✓ PASS CONFIRMED',
     badgeColor: '#10B981',
   });
 
@@ -506,25 +545,43 @@ export const sendCancellationEmail = async ({
   wasWaitlisted = false,
 }) => {
   const content = `
-    <div style="text-align: center; margin-bottom: 24px;">
-      <div style="font-size: 40px; line-height: 1; margin-bottom: 12px;">❌</div>
-      <h1 style="margin: 0 0 6px; font-size: 22px; font-weight: 700; color: #F8FAFC;">Registration Cancelled</h1>
-      <p style="margin: 0; font-size: 14px; color: #94A3B8;">Your registration and gate credential have been revoked.</p>
+    <div style="text-align: center; margin-bottom: 26px;">
+      <div style="font-size: 44px; line-height: 1; margin-bottom: 12px;">❌</div>
+      <h1 style="margin: 0 0 6px; font-size: 24px; font-weight: 800; color: #F43F5E;">Registration Cancelled</h1>
+      <p style="margin: 0; font-size: 14px; color: #CBD5E1;">Your registration and gate credential have been revoked.</p>
     </div>
 
-    <div style="background-color: #1E1218; border: 1.5px solid #E11D48; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-      <h2 style="margin: 0 0 10px; font-size: 17px; color: #FFFFFF;">${eventName}</h2>
-      <p style="font-size: 13px; color: #FDA4AF; line-height: 1.5; margin: 0 0 12px;">
-        Hi <strong>${name}</strong>, your ${wasWaitlisted ? 'waiting list entry' : 'gate pass'} (<code>${ticketId}</code>) has been cancelled as requested.
-      </p>
-      ${!wasWaitlisted ? `
-        <p style="font-size: 12px; color: #94A3B8; margin: 0;">
-          Your vacated seat has been automatically offered to the next delegate on the waiting list.
-        </p>
-      ` : ''}
-    </div>
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#2E131C" style="background-color: #2E131C; background: linear-gradient(135deg, #3D1826 0%, #220D15 100%); border: 1.5px solid #F43F5E; border-radius: 14px; margin-bottom: 24px;">
+      <tr>
+        <td style="padding: 22px;">
+          <h2 style="margin: 0 0 10px; font-size: 18px; color: #FFFFFF; font-weight: 700;">${eventName}</h2>
+          <p style="font-size: 14px; color: #FDA4AF; line-height: 1.6; margin: 0 0 16px;">
+            Hi <strong>${name}</strong>, your ${wasWaitlisted ? 'waiting list entry' : 'gate pass'} (<code>${ticketId}</code>) has been successfully cancelled as requested.
+          </p>
 
-    <p style="margin: 0; font-size: 12px; color: #64748B; text-align: center;">
+          <table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#1D0B12" style="background-color: #1D0B12; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 13px; margin-bottom: 14px;">
+            <tr>
+              <td style="padding: 4px 0; color: #FDA4AF;">PASS ID</td>
+              <td style="padding: 4px 0; color: #FFFFFF; text-align: right; font-weight: 700;">${ticketId}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; color: #FDA4AF;">STATUS</td>
+              <td style="padding: 4px 0; color: #F43F5E; text-align: right; font-weight: 800;">CANCELLED / REVOKED</td>
+            </tr>
+          </table>
+
+          ${!wasWaitlisted ? `
+            <div style="background-color: rgba(244, 63, 94, 0.12); border-left: 3px solid #F43F5E; padding: 12px 14px; border-radius: 6px;">
+              <span style="color: #FDA4AF; font-size: 12px; line-height: 1.5; display: block;">
+                ⚡ <strong>Seat Reallocated:</strong> Your vacated seat has been automatically released and offered to the next attendee waiting in line.
+              </span>
+            </div>
+          ` : ''}
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin: 0; font-size: 12px; color: #94A3B8; text-align: center;">
       If you did not request this cancellation or believe this was an error, please contact the event organizing desk.
     </p>
   `;
@@ -534,7 +591,7 @@ export const sendCancellationEmail = async ({
     preheader: `Your registration for ${eventName} has been cancelled`,
     content,
     badgeText: 'CANCELLED',
-    badgeColor: '#E11D48',
+    badgeColor: '#F43F5E',
   });
 
   return sendRawEmail({
