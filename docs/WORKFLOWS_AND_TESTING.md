@@ -1,6 +1,6 @@
 # 🧪 VibeVenue Workflows & Verification Testing Matrix
 
-> **Version:** `v0.93 (93 commits)`  
+> **Version:** `v0.98 (98 commits)`  
 > **Environment:** Staging & Production (`https://vibe-venue.vercel.app`)  
 > **Target Audience:** Lead Organizers, QA Engineers, Gate Volunteers, and Technical Evaluators
 
@@ -60,6 +60,7 @@ journey
 ### 🧪 Test 1: Individual Delegate Registration & Digital Pass Issuance
 - **Persona:** Student (`test.student01@vibevenue.tech`)
 - **Objective:** Verify frictionless checkout, dynamic UPI generation, payment proof upload, and instant digital pass wallet rendering.
+- **Video Walkthrough:** [📹 Registeration and email confirmations.mp4](../images1/Registeration%20and%20email%20confirmations.mp4)
 - **Procedure:**
   1. Open `https://vibe-venue.vercel.app/login` and log in as `test.student01@vibevenue.tech`.
   2. In the **Participant Portal**, locate **PromptX: Enterprise GenAI, LLMOps & RAG Architecture Masterclass**.
@@ -150,6 +151,7 @@ journey
 ### 🧪 Test 7: Ultra-Fast 60FPS Camera Gate Scanner Check-In
 - **Persona:** Gate Volunteer / Admin (`organizer.admin@vibevenue.tech`)
 - **Objective:** Verify 60FPS canvas frame grabber and dynamic team gate modal.
+- **Video Walkthrough:** [📹 Check in Scanner.mp4](../images/Check%20in%20Scanner.mp4)
 - **Procedure:**
   1. Open `https://vibe-venue.vercel.app/scanner`.
   2. Grant webcam permission.
@@ -178,6 +180,9 @@ journey
 ### 🧪 Test 9: Turnout Matrix, Roster Inspection & Spot Walk-In Pass Issuance
 - **Persona:** Admin (`csi.lead@vibevenue.tech`)
 - **Objective:** Verify real-time gate metrics and on-desk emergency registration.
+- **Visual Evidence:**
+  
+  ![Team Attendance Hub](../images1/Screenshot%20(382).png)
 - **Procedure:**
   1. Open `https://vibe-venue.vercel.app/attendance`.
   2. Inspect the 4 interactive stat cards: **TOTAL DELEGATES**, **PRESENT**, **ABSENT**, and **TEAMS**.
@@ -193,6 +198,9 @@ journey
 ### 🧪 Test 10: Attendee Verification Dossier & Receipt Desk
 - **Persona:** Finance / Verification Desk Admin
 - **Objective:** Audit payment screenshots and manage add-ons distribution.
+- **Visual Evidence:**
+
+  ![Attendee Inspection Dossier](../images1/Screenshot%20(387).png)
 - **Procedure:**
   1. Open `https://vibe-venue.vercel.app/registrations`.
   2. Click on any attendee row to view their dossier.
@@ -201,3 +209,24 @@ journey
 - **Expected Result:**
   - Verification state persists in Supabase.
   - Distribution timestamps are logged for desk accountability.
+
+---
+
+### 🧪 Test 11: 1-Click Turnout & Registrations CSV Export
+- **Persona:** Event Operations & Audit Lead
+- **Objective:** Verify client-side CSV generator compiling delegate rosters with UTF-8 BOM encoding and standardized ISO timestamped filenames.
+- **Video Walkthrough:** [📹 csv export.mp4](../images1/csv%20export.mp4)
+- **Visual Evidence:**
+
+  ![Central Registrations & Export Central](../images1/Screenshot%20(384).png)
+- **Procedure:**
+  1. Open `https://vibe-venue.vercel.app/registrations`.
+  2. Filter by status or select an event (or keep `All Events`).
+  3. Click the **"Export CSV"** button located at the top right of the registrations table.
+  4. Verify the browser triggers an instant direct file download.
+  5. Open the downloaded file (`vibevenue_registrations_YYYY-MM-DD.csv`) in Excel or Google Sheets.
+- **Expected Result:**
+  - File downloads instantaneously with `.csv` extension.
+  - Characters are encoded with UTF-8 BOM (`\uFEFF`), preventing Excel character distortion.
+  - Columns exported: Ticket ID, Full Name, Email, Phone, College, Roll Number, Event Code, Event Name, Registration Type, Status, Payment Status, Amount Paid, Check-in Status, and Registration Timestamp.
+

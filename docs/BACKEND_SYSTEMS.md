@@ -1,6 +1,6 @@
 # ⚙️ VibeVenue Backend Systems & Automation Engine
 
-> **Version:** `v0.93 (93 commits)`  
+> **Version:** `v0.98 (98 commits)`  
 > **Database:** PostgreSQL 15 (Supabase Managed)  
 > **Serverless Runtime:** Deno v1.39+ on Supabase Edge  
 > **Comms Protocol:** Transactional HTTP REST over Resend API

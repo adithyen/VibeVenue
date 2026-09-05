@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![VibeVenue Version](https://img.shields.io/badge/version-0.93%20(93%20commits)-6366F1?style=for-the-badge&logo=git&logoColor=white)
+![VibeVenue Version](https://img.shields.io/badge/version-0.98%20(98%20commits)-6366F1?style=for-the-badge&logo=git&logoColor=white)
 ![Build Status](https://img.shields.io/badge/build-passing-10B981?style=for-the-badge&logo=vite&logoColor=white)
 ![React 19](https://img.shields.io/badge/React-19.2.8-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![Supabase](https://img.shields.io/badge/Supabase-Realtime%20Postgres-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
@@ -13,7 +13,7 @@
 
 **Production Deployment:** [https://vibe-venue.vercel.app](https://vibe-venue.vercel.app)  
 **Author & Lead Architect:** Adithyen H  
-**Current Release:** `v0.93 (93 commits)`
+**Current Release:** `v0.98 (98 commits)`
 
 </div>
 
@@ -29,11 +29,28 @@ Built to eliminate long entry queues and administrative friction, VibeVenue comb
 
 ## 📸 Visual Showcase & Screen Recordings
 
-Here is a curated visual walkthrough of VibeVenue in action, demonstrating live gate scanning, automated transactional emails, scheduling conflict prevention, and waitlist queuing:
+Here is a curated visual walkthrough of VibeVenue in action, demonstrating live gate scanning, automated transactional emails, scheduling conflict prevention, waitlist queuing, and administrative consoles:
 
-| Live Screen / Capability | Preview & Media Asset | Description |
+### 🎬 Live Motion Demos & Feature Walkthroughs
+| Workflow Video Walkthrough | Direct Media Link | Focus Area & Verified Capability |
 | :--- | :---: | :--- |
-| **60 FPS Gate Scanner & Audio Feedback** | [Check in Scanner.mp4](images/Check%20in%20Scanner.mp4) | Direct Canvas 2D frame sampler decoding QR passes at 60 FPS with hardware barcode listeners. |
+| **End-to-End Registration & Instant Email Confirmation** | [📹 Registeration and email confirmations.mp4](images1/Registeration%20and%20email%20confirmations.mp4) | Complete delegate registration flow: dynamic UPI checkout, proof submission, and instantaneous transactional email delivery via Resend. |
+| **1-Click Turnout & Registrations CSV Export** | [📹 csv export.mp4](images1/csv%20export.mp4) | High-speed client-side CSV generator compiling delegate rosters with UTF-8 BOM encoding and formatted filenames (`vibevenue_registrations_YYYY-MM-DD.csv`). |
+| **60 FPS Gate Scanner & Audio Feedback** | [📹 Check in Scanner.mp4](images/Check%20in%20Scanner.mp4) | Direct Canvas 2D frame sampler decoding QR passes at 60 FPS with hardware barcode listeners and audio chime verification. |
+
+### 🖥️ Core Administrative Consoles & High-Resolution Dossiers
+| Interface / Portal Screen | High-Resolution Capture | Operational Capability |
+| :--- | :---: | :--- |
+| **Executive Analytics & Velocity Overview** | ![Executive Dashboard](images1/Screenshot%20(385).png) | Live KPI metrics (Total Events, Active Events, Registrations, Waitlist, 84% Capacity), 30-day velocity telemetry curve, and live registrations table. |
+| **Event Catalog & Track Directory** | ![Event Directory](images1/Screenshot%20(386).png) | Filterable event cards (Hackathons, Coding, Cloud, Security) with dynamic mode badges, date ranges, and live capacity occupancy bars. |
+| **Event Specification & Capacity Matrix Dossier** | ![Event Specification](images1/Screenshot%202026-09-05%20215244.png) | Hero banner, logo badge, 90% Occupancy donut gauge, session timeline, enrolled attendees tab, and specification controls. |
+| **Central Delegate Registrations & CSV Desk** | ![Registrations Management](images1/Screenshot%20(384).png) | Central delegate table with search, quick filter pills (All, Confirmed, Waitlisted, Cancelled), payment audit status, and Export CSV trigger. |
+| **Granular Attendee Inspection Dossier** | ![Attendee Inspection Dossier](images1/Screenshot%20(387).png) | Deep attendee profile audit (Kavya S), payment proof verification, timeline check-in audit, and merchandise checklist. |
+| **Team Attendance & Granular Turnout Hub** | ![Attendance Roster Hub](images1/Screenshot%20(382).png) | Interactive turnout stat cards (Total, Present, Absent, Teams) with expandable team cards and member-by-member gate clearance checkboxes. |
+
+### 📬 Transactional Email Delivery & Automated Policy Safeguards
+| Event Lifecycle Capability | Preview & Media Asset | Description |
+| :--- | :---: | :--- |
 | **Confirmed Ticket Pass Email** | ![Confirmed Email](images/Email%20notification%20system/Confirmed%20Registration%20Email%20Notification.jpeg.jpeg) | Transactional pass delivered via Resend with dynamic scannable QR ticket badge. |
 | **Waitlist Queue Advancement Email** | ![Queue Shift Email](images/Email%20notification%20system/Waiting%20list%20update%20Email%20Notification.jpeg.jpeg) | Automatic notification sent when attendee moves up in line (`#2 ➔ #1`) with updated QR code. |
 | **Registration Cancellation Notice** | ![Cancelled Email](images/Email%20notification%20system/Cancelled%20Registration%20Email%20Notification.jpeg) | Instant revocation receipt notifying attendee that their seat was released to the waitlist. |
@@ -251,50 +268,83 @@ sequenceDiagram
 - **Hardware USB Barcode Gun Listener**: Automatically detects physical barcode guns (`⚡ BARCODE READER DETECTED`) and captures keystroke input streams terminated by `Enter`.
 - **Team Clearance Modal**: Scanning a group ticket triggers an interactive roster popup with **`✓ Select All`** and granular member checkboxes.
 - **Audio Feedback**: Instant synth audio chimes for success, duplicate scans, and invalid passes.
+- 📹 **Verified Video Demonstration:** [Check in Scanner.mp4](images/Check%20in%20Scanner.mp4)
 
-### 2. 📊 Delegate Attendance & Turnout Hub (`/attendance`)
+### 2. 📊 Granular Team Attendance & Turnout Hub (`/attendance`)
 - **Instant Search & Check-in**: Search by Ticket ID, Roll Number, Name, or Department to check in attendees in under 100ms.
-- **Granular Team Roster Inspection**: Expandable team view with individual `[✓ Mark Present]` and `[○ Absent]` buttons.
-- **Interactive Stat Cards**: Filter records dynamically by clicking **Total**, **Present**, **Absent**, or **Teams**.
+- **Granular Team Roster Inspection**: Expandable team view with individual `[✓ Mark Present]` and `[○ Absent]` buttons, computing `Partial` and `Full Attendance` clearance chips.
+- **Interactive Stat Cards**: Filter records dynamically by clicking **TOTAL DELEGATES**, **PRESENT**, **ABSENT**, or **TEAMS**.
 - **Spot Walk-in Pass Issuance**: Issue emergency tickets at the gate desk with instant check-in.
-- **CSV Export**: 1-click export of complete turnout rosters with precise check-in timestamps.
+- 📸 **High-Resolution Interface Capture:**
+  
+  ![Team Attendance & Roster Clearance Hub](images1/Screenshot%20(382).png)
 
-### 3. 👥 Dynamic Team Roster Engine (`/portal/register/:id`)
+### 3. 📈 Executive Analytics & Velocity Telemetry (`/dashboard`)
+- **Real-Time KPI Matrix**: Live telemetry tracking Total Events, Active Tracks, Total Confirmed Registrations, Waitlist Queue Size, and Global Venue Capacity percentage.
+- **30-Day Registration Velocity Curve**: Interactive SVG/Canvas spline chart plotting daily delegate uptake and velocity spikes leading up to summit dates.
+- **Recent Activity Ledger**: Synchronized feed of registrations, gate entries, and waitlist movements.
+- 📸 **High-Resolution Interface Capture:**
+
+  ![Executive Analytics & Registration Velocity Dashboard](images1/Screenshot%20(385).png)
+
+### 4. 🎪 Event Catalog & Track Specification Dossiers (`/events` & `/events/:id`)
+- **Filterable Event Catalog**: Card-based directory with instant search, track categories (Hackathons, Coding, Cloud, Cybersecurity), delivery mode pills (Online / In-Person / Hybrid), and live seat quota progress indicators.
+- **Detailed Specification Dossier**: Comprehensive event view featuring custom hero banners, logos, schedule timeline, venue coordinates, and dynamic **Capacity & Occupancy Donut Gauges** showing real-time confirmed vs. waitlisted delegates.
+- 📸 **High-Resolution Interface Captures:**
+
+  ![Event Catalog & Tracks Directory](images1/Screenshot%20(386).png)
+
+  ![Event Specification & Capacity Matrix Dossier](images1/Screenshot%202026-09-05%20215244.png)
+
+### 5. 📑 Central Delegate Registrations & 1-Click CSV Export (`/registrations`)
+- **Operations Console**: Comprehensive administrative table listing all delegate applications with search, status filters (All, Confirmed, Waitlisted, Cancelled), fee verification badges, and rapid action triggers.
+- **Production-Ready CSV Export**: Robust client-side CSV generator equipped with UTF-8 BOM encoding, double-quote field sanitization, and standardized ISO timestamped filenames (`vibevenue_registrations_YYYY-MM-DD.csv`).
+- 📹 **Live Walkthrough Video:** [📹 csv export.mp4](images1/csv%20export.mp4)
+- 📸 **High-Resolution Interface Capture:**
+
+  ![Central Delegate Registrations & CSV Desk](images1/Screenshot%20(384).png)
+
+### 6. 🔍 Granular Attendee Inspection Dossier (`/registrations/:id`)
+- **Full Delegate Audit**: Deep profile inspection with roll number, college affiliation, ticket status, check-in history, and full audit timeline.
+- **High-Resolution Receipt Zoom Desk**: Inspect submitted UPI payment screenshots with modal zoom.
+- **Add-ons & Merchandise Checklist**: Real-time toggles to issue event kits, official hoodies, badge lanyards, and meal passes directly at the physical verification desk.
+- 📸 **High-Resolution Interface Capture:**
+
+  ![Attendee Inspection Dossier](images1/Screenshot%20(387).png)
+
+### 7. 👥 Dynamic Team Roster Engine (`/portal/register/:id`)
 - **Leader & Member Controls**: Auto-binds primary user as Team Leader and provides dynamic `+ Add Team Member` / `✕ Remove` controls.
 - **Squad Constraint Enforcement**: Enforces min and max squad bounds (e.g. 2 to 4 hackers for hackathons).
 - **Composite Profile Storage**: Captures individual names, emails, phones, and roll numbers in `team_members` JSONB.
 
-### 4. 🏷️ Multi-Tier Pricing & Membership Verification
+### 8. 🏷️ Multi-Tier Pricing & Dynamic UPI Payment Desk
 - **Dynamic Tier Matrix**: Automated fee calculation across Members, Non-Members, Early Birds, and General Admission.
-- **Proof Auditing**: Collects membership IDs and verifies eligibility directly during registration.
+- **Dynamic UPI QR Code Generator**: Generates verifiable UPI payment intents for `adityenh@oksbi` with embedded amount and reference codes.
 
-### 5. 🎟️ Digital Pass Wallet & Offline QR Tickets (`/portal`)
+### 9. 🎟️ Digital Pass Wallet & Offline QR Tickets (`/portal`)
 - **Mobile Pass Dossier**: Displays Ticket ID, Category, Schedule, Venue, Gate Instructions, and QR Pass.
-- **Offline Resilient**: Once loaded, passes remain visible in local storage even if internet connectivity drops.
+- **Offline Resilient**: Once loaded, passes remain cached in local storage even if campus Wi-Fi connectivity drops.
 
-### 6. 📁 Attendee Verification Dossier & Receipt Desk (`/registrations/:id`)
-- **High-Resolution Receipt Viewer**: Inspect payment screenshots with an interactive zoom modal.
-- **Add-ons Distribution Checklist**: Real-time toggles to hand over merchandise, hoodies, badges, and lunch coupons at the desk.
-
-### 7. 🔄 Realtime Multi-Desk Sync
+### 10. 🔄 Realtime Multi-Desk Sync
 - Powered by **Supabase PostgreSQL Realtime channels** (`postgres_changes`). Check-ins, cancellations, and capacity updates synchronize across all devices without page reloads.
 
 ---
 
-## 🧪 10 Comprehensive Workflow Test Walkthroughs
+## 🧪 11 Comprehensive Workflow Test Walkthroughs
 
 For exhaustive testing procedures, edge cases, and expected telemetry, consult [docs/WORKFLOWS_AND_TESTING.md](file:///d:/Projects/Event%20Management%20Dashboard/docs/WORKFLOWS_AND_TESTING.md).
 
-1. **Test 1: Individual Registration & QR Pass Generation** — Register as `test.student01@vibevenue.tech`, complete payment verification, and view digital gate pass.
+1. **Test 1: Individual Registration & QR Pass Generation** — Register as `test.student01@vibevenue.tech`, complete payment verification, and view digital gate pass ([📹 Video Walkthrough](images1/Registeration%20and%20email%20confirmations.mp4)).
 2. **Test 2: Team Roster Registration** — Register as `test.student02@vibevenue.tech` for HACKVERSE '26, add 2 teammates, and verify squad limits.
 3. **Test 3: Overlapping Registration Prevention** — Attempt registering for two simultaneous events on 8 Sep 2026; verify conflict banner.
 4. **Test 4: Capacity Limit & Waitlist Entry** — Fill capacity on a limited track; verify user receives **`WAITLISTED (#1)`** badge and email.
 5. **Test 5: Registration Cancellation & Auto-Promotion** — Cancel confirmed pass; verify Waitlist #1 automatically upgrades to Confirmed.
 6. **Test 6: Queue Position Advancement** — Verify remaining waitlist delegates receive queue shift notifications (`#2 ➔ #1`).
-7. **Test 7: 60FPS Camera Gate Scanner** — Open `/scanner`, scan delegate QR pass, and verify instant audio chime and attendance update.
+7. **Test 7: 60FPS Camera Gate Scanner** — Open `/scanner`, scan delegate QR pass, and verify instant audio chime and attendance update ([📹 Video Walkthrough](images/Check%20in%20Scanner.mp4)).
 8. **Test 8: Physical USB Barcode Scanner** — Plug in USB scanner, verify detection pill, and scan badge barcode without mouse clicks.
 9. **Test 9: Turnout Matrix & Spot Pass Desk** — Open `/attendance`, issue a spot pass for a walk-in attendee, and verify live count increments.
-10. **Test 10: Attendee Verification Dossier** — Open `/registrations`, audit payment proof screenshot, and toggle merchandise checklist items.
+10. **Test 10: Attendee Verification Dossier** — Open `/registrations`, inspect payment proof screenshot, and toggle merchandise checklist items.
+11. **Test 11: 1-Click CSV Roster Export** — Open `/registrations`, trigger **"Export CSV"**, and verify client-side UTF-8 BOM download ([📹 Video Walkthrough](images1/csv%20export.mp4)).
 
 ---
 

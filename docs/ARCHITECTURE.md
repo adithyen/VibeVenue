@@ -1,6 +1,6 @@
 # 🏗️ VibeVenue Architecture & Design Rationale
 
-> **Version:** `v0.93 (93 commits)`  
+> **Version:** `v0.98 (98 commits)`  
 > **Target Environment:** High-throughput collegiate hackathons, academic conferences, technical symposiums, and sports tournaments.
 
 ---
@@ -118,6 +118,15 @@ d:\Projects\Event Management Dashboard\
 │   ├── Registeration Deadline/      # Deadline & spot access configuration screenshots
 │   ├── Waitlist and automatic promotion of people from waitlist/ # Waitlist telemetry
 │   └── Check in Scanner.mp4         # 60FPS live gate scanning video recording
+├── images1/                         # Production operational captures & verified recordings
+│   ├── Registeration and email confirmations.mp4 # Full registration & Resend email video walkthrough
+│   ├── csv export.mp4               # Verified 1-click CSV export video walkthrough
+│   ├── Screenshot (382).png         # Granular team attendance & roster clearance hub
+│   ├── Screenshot (384).png         # Central delegate registrations table & CSV trigger
+│   ├── Screenshot (385).png         # Executive analytics & 30-day velocity telemetry dashboard
+│   ├── Screenshot (386).png         # Event catalog & tracks directory with capacity bars
+│   ├── Screenshot (387).png         # Granular attendee inspection dossier & payment proof desk
+│   └── Screenshot 2026-09-05 215244.png # Event specification & capacity matrix dossier
 ├── public/                          # Static assets and sample receipts
 ├── scripts/                         # Automation & database seed scripts
 │   ├── seedAllCombinationsAndUsers.js # Comprehensive database seeder (10 events, 30 users)
