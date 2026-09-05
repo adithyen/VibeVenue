@@ -365,6 +365,18 @@
   color: #D97706;
 }
 
+.result-alert-header.waitlisted {
+  background: rgba(245, 158, 11, 0.14);
+  color: #D97706;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.result-alert-header.cancelled {
+  background: rgba(225, 29, 72, 0.12);
+  color: var(--accent-rose, #E11D48);
+  border: 1px solid rgba(225, 29, 72, 0.3);
+}
+
 .result-alert-header.not_found {
   background: rgba(225, 29, 72, 0.12);
   color: var(--accent-rose, #E11D48);

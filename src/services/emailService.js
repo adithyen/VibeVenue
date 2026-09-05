@@ -14,8 +14,13 @@ const RESEND_API_KEY =
   '';
 const FROM_EMAIL = 'VibeVenue Events <tickets@vibevenue.adithyen.me>';
 
+const EDGE_FUNCTION_URL =
+  ((typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) ||
+   (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_URL) ||
+   'https://yrvijufespplklfnvsfg.supabase.co') + '/functions/v1/send-event-email';
+
 /**
- * Universal dispatcher using Resend REST API
+ * Universal dispatcher using Supabase Edge Function (CORS-friendly for browsers) with direct Resend fallback
  */
 const sendRawEmail = async ({ to, subject, html }) => {
   if (!to) {
@@ -23,33 +28,64 @@ const sendRawEmail = async ({ to, subject, html }) => {
     return { success: false, error: 'No recipient email' };
   }
 
+  // 1. Primary path: Supabase Edge Function (works across all browsers with CORS allowed)
   try {
-    const res = await fetch('https://api.resend.com/emails', {
+    const edgeRes = await fetch(EDGE_FUNCTION_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: [to],
+        action: 'send_custom',
+        to,
         subject,
         html,
       }),
     });
 
-    const data = await res.json();
-    if (!res.ok) {
-      console.warn('[EmailService] Resend API error response:', data);
-      return { success: false, error: data.message || 'Resend API failed' };
+    if (edgeRes.ok) {
+      const edgeData = await edgeRes.json();
+      if (edgeData.success) {
+        console.log(`[EmailService] Email delivered via Edge Function to ${to} (ID: ${edgeData.id})`);
+        return { success: true, id: edgeData.id };
+      }
     }
-
-    console.log(`[EmailService] Email successfully delivered to ${to} (ID: ${data.id})`);
-    return { success: true, id: data.id };
-  } catch (err) {
-    console.error('[EmailService] Network/Dispatch error:', err);
-    return { success: false, error: err.message };
+  } catch (edgeErr) {
+    console.warn('[EmailService] Edge Function proxy attempt warning:', edgeErr?.message || edgeErr);
   }
+
+  // 2. Fallback path: Direct Resend API (for Node.js or server-side scripts)
+  if (RESEND_API_KEY) {
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: FROM_EMAIL,
+          to: [to],
+          subject,
+          html,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        console.warn('[EmailService] Resend API error response:', data);
+        return { success: false, error: data.message || 'Resend API failed' };
+      }
+
+      console.log(`[EmailService] Email successfully delivered to ${to} (ID: ${data.id})`);
+      return { success: true, id: data.id };
+    } catch (err) {
+      console.error('[EmailService] Direct Resend dispatch error:', err);
+      return { success: false, error: err.message };
+    }
+  }
+
+  return { success: false, error: 'All dispatch mechanisms failed' };
 };
 
 /**

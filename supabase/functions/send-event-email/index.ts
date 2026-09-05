@@ -151,14 +151,17 @@ function wrapEmailTemplate({
   `;
 }
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Content-Type": "application/json",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-      },
+      headers: corsHeaders,
     });
   }
 
@@ -172,14 +175,14 @@ serve(async (req) => {
     if (action === "send_custom") {
       const { to, subject, html } = payload;
       const res = await sendEmail({ to, subject, html });
-      return new Response(JSON.stringify(res), { status: 200, headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify(res), { status: 200, headers: corsHeaders });
     }
 
     // Must have a record to process DB triggers
     const currentRecord = record || payload;
     if (!currentRecord || !currentRecord.email) {
       console.log("[send-event-email] No record or email provided. Skipping.");
-      return new Response(JSON.stringify({ skipped: true, reason: "No record or email" }), { status: 200 });
+      return new Response(JSON.stringify({ skipped: true, reason: "No record or email" }), { status: 200, headers: corsHeaders });
     }
 
     const { email, full_name, ticket_id, status, event_id, total_paid, pricing_tier } = currentRecord;
@@ -301,7 +304,7 @@ serve(async (req) => {
         html,
       });
 
-      return new Response(JSON.stringify(res), { status: 200, headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify(res), { status: 200, headers: corsHeaders });
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -417,7 +420,7 @@ serve(async (req) => {
         html,
       });
 
-      return new Response(JSON.stringify(res), { status: 200, headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify(res), { status: 200, headers: corsHeaders });
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -515,7 +518,7 @@ serve(async (req) => {
         html,
       });
 
-      return new Response(JSON.stringify(res), { status: 200, headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify(res), { status: 200, headers: corsHeaders });
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -580,7 +583,7 @@ serve(async (req) => {
         html,
       });
 
-      return new Response(JSON.stringify(res), { status: 200, headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify(res), { status: 200, headers: corsHeaders });
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -659,18 +662,18 @@ serve(async (req) => {
         html,
       });
 
-      return new Response(JSON.stringify(res), { status: 200, headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify(res), { status: 200, headers: corsHeaders });
     }
 
     return new Response(JSON.stringify({ skipped: true, reason: `Unmatched event: ${type} ${status}` }), {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: corsHeaders,
     });
   } catch (err: any) {
     console.error("[send-event-email] Fatal error:", err);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: corsHeaders,
     });
   }
 });

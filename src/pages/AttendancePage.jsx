@@ -198,6 +198,27 @@ const AttendancePage = () => {
       return;
     }
 
+    // Gate security check: only confirmed attendees can be checked in
+    if (match.status === 'waitlisted') {
+      addToast({
+        type: 'warning',
+        title: 'Waitlist Pass — Entry Denied ⚠️',
+        message: `${match.name} is on the waiting list. This pass has not been confirmed for admission.`,
+      });
+      setQuickScanCode('');
+      return;
+    }
+
+    if (match.status === 'cancelled') {
+      addToast({
+        type: 'error',
+        title: 'Pass Cancelled / Revoked ✕',
+        message: `Registration for ${match.name} was cancelled or revoked. Entry denied.`,
+      });
+      setQuickScanCode('');
+      return;
+    }
+
     // For Group / Team Registrations: Open individual member selection modal
     const isGroup = match.registrationType === 'group' || (Array.isArray(match.teamMembers) && match.teamMembers.length > 0);
     if (isGroup) {
@@ -342,6 +363,26 @@ const AttendancePage = () => {
 
   // 5. Manual Check-in toggle (for individuals or opens modal for groups)
   const handleToggleCheckIn = async (attendee) => {
+    if (!attendee) return;
+
+    if (attendee.status === 'waitlisted') {
+      addToast({
+        type: 'warning',
+        title: 'Waitlist Pass — Cannot Check In ⚠️',
+        message: `${attendee.name} is on the waiting list. Promote them to confirmed before checking in.`,
+      });
+      return;
+    }
+
+    if (attendee.status === 'cancelled') {
+      addToast({
+        type: 'error',
+        title: 'Registration Cancelled ✕',
+        message: `${attendee.name}'s registration has been cancelled or revoked.`,
+      });
+      return;
+    }
+
     const isGroup = attendee.registrationType === 'group' || (Array.isArray(attendee.teamMembers) && attendee.teamMembers.length > 0);
     if (isGroup) {
       // For a group/team, open individual team member attendance modal rather than marking everyone present

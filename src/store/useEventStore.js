@@ -368,20 +368,19 @@ const useEventStore = create((set, get) => ({
     }
 
     const latestRegs = dbEvt.registrations || [];
-    const liveConfirmed = Math.max(
-      latestRegs.filter(r => r.status === 'confirmed').length,
-      typeof dbEvt.amenities?.confirmedCount === 'number' ? dbEvt.amenities.confirmedCount : 0
-    );
-    const liveWaitlisted = Math.max(
-      latestRegs.filter(r => r.status === 'waitlisted').length,
-      typeof dbEvt.amenities?.waitlistCount === 'number' ? dbEvt.amenities.waitlistCount : 0
-    );
+    const liveConfirmed = Array.isArray(latestRegs)
+      ? latestRegs.filter(r => r.status === 'confirmed').length
+      : (typeof dbEvt.amenities?.confirmedCount === 'number' ? dbEvt.amenities.confirmedCount : 0);
+    const liveWaitlisted = Array.isArray(latestRegs)
+      ? latestRegs.filter(r => r.status === 'waitlisted').length
+      : (typeof dbEvt.amenities?.waitlistCount === 'number' ? dbEvt.amenities.waitlistCount : 0);
 
     const maxParticipants = dbEvt.has_capacity_limit ? (parseInt(dbEvt.max_participants, 10) || 9999) : 9999;
     const hasCapacityLimit = Boolean(dbEvt.has_capacity_limit && !dbEvt.is_online);
     const amenities = dbEvt.amenities || {};
-    const enableWaitlist = Boolean(amenities.enableWaitlist);
-    const waitlistCapacity = parseInt(amenities.waitlistCapacity, 10) || 30;
+    // Check BOTH the dedicated DB column AND the legacy amenities JSON blob
+    const enableWaitlist = Boolean(dbEvt.enable_waitlist ?? amenities.enableWaitlist);
+    const waitlistCapacity = parseInt(dbEvt.waitlist_capacity ?? amenities.waitlistCapacity, 10) || 30;
 
     const isFull = hasCapacityLimit && liveConfirmed >= maxParticipants;
     let effectiveStatus = 'confirmed';
@@ -473,34 +472,8 @@ const useEventStore = create((set, get) => ({
     const eventTime = dbEvt?.start_time || formData.eventTime || '';
     const eventVenue = dbEvt?.venue || 'Campus Venue';
 
-    if (formData.email) {
-      if (isWaitlist) {
-        sendWaitlistTicketEmail({
-          to: formData.email,
-          name: formData.fullName || formData.name,
-          eventName,
-          date: eventDate,
-          time: eventTime,
-          venue: eventVenue,
-          ticketId: reg.ticket_id,
-          position: queuePosition || nextWaitlistCount,
-          pricingTier: formatPricingTier(formData.pricingTier),
-        }).catch(err => console.error('[useEventStore] sendWaitlistTicketEmail err:', err));
-      } else {
-        sendConfirmedTicketEmail({
-          to: formData.email,
-          name: formData.fullName || formData.name,
-          eventName,
-          date: eventDate,
-          time: eventTime,
-          venue: eventVenue,
-          ticketId: reg.ticket_id,
-          pricingTier: formatPricingTier(formData.pricingTier),
-          totalPaid: formData.totalPaid || 0,
-          whatsappLink: event?.whatsappLink || null,
-        }).catch(err => console.error('[useEventStore] sendConfirmedTicketEmail err:', err));
-      }
-    }
+    // Transactional confirmation & waitlist emails are automatically dispatched
+    // by the PostgreSQL trigger `trigger_registration_email` via pg_net and send-event-email.
 
     return {
       ...reg,
@@ -516,7 +489,30 @@ const useEventStore = create((set, get) => ({
     if (!eventId) return null;
     try {
       const admin = await getAdminSupabaseClient();
-      // Find all waitlisted participants in chronological order across the entire database
+      // Wait briefly to let the Postgres auto-promote trigger settle first.
+      // This prevents JS from racing with the DB trigger on the same vacancy.
+      await new Promise(res => setTimeout(res, 700));
+
+      // Find event metadata from Zustand store or directly from DB
+      let event = get().events.find(e => e.id === eventId);
+      if (!event) {
+        const { data: dbEvtRow } = await admin.from('events').select('*').eq('id', eventId).maybeSingle();
+        event = dbEvtRow ? normaliseEvent(dbEvtRow) : null;
+      }
+
+      // Check current live confirmed count vs maximum capacity
+      const maxParticipants = event?.maxParticipants || 9999;
+      const hasLimit = Boolean(event?.hasCapacityLimit && !event?.isOnline);
+
+      const { count: liveConfirmedCount } = await admin
+        .from('registrations')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId)
+        .eq('status', 'confirmed');
+
+      const isAtCapacity = hasLimit && (liveConfirmedCount || 0) >= maxParticipants;
+
+      // Fetch all still-waitlisted attendees ordered chronologically
       const { data: waitlistRows, error } = await admin
         .from('registrations')
         .select('id, full_name, email, ticket_id, registered_at')
@@ -529,62 +525,73 @@ const useEventStore = create((set, get) => ({
         return null;
       }
 
-      const nextInLine = waitlistRows[0];
-      const remainingWaitlist = waitlistRows.slice(1);
-
-      // 1. Promote attendee #1 to confirmed
-      const { error: updateErr } = await admin
-        .from('registrations')
-        .update({
-          status: 'confirmed',
-          status_reason: 'Promoted automatically from waitlist upon seat vacancy',
-        })
-        .eq('id', nextInLine.id);
-
-      if (updateErr) {
-        console.error('promoteNextWaitlisted update error:', updateErr);
-        return null;
-      }
-
-      // Synchronize database and Zustand store counts
-      await syncEventCountsInDatabase(eventId);
-
-      // Find event metadata for emails from store or directly from DB
-      let event = get().events.find(e => e.id === eventId);
-      if (!event) {
-        const { data: dbEvtRow } = await admin.from('events').select('*').eq('id', eventId).maybeSingle();
-        event = dbEvtRow ? normaliseEvent(dbEvtRow) : null;
-      }
-
       const eventName = event?.name || 'Campus Event';
       const eventDate = event?.date || event?.startDate || '';
       const eventTime = event?.time || event?.startTime || '';
       const eventVenue = event?.venue || 'Campus Venue';
 
-      // 2. Dispatch "Promoted to Confirmed" Email to attendee #1
-      if (nextInLine.email) {
-        try {
-          await sendWaitlistPromotedEmail({
-            to: nextInLine.email,
-            name: nextInLine.full_name,
-            eventName,
-            date: eventDate,
-            time: eventTime,
-            venue: eventVenue,
-            ticketId: nextInLine.ticket_id,
-          });
-        } catch (mailErr) {
-          console.error('[useEventStore] sendWaitlistPromotedEmail err:', mailErr);
+      let jsDidPromote = false;
+      let nextInLine = null;
+      let remainingWaitlist = waitlistRows;
+
+      // If already at capacity, Postgres auto-promote trigger has ALREADY filled the vacant seat!
+      // Do NOT promote person #2 — only notify remaining candidates of their new queue positions!
+      if (!isAtCapacity) {
+        // Seat is genuinely open (Postgres trigger did not execute or was absent).
+        // JS takes responsibility to promote person #1.
+        nextInLine = waitlistRows[0];
+        remainingWaitlist = waitlistRows.slice(1);
+
+        const { data: jsPromoteResult, error: updateErr } = await admin
+          .from('registrations')
+          .update({
+            status: 'confirmed',
+            status_reason: 'Promoted automatically from waitlist upon seat vacancy',
+          })
+          .eq('id', nextInLine.id)
+          .eq('status', 'waitlisted')
+          .select('id');
+
+        jsDidPromote = !updateErr && Array.isArray(jsPromoteResult) && jsPromoteResult.length > 0;
+
+        if (updateErr) {
+          console.error('promoteNextWaitlisted update error:', updateErr);
+          return null;
+        }
+
+        // Dispatch "Promoted to Confirmed" Email from JS
+        if (jsDidPromote && nextInLine.email) {
+          try {
+            await sendWaitlistPromotedEmail({
+              to: nextInLine.email,
+              name: nextInLine.full_name,
+              eventName,
+              date: eventDate,
+              time: eventTime,
+              venue: eventVenue,
+              ticketId: nextInLine.ticket_id,
+            });
+          } catch (mailErr) {
+            console.error('[useEventStore] sendWaitlistPromotedEmail err:', mailErr);
+          }
         }
       }
 
-      // 3. Dispatch "Queue Shift" Emails to remaining waitlisted attendees
-      if (remainingWaitlist.length > 0) {
+      // Synchronize database and Zustand store counts
+      await syncEventCountsInDatabase(eventId);
+
+      // Dispatch Queue Shift emails to all remaining waitlist attendees
+      // If Postgres promoted old #1 (jsDidPromote=false), waitlistRows contains [old#2, old#3, ...]
+      //   -> old#2 is now #1 (oldPos=2 -> newPos=1), old#3 is now #2, etc.
+      // If JS promoted old #1 (jsDidPromote=true), remainingWaitlist contains [old#2, old#3, ...]
+      //   -> old#2 is now #1 (oldPos=2 -> newPos=1), etc.
+      const toNotify = jsDidPromote ? remainingWaitlist : waitlistRows;
+      if (toNotify.length > 0) {
         await Promise.all(
-          remainingWaitlist.map(async (attendee, idx) => {
+          toNotify.map(async (attendee, idx) => {
             if (attendee.email) {
-              const oldPos = idx + 2;
               const newPos = idx + 1;
+              const oldPos = idx + 2;
               try {
                 await sendWaitlistQueueShiftEmail({
                   to: attendee.email,
@@ -602,7 +609,7 @@ const useEventStore = create((set, get) => ({
         );
       }
 
-      return nextInLine;
+      return nextInLine || waitlistRows[0];
     } catch (err) {
       console.error('promoteNextWaitlisted catch:', err);
       return null;
@@ -618,7 +625,7 @@ const useEventStore = create((set, get) => ({
         .eq('id', registrationId)
         .single();
 
-      if (error || !targetReg) return false;
+      if (error || !targetReg || targetReg.status !== 'waitlisted') return false;
 
       const { error: updateErr } = await admin
         .from('registrations')
@@ -626,24 +633,20 @@ const useEventStore = create((set, get) => ({
           status: 'confirmed',
           status_reason: 'Manually promoted to confirmed seat by event administrator',
         })
-        .eq('id', registrationId);
+        .eq('id', registrationId)
+        .eq('status', 'waitlisted');
 
       if (updateErr) return false;
 
       await syncEventCountsInDatabase(eventId);
 
-      const event = get().events.find(e => e.id === eventId);
-      if (targetReg.email) {
-        sendWaitlistPromotedEmail({
-          to: targetReg.email,
-          name: targetReg.full_name,
-          eventName: event?.name || 'Campus Event',
-          date: event?.date || event?.startDate || '',
-          time: event?.time || event?.startTime || '',
-          venue: event?.venue || 'Campus Venue',
-          ticketId: targetReg.ticket_id,
-        }).catch(err => console.error('[useEventStore] manual sendWaitlistPromotedEmail err:', err));
+      let event = get().events.find(e => e.id === eventId);
+      if (!event) {
+        const { data: dbEvtRow } = await admin.from('events').select('*').eq('id', eventId).maybeSingle();
+        event = dbEvtRow ? normaliseEvent(dbEvtRow) : null;
       }
+
+      // Target attendee is notified of promotion automatically by PostgreSQL trigger `trigger_registration_email`.
 
       // Re-index remaining queue positions and notify
       const { data: remaining } = await admin
@@ -699,18 +702,7 @@ const useEventStore = create((set, get) => ({
       return false;
     }
 
-    // 2. Dispatch Cancellation Email
-    const event = get().events.find(e => e.id === eventId);
-    const emailTo = regData.email || passFallback?.email;
-    if (emailTo) {
-      sendCancellationEmail({
-        to: emailTo,
-        name: regData.full_name || regData.name || passFallback?.name || 'Participant',
-        eventName: event?.name || regData.eventName || passFallback?.eventName || 'Campus Event',
-        ticketId: regData.ticket_id || regData.ticketId || passFallback?.ticketId || 'TCK-REVOKED',
-        wasWaitlisted,
-      }).catch(err => console.error('[useEventStore] sendCancellationEmail err:', err));
-    }
+    // Cancellation email is automatically dispatched by PostgreSQL trigger `trigger_registration_email`.
 
     // 3. Auto-promote next waitlist candidate if a confirmed seat was freed
     if (wasConfirmed) {
@@ -752,16 +744,7 @@ const useEventStore = create((set, get) => ({
       .eq('id', registrationId);
 
     if (!error && status === 'cancelled') {
-      if (currentReg?.email) {
-        const event = get().events.find(e => e.id === targetEventId);
-        sendCancellationEmail({
-          to: currentReg.email,
-          name: currentReg.full_name,
-          eventName: event?.name || 'Campus Event',
-          ticketId: currentReg.ticket_id,
-          wasWaitlisted,
-        }).catch(err => console.error('[useEventStore] sendCancellationEmail err:', err));
-      }
+      // Cancellation email is automatically dispatched by PostgreSQL trigger `trigger_registration_email`.
 
       if (wasConfirmed && targetEventId) {
         await get().promoteNextWaitlisted(targetEventId);
@@ -774,9 +757,14 @@ const useEventStore = create((set, get) => ({
   updateCheckInStatus: async (registrationId, checkIn, memberIndices = null) => {
     const { data: current } = await supabase
       .from('registrations')
-      .select('team_members, checked_in_at')
+      .select('status, team_members, checked_in_at')
       .eq('id', registrationId)
       .single();
+
+    // Security check: Only confirmed attendees can be checked in at the gate
+    if (!current || (checkIn && current.status !== 'confirmed')) {
+      return false;
+    }
 
     const timestamp = new Date().toISOString();
     let updatedMembers = null;
@@ -819,11 +807,11 @@ const useEventStore = create((set, get) => ({
   updateTeamCheckIn: async (registrationId, selectedMemberIndices) => {
     const { data: current } = await supabase
       .from('registrations')
-      .select('team_members, checked_in_at')
+      .select('status, team_members, checked_in_at')
       .eq('id', registrationId)
       .single();
 
-    if (!current) return false;
+    if (!current || (selectedMemberIndices.length > 0 && current.status !== 'confirmed')) return false;
     const timestamp = new Date().toISOString();
     const members = Array.isArray(current.team_members) ? [...current.team_members] : [];
     const updatedMembers = members.map((m, idx) => ({
@@ -850,11 +838,11 @@ const useEventStore = create((set, get) => ({
   updateMemberCheckIn: async (registrationId, memberIndex, checkIn) => {
     const { data: current } = await supabase
       .from('registrations')
-      .select('team_members, check_in_status, checked_in_at')
+      .select('status, team_members, check_in_status, checked_in_at')
       .eq('id', registrationId)
       .single();
 
-    if (!current) return false;
+    if (!current || (checkIn && current.status !== 'confirmed')) return false;
     const timestamp = new Date().toISOString();
     const members = Array.isArray(current.team_members) ? [...current.team_members] : [];
     if (members[memberIndex]) {
@@ -1160,13 +1148,13 @@ function normaliseEvent(row) {
     pricingType:       isTiered ? 'tiered' : (row.pricing_type || 'flat'),
     pricingTiers:      row.is_paid ? pricingTiers : [],
     openTo:            openTo,
-    allowRegistrationsUntil: row.allow_registrations_until || null,
-    enableSpotRegistrations: row.enable_spot_registrations || false,
-    allowSpotRegistrationsUntil: row.allow_spot_registrations_until || null,
-    enableWaitlist:    row.enable_waitlist ?? amenities?.enableWaitlist ?? false,
+    allowRegistrationsUntil: row.allow_registrations_until || amenities?.allowRegistrationsUntil || null,
+    enableSpotRegistrations: Boolean(row.enable_spot_registrations ?? amenities?.enableSpotRegistrations ?? false),
+    allowSpotRegistrationsUntil: row.allow_spot_registrations_until || amenities?.allowSpotRegistrationsUntil || null,
+    enableWaitlist:    Boolean(row.enable_waitlist ?? amenities?.enableWaitlist ?? false),
     waitlistCapacity:  parseInt(row.waitlist_capacity ?? amenities?.waitlistCapacity, 10) || 30,
-    acceptCancellationsUntil: row.accept_cancellations_until ?? amenities?.acceptCancellationsUntil ?? null,
-    cancellationPolicy: row.cancellation_policy ?? amenities?.cancellationPolicy ?? '',
+    acceptCancellationsUntil: row.accept_cancellations_until || amenities?.acceptCancellationsUntil || null,
+    cancellationPolicy: row.cancellation_policy || amenities?.cancellationPolicy || '',
     individualPrice:   row.individual_price,
     groupPrice:        row.group_price,
     groupMinSize:      row.group_min_size,

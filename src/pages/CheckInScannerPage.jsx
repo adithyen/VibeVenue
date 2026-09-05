@@ -367,6 +367,41 @@ const CheckInScannerPage = () => {
       return;
     }
 
+    // 0. Verify Pass Status: Only CONFIRMED passes are permitted at venue entrance
+    if (match.status === 'waitlisted') {
+      playWarningBeep();
+      setLastScannedResult({
+        attendee: match,
+        status: 'waitlisted',
+        scannedCode: rawCode,
+        timestamp: scanTimestamp,
+      });
+      addToast({
+        type: 'warning',
+        title: 'Waitlist Pass — Entry Denied ⚠️',
+        message: `${match.name} is on the waiting list. This pass has not been promoted to a confirmed seat yet.`,
+      });
+      setTimeout(() => setIsProcessingScan(false), 2200);
+      return;
+    }
+
+    if (match.status === 'cancelled') {
+      playErrorBuzz();
+      setLastScannedResult({
+        attendee: match,
+        status: 'cancelled',
+        scannedCode: rawCode,
+        timestamp: scanTimestamp,
+      });
+      addToast({
+        type: 'error',
+        title: 'Pass Cancelled / Revoked ✕',
+        message: `Registration for ${match.name} (${match.ticketId}) was cancelled or revoked. Entry denied.`,
+      });
+      setTimeout(() => setIsProcessingScan(false), 2200);
+      return;
+    }
+
     // 1. If Team Registration -> Check in arriving members and immediately display result on screen
     if (match.registrationType === 'group' || (Array.isArray(match.teamMembers) && match.teamMembers.length > 0)) {
       playSuccessChime();
@@ -801,6 +836,8 @@ const CheckInScannerPage = () => {
                       ? '✓'
                       : lastScannedResult.status === 'already_checked'
                       ? '⚠️'
+                      : lastScannedResult.status === 'waitlisted'
+                      ? '📋'
                       : '✕'}
                   </span>
                   <div className="result-alert-text">
@@ -809,6 +846,10 @@ const CheckInScannerPage = () => {
                         ? 'GATE ENTRY APPROVED'
                         : lastScannedResult.status === 'already_checked'
                         ? 'ALREADY CHECKED IN'
+                        : lastScannedResult.status === 'waitlisted'
+                        ? 'WAITLIST PASS — NOT CONFIRMED'
+                        : lastScannedResult.status === 'cancelled'
+                        ? 'PASS CANCELLED / REVOKED'
                         : 'INVALID TICKET / NOT FOUND'}
                     </h3>
                     <span className="result-alert-sub font-mono">
@@ -816,6 +857,10 @@ const CheckInScannerPage = () => {
                         ? 'Attendee marked as present in database'
                         : lastScannedResult.status === 'already_checked'
                         ? `First checked in ${formatTimeAgo(lastScannedResult.attendee?.checkedInAt || lastScannedResult.attendee?.registeredAt)}`
+                        : lastScannedResult.status === 'waitlisted'
+                        ? 'Delegate is currently waitlisted. Gate clearance requires a confirmed seat.'
+                        : lastScannedResult.status === 'cancelled'
+                        ? 'Registration was cancelled or revoked. Entrance is not permitted.'
                         : `No registration found for "${lastScannedResult.scannedCode}"`}
                     </span>
                   </div>

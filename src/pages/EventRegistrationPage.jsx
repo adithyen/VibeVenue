@@ -39,14 +39,12 @@ const EventRegistrationPage = () => {
           const regs = dbEvt.registrations || [];
           const confirmed = regs.filter(r => r.status === 'confirmed').length;
           const waitlisted = regs.filter(r => r.status === 'waitlisted').length;
-          const confirmedFinal = Math.max(
-            confirmed,
-            typeof dbEvt.amenities?.confirmedCount === 'number' ? dbEvt.amenities.confirmedCount : 0
-          );
-          const waitlistFinal = Math.max(
-            waitlisted,
-            typeof dbEvt.amenities?.waitlistCount === 'number' ? dbEvt.amenities.waitlistCount : 0
-          );
+          const confirmedFinal = Array.isArray(dbEvt.registrations)
+            ? confirmed
+            : (typeof dbEvt.amenities?.confirmedCount === 'number' ? dbEvt.amenities.confirmedCount : 0);
+          const waitlistFinal = Array.isArray(dbEvt.registrations)
+            ? waitlisted
+            : (typeof dbEvt.amenities?.waitlistCount === 'number' ? dbEvt.amenities.waitlistCount : 0);
           setLiveCounts({ confirmed: confirmedFinal, waitlisted: waitlistFinal });
         }
       } catch (err) {

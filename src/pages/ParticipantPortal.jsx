@@ -123,6 +123,19 @@ const ParticipantPortal = () => {
   // Revoke self registration pass
   const handleRevokePass = async (pass) => {
     setIsRevoking(true);
+
+    const evt = events.find(e => e.id === pass.eventId);
+    if (evt?.acceptCancellationsUntil && new Date() > new Date(evt.acceptCancellationsUntil)) {
+      addToast({
+        type: 'error',
+        title: 'Cancellation Window Closed',
+        message: `Self-cancellations for "${pass.eventName}" closed on ${new Date(evt.acceptCancellationsUntil).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}.`,
+      });
+      setIsRevoking(false);
+      setConfirmCancel(null);
+      return;
+    }
+
     const ok = await removeParticipant(pass.eventId, pass.id, pass);
     if (ok) {
       setPasses(prev => prev.filter(p => p.id !== pass.id && p.eventId !== pass.eventId));
