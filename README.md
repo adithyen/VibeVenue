@@ -170,7 +170,9 @@ flowchart TD
 ```
 
 - **Interval Intersection Formula (`dateUtils.js:eventsOverlap`)**:
-  $$\text{Overlap} \iff \text{Candidate}_{\text{start}} < \text{Existing}_{\text{end}} \quad \land \quad \text{Candidate}_{\text{end}} > \text{Existing}_{\text{start}}$$
+  ```text
+  Overlap = (Candidate.start < Existing.end) AND (Candidate.end > Existing.start)
+  ```
 - **Cancelled Passes Excluded**: If an attendee previously cancelled a conflicting pass, `overlapChecker.js` ignores it, allowing immediate re-registration.
 - **Visual Alert**: Renders an interactive notification displaying the exact overlapping hours (e.g. *PromptX runs 7:00 PM – 9:30 PM*).
 
@@ -232,7 +234,12 @@ sequenceDiagram
 
 - **Race-Condition Safe**: Utilizes `FOR UPDATE SKIP LOCKED` inside the PostgreSQL trigger. Even if 10 attendees cancel simultaneously, rows are locked atomically without double-promotions.
 - **Dynamic Queue Numbering**: Calculated via real-time count:
-  $$\text{Position} = \operatorname{count}(*) \quad \text{where} \quad \text{status} = \text{'waitlisted'} \quad \land \quad \text{registered\_at} \le \text{user}_{\text{timestamp}}$$
+  ```sql
+  SELECT COUNT(*) + 1 FROM registrations 
+  WHERE event_id = :event_id 
+    AND status = 'waitlisted' 
+    AND registered_at <= :user_registered_at;
+  ```
 - **Cascading Queue Updates**: Remaining waitlisted users automatically advance up the line and receive shift notifications.
 
 ---
