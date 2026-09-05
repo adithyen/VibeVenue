@@ -111,6 +111,7 @@ journey
 ### 🧪 Test 4: Capacity Limit & Waitlist Queuing (Queue Positions #1 & #2)
 - **Persona:** Students 5 & 6 (`test.student05@vibevenue.tech` and `test.student06@vibevenue.tech`)
 - **Objective:** Verify that when regular seat quota is filled, the system transitions to waitlist mode and assigns sequential queue numbers.
+- **Video Walkthrough:** [📹 confirmed and waiting list registerations.mp4](../images1/confirmed%20and%20waiting%20list%20registerations.mp4)
 - **Procedure:**
   1. Configure an event with `max_participants = 10` and `enable_waitlist = true`.
   2. Have users fill the 10 available seats.
@@ -126,6 +127,7 @@ journey
 ### 🧪 Test 5: Registration Cancellation & Atomic Auto-Promotion
 - **Persona:** Confirmed Attendee + Waitlist #1 Attendee
 - **Objective:** Verify that when a confirmed delegate cancels, PostgreSQL trigger `trigger_cancellation_auto_promote` instantly upgrades Waitlist #1 to Confirmed without human latency.
+- **Video Walkthrough:** [📹 waitlist list updates and upgrade againts cancellations.mp4](../images1/waitlist%20list%20updates%20and%20upgrade%20againts%20cancellations.mp4)
 - **Procedure:**
   1. Log in as the confirmed participant from Test 4.
   2. In **My Digital Passes**, click **"Cancel Registration"** and confirm.
@@ -140,6 +142,7 @@ journey
 ### 🧪 Test 6: Queue Position Advancement Notification (#2 ➔ #1)
 - **Persona:** Sneha Pillai (`test.student06@vibevenue.tech` — Waitlist #2)
 - **Objective:** Verify queue progression notification when the person ahead is promoted.
+- **Video Walkthrough:** [📹 waitlist list updates and upgrade againts cancellations.mp4](../images1/waitlist%20list%20updates%20and%20upgrade%20againts%20cancellations.mp4)
 - **Procedure:**
   1. Check Sneha's email inbox following the cancellation in Test 5.
 - **Expected Result:**

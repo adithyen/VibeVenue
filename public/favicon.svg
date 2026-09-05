@@ -1,42 +1,74 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="64" height="64" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="vv-f-bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#1E1B4B" />
-      <stop offset="50%" stopColor="#0B0F19" />
-      <stop offset="100%" stopColor="#060913" />
+    <!-- Obsidian Glass Background Gradient -->
+    <linearGradient id="vv-bg-grad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#141B2D" />
+      <stop offset="60%" stop-color="#0B0F19" />
+      <stop offset="100%" stop-color="#060913" />
     </linearGradient>
-    <linearGradient id="vv-f-border" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#818CF8" />
-      <stop offset="50%" stopColor="#6366F1" />
-      <stop offset="100%" stopColor="#06B6D4" />
+
+    <!-- Outer Hairline Border Gradient -->
+    <linearGradient id="vv-border-grad" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#818CF8" stop-opacity="0.8" />
+      <stop offset="50%" stop-color="#6366F1" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#06B6D4" stop-opacity="0.8" />
     </linearGradient>
-    <linearGradient id="vv-f-left" x1="12" y1="18" x2="36" y2="52" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#C7D2FE" />
-      <stop offset="30%" stopColor="#818CF8" />
-      <stop offset="100%" stopColor="#4F46E5" />
+
+    <!-- Left Wing (Vibe Pulse: Indigo to Violet) -->
+    <linearGradient id="vv-primary-grad" x1="11" y1="14" x2="27" y2="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A5B4FC" />
+      <stop offset="40%" stop-color="#818CF8" />
+      <stop offset="100%" stop-color="#6366F1" />
     </linearGradient>
-    <linearGradient id="vv-f-right" x1="52" y1="18" x2="28" y2="52" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#38BDF8" />
-      <stop offset="50%" stopColor="#06B6D4" />
-      <stop offset="100%" stopColor="#0284C7" />
+
+    <!-- Right Wing (Venue Portal: Cyber Cyan to Sky) -->
+    <linearGradient id="vv-accent-grad" x1="37" y1="14" x2="21" y2="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="60%" stop-color="#06B6D4" />
+      <stop offset="100%" stop-color="#4F46E5" />
     </linearGradient>
   </defs>
 
-  <!-- High-Contrast Squircle Container -->
-  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#vv-f-bg)" stroke="url(#vv-f-border)" stroke-width="2.5" />
+  <!-- Squircle Badge Container -->
+  <rect
+    x="2"
+    y="2"
+    width="44"
+    height="44"
+    rx="13"
+    fill="url(#vv-bg-grad)"
+    stroke="url(#vv-border-grad)"
+    stroke-width="1.5"
+  />
 
   <!-- Acoustic Frequency Arc (Vibe Soundwave) -->
-  <path d="M20 13C23.5 11 28.5 10 32 10C35.5 10 40.5 11 44 13" stroke="#818CF8" stroke-width="3.5" stroke-linecap="round" />
+  <path
+    d="M17 11.5C19.1 9.8 21.4 9 24 9C26.6 9 28.9 9.8 31 11.5"
+    stroke="#818CF8"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-opacity="0.85"
+  />
 
-  <!-- Neon Beacon Core -->
-  <circle cx="32" cy="14" r="3" fill="#38BDF8" />
+  <!-- Energy Beacon Core -->
+  <circle cx="24" cy="12" r="2" fill="#38BDF8" />
 
   <!-- Left Converging V-Wing (Vibe Wave) -->
-  <path d="M12 19L32 52L37 42L23 19H12Z" fill="url(#vv-f-left)" />
+  <path
+    d="M11 15L24 38L27.5 31L18 15H11Z"
+    fill="url(#vv-primary-grad)"
+  />
 
   <!-- Right Converging V-Wing (Venue Portal) -->
-  <path d="M52 19L32 52L27 42L41 19H52Z" fill="url(#vv-f-right)" />
+  <path
+    d="M37 15L24 38L20.5 31L30 15H37Z"
+    fill="url(#vv-accent-grad)"
+  />
 
-  <!-- Center Stage Frequency Spark -->
-  <path d="M32 24L26 36H38L32 24Z" fill="#FFFFFF" />
+  <!-- Center Stage Frequency Spark (Heartbeat Convergence) -->
+  <path
+    d="M24 19L20 27.5H28L24 19Z"
+    fill="#FFFFFF"
+    opacity="0.95"
+  />
 </svg>

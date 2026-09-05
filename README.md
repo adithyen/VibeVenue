@@ -35,6 +35,8 @@ Here is a curated visual walkthrough of VibeVenue in action, demonstrating live 
 | Workflow Video Walkthrough | Direct Media Link | Focus Area & Verified Capability |
 | :--- | :---: | :--- |
 | **End-to-End Registration & Instant Email Confirmation** | [📹 Registeration and email confirmations.mp4](images1/Registeration%20and%20email%20confirmations.mp4) | Complete delegate registration flow: dynamic UPI checkout, proof submission, and instantaneous transactional email delivery via Resend. |
+| **Capacity Saturation & Waitlist Queuing (#1 & #2)** | [📹 confirmed and waiting list registerations.mp4](images1/confirmed%20and%20waiting%20list%20registerations.mp4) | Live validation registering 10 confirmed delegates, placing 11th registrant as Waitlist #1, and 12th registrant as Waitlist #2 with instant email notifications. |
+| **Cancellation, Queue Advancement & Auto-Promotion** | [📹 waitlist list updates and upgrade againts cancellations.mp4](images1/waitlist%20list%20updates%20and%20upgrade%20againts%20cancellations.mp4) | Real-time delegate cancellation releasing seat, triggering instant automatic promotion of Waitlist #1 to Confirmed status, and advancing Waitlist #2 to #1 with live pass reissuance. |
 | **1-Click Turnout & Registrations CSV Export** | [📹 csv export.mp4](images1/csv%20export.mp4) | High-speed client-side CSV generator compiling delegate rosters with UTF-8 BOM encoding and formatted filenames (`vibevenue_registrations_YYYY-MM-DD.csv`). |
 | **60 FPS Gate Scanner & Audio Feedback** | [📹 Check in Scanner.mp4](images/Check%20in%20Scanner.mp4) | Direct Canvas 2D frame sampler decoding QR passes at 60 FPS with hardware barcode listeners and audio chime verification. |
 
@@ -337,9 +339,9 @@ For exhaustive testing procedures, edge cases, and expected telemetry, consult [
 1. **Test 1: Individual Registration & QR Pass Generation** — Register as `test.student01@vibevenue.tech`, complete payment verification, and view digital gate pass ([📹 Video Walkthrough](images1/Registeration%20and%20email%20confirmations.mp4)).
 2. **Test 2: Team Roster Registration** — Register as `test.student02@vibevenue.tech` for HACKVERSE '26, add 2 teammates, and verify squad limits.
 3. **Test 3: Overlapping Registration Prevention** — Attempt registering for two simultaneous events on 8 Sep 2026; verify conflict banner.
-4. **Test 4: Capacity Limit & Waitlist Entry** — Fill capacity on a limited track; verify user receives **`WAITLISTED (#1)`** badge and email.
-5. **Test 5: Registration Cancellation & Auto-Promotion** — Cancel confirmed pass; verify Waitlist #1 automatically upgrades to Confirmed.
-6. **Test 6: Queue Position Advancement** — Verify remaining waitlist delegates receive queue shift notifications (`#2 ➔ #1`).
+4. **Test 4: Capacity Limit & Waitlist Entry** — Fill capacity on a limited track; verify user receives **`WAITLISTED (#1)`** badge and email ([📹 Video Walkthrough](images1/confirmed%20and%20waiting%20list%20registerations.mp4)).
+5. **Test 5: Registration Cancellation & Auto-Promotion** — Cancel confirmed pass; verify Waitlist #1 automatically upgrades to Confirmed ([📹 Video Walkthrough](images1/waitlist%20list%20updates%20and%20upgrade%20againts%20cancellations.mp4)).
+6. **Test 6: Queue Position Advancement** — Verify remaining waitlist delegates receive queue shift notifications (`#2 ➔ #1`) ([📹 Video Walkthrough](images1/waitlist%20list%20updates%20and%20upgrade%20againts%20cancellations.mp4)).
 7. **Test 7: 60FPS Camera Gate Scanner** — Open `/scanner`, scan delegate QR pass, and verify instant audio chime and attendance update ([📹 Video Walkthrough](images/Check%20in%20Scanner.mp4)).
 8. **Test 8: Physical USB Barcode Scanner** — Plug in USB scanner, verify detection pill, and scan badge barcode without mouse clicks.
 9. **Test 9: Turnout Matrix & Spot Pass Desk** — Open `/attendance`, issue a spot pass for a walk-in attendee, and verify live count increments.

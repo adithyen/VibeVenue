@@ -92,16 +92,8 @@ function wrapEmailTemplate({
                     <table border="0" cellpadding="0" cellspacing="0">
                       <tr>
                         <td valign="middle" style="padding-right: 14px;">
-                          <!-- Brand Icon -->
-                          <div style="width: 40px; height: 40px; background-color: #1A263D; border: 1.5px solid #818CF8; border-radius: 12px; text-align: center; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(99,102,241,0.3);">
-                            <svg width="26" height="26" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block; margin:auto;">
-                              <path d="M17 11.5C19.1 9.8 21.4 9 24 9C26.6 9 28.9 9.8 31 11.5" stroke="#818CF8" stroke-width="2.5" stroke-linecap="round"/>
-                              <circle cx="24" cy="12" r="2.5" fill="#38BDF8"/>
-                              <path d="M11 15L24 38L27.5 31L18 15H11Z" fill="#818CF8"/>
-                              <path d="M37 15L24 38L20.5 31L30 15H37Z" fill="#06B6D4"/>
-                              <path d="M24 19L20 27.5H28L24 19Z" fill="#FFFFFF"/>
-                            </svg>
-                          </div>
+                          <!-- Brand Icon (Uniform VibeVenue Mark) -->
+                          <img src="https://vibe-venue.vercel.app/favicon.png" width="40" height="40" alt="VibeVenue" style="display: block; width: 40px; height: 40px; border-radius: 12px; border: 1.5px solid #818CF8; box-shadow: 0 4px 12px rgba(99,102,241,0.3); background-color: #1A263D;" />
                         </td>
                         <td valign="middle">
                           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: #FFFFFF; line-height: 1.2;">

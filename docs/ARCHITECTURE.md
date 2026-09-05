@@ -120,6 +120,8 @@ d:\Projects\Event Management Dashboard\
 │   └── Check in Scanner.mp4         # 60FPS live gate scanning video recording
 ├── images1/                         # Production operational captures & verified recordings
 │   ├── Registeration and email confirmations.mp4 # Full registration & Resend email video walkthrough
+│   ├── confirmed and waiting list registerations.mp4 # 10 Confirmed + Waitlist #1 & #2 walkthrough
+│   ├── waitlist list updates and upgrade againts cancellations.mp4 # Cancellation, auto-promotion & queue shift walkthrough
 │   ├── csv export.mp4               # Verified 1-click CSV export video walkthrough
 │   ├── Screenshot (382).png         # Granular team attendance & roster clearance hub
 │   ├── Screenshot (384).png         # Central delegate registrations table & CSV trigger
