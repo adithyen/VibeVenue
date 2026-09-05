@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import useEventStore from '../store/useEventStore';
 import useUIStore from '../store/useUIStore';
 import Avatar from '../components/ui/Avatar';
+import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import { formatTimeAgo, formatDate, formatDateTime, formatEventSchedule, formatPricingTier } from '../utils/dateUtils';
 import './RegistrationDetailPage.css';
