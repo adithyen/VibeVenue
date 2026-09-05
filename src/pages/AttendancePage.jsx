@@ -12,6 +12,7 @@ import Modal from '../components/ui/Modal';
 import ProgressBar from '../components/ui/ProgressBar';
 import { formatTimeAgo, formatDateTime, formatEventSchedule, formatPricingTier } from '../utils/dateUtils';
 import { playSuccessChime } from '../utils/audioUtils';
+import { exportToCSV } from '../utils/csvExport';
 import './AttendancePage.css';
 
 const AttendancePage = () => {
@@ -541,34 +542,45 @@ const AttendancePage = () => {
       return;
     }
 
-    const headers = ['Ticket ID', 'Name', 'Team Name', 'Role/Type', 'Roll No', 'Department', 'Year', 'College', 'Email', 'Phone', 'Category Tier', 'Paid Amount', 'Status', 'Gate Check-In', 'Checked-In Timestamp'];
+    const headers = [
+      'Ticket ID',
+      'Name',
+      'Team Name',
+      'Role/Type',
+      'Roll No',
+      'Department',
+      'Year',
+      'College',
+      'Email',
+      'Phone',
+      'Category Tier',
+      'Paid Amount',
+      'Status',
+      'Gate Check-In',
+      'Checked-In Timestamp',
+    ];
+
     const rows = currentTabList.map((a) => [
-      `"${a.ticketId || ''}"`,
-      `"${a.name || ''}"`,
-      `"${a.teamName || ''}"`,
-      `"${a.registrationType || 'individual'}"`,
-      `"${a.studentId || a.rollNumber || ''}"`,
-      `"${a.department || ''}"`,
-      `"${a.year || ''}"`,
-      `"${a.college || ''}"`,
-      `"${a.email || ''}"`,
-      `"${a.phone || ''}"`,
-      `"${a.pricingTier || ''}"`,
-      `"${a.totalPaid || 0}"`,
-      `"${a.status || ''}"`,
-      `"${a.checkInStatus || 'Not Checked'}"`,
-      `"${a.checkedInAt ? formatDateTime(a.checkedInAt) : ''}"`,
+      a.ticketId || '',
+      a.name || '',
+      a.teamName || '',
+      a.registrationType || 'individual',
+      a.studentId || a.rollNumber || '',
+      a.department || '',
+      a.year || '',
+      a.college || '',
+      a.email || '',
+      a.phone || '',
+      a.pricingTier || '',
+      a.totalPaid || 0,
+      a.status || '',
+      a.checkInStatus || 'Not Checked',
+      a.checkedInAt ? formatDateTime(a.checkedInAt) : '',
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    const eventSlug = activeEvent ? activeEvent.name.toLowerCase().replace(/\s+/g, '-') : 'all-events';
-    link.setAttribute('download', `attendance-${eventSlug}-${activeTab}-${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const eventSlug = activeEvent ? activeEvent.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'all-events';
+    const filename = `attendance-${eventSlug}-${activeTab}-${new Date().toISOString().slice(0, 10)}.csv`;
+    exportToCSV(filename, headers, rows);
 
     addToast({ type: 'info', title: 'Exported Attendance CSV', message: `${currentTabList.length} records downloaded.` });
   };

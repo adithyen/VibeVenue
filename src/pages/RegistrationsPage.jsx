@@ -7,6 +7,7 @@ import SearchBar from '../components/ui/SearchBar';
 import Button from '../components/ui/Button';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
+import { exportToCSV } from '../utils/csvExport';
 import './RegistrationsPage.css';
 
 const PER_PAGE = 15;
@@ -98,26 +99,19 @@ const RegistrationsPage = () => {
 
     const rows = filtered.map((p) => [
       p.ticketId || '',
-      `"${p.name}"`,
-      p.studentId,
-      p.email,
-      `"${p.department}"`,
-      `"${p.year}"`,
-      `"${p.eventName}"`,
-      p.status,
+      p.name || '',
+      p.studentId || '',
+      p.email || '',
+      p.department || '',
+      p.year || '',
+      p.eventName || '',
+      p.status || '',
       p.checkInStatus || 'Not Checked In',
-      p.registeredAt,
+      p.registeredAt || '',
     ]);
 
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `vibevenue_registrations_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const filename = `vibevenue_registrations_${new Date().toISOString().slice(0, 10)}.csv`;
+    exportToCSV(filename, headers, rows);
 
     addToast({
       type: 'success',
