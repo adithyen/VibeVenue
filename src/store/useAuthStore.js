@@ -69,22 +69,35 @@ const useAuthStore = create((set, get) => ({
       if (!authUser) return null;
 
       const meta = authUser.user_metadata || {};
-      const savedRole = localStorage.getItem('vibe_intended_role');
+      const savedRole = typeof window !== 'undefined' ? localStorage.getItem('vibe_intended_role') : null;
+
+      // Check client-side cached profile backup
+      let cached = null;
+      try {
+        if (typeof window !== 'undefined') {
+          const raw = localStorage.getItem(`vibe_user_profile_${userId}`);
+          if (raw) cached = JSON.parse(raw);
+        }
+      } catch {}
 
       // Attempt to read from profiles table
-      const { data: profileRow } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      let profile = profileRow;
+      let profile = null;
+      try {
+        const { data: profileRow } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+        profile = profileRow;
+      } catch (e) {
+        console.warn('Failed querying profiles table:', e);
+      }
 
       // If no profile exists yet in DB (e.g. first-time Google sign-in), auto-create it!
       if (!profile) {
-        const fallbackName = meta.full_name || meta.name || authUser.email?.split('@')[0] || 'User';
-        const fallbackAvatar = meta.avatar_url || meta.picture || null;
-        const fallbackRole = meta.role || savedRole || 'participant';
+        const fallbackName = meta.full_name || meta.name || cached?.name || authUser.email?.split('@')[0] || 'User';
+        const fallbackAvatar = meta.avatar_url || meta.picture || cached?.avatar || null;
+        const fallbackRole = meta.role || cached?.role || savedRole || 'participant';
 
         try {
           const { data: created } = await supabase
@@ -103,12 +116,37 @@ const useAuthStore = create((set, get) => ({
         }
       }
 
-      const role = profile?.role || meta.role || savedRole || 'participant';
-      const name = profile?.name || meta.full_name || meta.name || authUser.email?.split('@')[0] || 'User';
-      const avatar = profile?.avatar_url || meta.avatar_url || meta.picture || null;
-      const designation = meta.designation || meta.roleTitle || (role === 'admin' ? (profile?.student_id || meta.studentId || meta.rollNumber || '') : '');
+      const role = profile?.role || meta.role || cached?.role || savedRole || 'participant';
 
-      return {
+      // Name resolution: prioritize the most recently saved name
+      let name = profile?.name || meta.full_name || meta.name || cached?.name || authUser.email?.split('@')[0] || 'User';
+      // If local cache or Auth metadata has a custom edited name that differs from stale DB row, use the latest
+      if (cached?.name && cached.name.trim() && cached.name !== profile?.name) {
+        name = cached.name.trim();
+      } else if (meta.full_name && meta.full_name.trim() && meta.full_name !== profile?.name) {
+        name = meta.full_name.trim();
+      }
+
+      // Self-heal: If profile table has an outdated name compared to resolved name, sync DB row
+      if (name && profile?.name && profile.name !== name) {
+        try {
+          supabase
+            .from('profiles')
+            .update({ name, updated_at: new Date().toISOString() })
+            .eq('id', userId)
+            .then();
+        } catch {}
+      }
+
+      const avatar = profile?.avatar_url || meta.avatar_url || meta.picture || cached?.avatar || null;
+      const studentId = profile?.student_id || meta.student_id || meta.studentId || meta.rollNumber || cached?.studentId || cached?.rollNumber || '';
+      const designation = studentId || meta.designation || meta.roleTitle || cached?.designation || (role === 'admin' ? 'Lead Organizer' : '');
+      const college = meta.college || cached?.college || profile?.college || '';
+      const department = profile?.department || meta.department || cached?.department || '';
+      const year = profile?.year || meta.year || cached?.year || '';
+      const phone = profile?.phone || meta.phone || cached?.phone || '';
+
+      const resolved = {
         id: userId,
         name,
         email: authUser.email,
@@ -116,13 +154,23 @@ const useAuthStore = create((set, get) => ({
         role,
         designation: designation || (role === 'admin' ? 'Lead Organizer' : ''),
         roleTitle: designation || (role === 'admin' ? 'Lead Organizer' : ''),
-        studentId: profile?.student_id || meta.studentId || meta.student_id || meta.rollNumber || '',
-        college: profile?.college || meta.college || '',
-        department: profile?.department || meta.department || '',
-        year: profile?.year || meta.year || '',
-        phone: profile?.phone || meta.phone || '',
+        studentId,
+        rollNumber: studentId,
+        college,
+        department,
+        year,
+        phone,
         initials: (name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
       };
+
+      // Always maintain synchronous localStorage cache
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`vibe_user_profile_${userId}`, JSON.stringify(resolved));
+        }
+      } catch {}
+
+      return resolved;
     } catch (err) {
       console.error('_fetchProfile exception:', err);
       // Failsafe fallback: return user object so authentication never hangs
@@ -130,23 +178,33 @@ const useAuthStore = create((set, get) => ({
       const authUser = authData?.user;
       if (!authUser) return null;
       const meta = authUser.user_metadata || {};
-      const name = meta.full_name || meta.name || authUser.email?.split('@')[0] || 'User';
-      const role = meta.role || localStorage.getItem('vibe_intended_role') || 'participant';
-      const designation = meta.designation || meta.roleTitle || (role === 'admin' ? (meta.studentId || meta.rollNumber || '') : '');
+      let cached = null;
+      try {
+        if (typeof window !== 'undefined') {
+          const raw = localStorage.getItem(`vibe_user_profile_${userId}`);
+          if (raw) cached = JSON.parse(raw);
+        }
+      } catch {}
+
+      const name = cached?.name || meta.full_name || meta.name || authUser.email?.split('@')[0] || 'User';
+      const role = cached?.role || meta.role || localStorage.getItem('vibe_intended_role') || 'participant';
+      const designation = cached?.designation || meta.designation || meta.roleTitle || (role === 'admin' ? (meta.studentId || meta.rollNumber || '') : '');
+      const studentId = cached?.studentId || meta.studentId || meta.student_id || meta.rollNumber || '';
       return {
         id: userId,
         name,
         email: authUser.email,
-        avatar: meta.avatar_url || meta.picture || null,
+        avatar: cached?.avatar || meta.avatar_url || meta.picture || null,
         role,
         designation: designation || (role === 'admin' ? 'Lead Organizer' : ''),
         roleTitle: designation || (role === 'admin' ? 'Lead Organizer' : ''),
-        studentId: meta.studentId || meta.student_id || meta.rollNumber || '',
-        college: meta.college || '',
-        department: meta.department || '',
-        year: meta.year || '',
-        phone: meta.phone || '',
-        initials: 'U',
+        studentId,
+        rollNumber: studentId,
+        college: cached?.college || meta.college || '',
+        department: cached?.department || meta.department || '',
+        year: cached?.year || meta.year || '',
+        phone: cached?.phone || meta.phone || '',
+        initials: (name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
       };
     }
   },
@@ -223,52 +281,118 @@ const useAuthStore = create((set, get) => ({
     if (!user) return false;
     try {
       const designationValue = updates.designation || updates.roleTitle || updates.studentId || updates.rollNumber || '';
+      const trimmedName = updates.name ? updates.name.trim() : user.name;
+      const trimmedPhone = updates.phone ? updates.phone.trim() : '';
+      const trimmedCollege = updates.college ? updates.college.trim() : (user.college || '');
+      const trimmedStudentId = updates.studentId || updates.rollNumber || designationValue || '';
+      const trimmedDept = updates.department ? updates.department.trim() : '';
+      const selectedYear = updates.year || '';
+      const avatarUrl = updates.avatar || updates.avatarUrl || user.avatar || null;
 
       // 1. Update Supabase profiles table
+      // CRITICAL: ONLY valid schema columns ('name', 'student_id', 'department', 'year', 'phone', 'avatar_url', 'updated_at')!
+      // 'college' is NOT a column in public.profiles; sending it causes PGRST204 HTTP 400 Bad Request error.
       const profileUpdates = {
-        name: updates.name,
-        student_id: updates.studentId || updates.rollNumber || designationValue,
-        college: updates.college || '',
-        department: updates.department || '',
-        year: updates.year || '',
-        phone: updates.phone,
-        avatar_url: updates.avatar || updates.avatarUrl,
+        name: trimmedName,
+        student_id: trimmedStudentId,
+        department: trimmedDept,
+        year: selectedYear,
+        phone: trimmedPhone,
+        updated_at: new Date().toISOString(),
       };
+      if (avatarUrl) {
+        profileUpdates.avatar_url = avatarUrl;
+      }
 
-      await supabase
-        .from('profiles')
-        .update(profileUpdates)
-        .eq('id', user.id);
+      try {
+        const { error: pError } = await supabase
+          .from('profiles')
+          .update(profileUpdates)
+          .eq('id', user.id);
 
-      // 2. Also update Supabase auth user_metadata for reliable sync
-      await supabase.auth.updateUser({
-        data: {
-          full_name: updates.name,
-          phone: updates.phone,
-          college: updates.college || '',
-          studentId: updates.studentId || updates.rollNumber || designationValue,
-          rollNumber: updates.studentId || updates.rollNumber || designationValue,
-          designation: designationValue,
-          roleTitle: designationValue,
-          year: updates.year || '',
-          department: updates.department || '',
-          avatar_url: updates.avatar || updates.avatarUrl,
-        },
-      });
+        if (pError) {
+          console.warn('[updateProfile] Direct profiles table update warning:', pError.message);
+        }
+      } catch (dbErr) {
+        console.warn('[updateProfile] DB update exception:', dbErr);
+      }
 
+      // 2. Update Supabase auth user_metadata (this preserves college and synchronizes across all devices/sessions)
+      try {
+        const { error: authErr } = await supabase.auth.updateUser({
+          data: {
+            full_name: trimmedName,
+            name: trimmedName,
+            phone: trimmedPhone,
+            college: trimmedCollege,
+            student_id: trimmedStudentId,
+            studentId: trimmedStudentId,
+            rollNumber: trimmedStudentId,
+            designation: designationValue,
+            roleTitle: designationValue,
+            year: selectedYear,
+            department: trimmedDept,
+            avatar_url: avatarUrl,
+          },
+        });
+        if (authErr) {
+          console.warn('[updateProfile] Supabase auth updateUser warning:', authErr.message);
+        }
+      } catch (authErr) {
+        console.warn('[updateProfile] Supabase auth updateUser exception:', authErr);
+      }
+
+      // 3. Keep any existing registrations by this user in sync with their updated name and phone
+      try {
+        await supabase
+          .from('registrations')
+          .update({
+            full_name: trimmedName,
+            phone: trimmedPhone,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', user.id);
+      } catch (regErr) {
+        console.warn('[updateProfile] Registrations sync non-blocking warning:', regErr);
+      }
+
+      // 4. Construct updated user object
       const updatedUser = {
         ...user,
         ...updates,
+        name: trimmedName,
+        phone: trimmedPhone,
+        college: trimmedCollege,
+        studentId: trimmedStudentId,
+        rollNumber: trimmedStudentId,
+        department: trimmedDept,
+        year: selectedYear,
+        avatar: avatarUrl,
         designation: designationValue || user.designation,
         roleTitle: designationValue || user.roleTitle,
-        initials: (updates.name || user.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
+        initials: (trimmedName || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
       };
+
+      // 5. Persist to localStorage for 100% reload resilience
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`vibe_user_profile_${user.id}`, JSON.stringify(updatedUser));
+        }
+      } catch {}
+
+      // 6. Update in-memory Zustand store
       set({ user: updatedUser });
       return true;
     } catch (err) {
       console.error('updateProfile error:', err);
       // Fallback local update
-      set({ user: { ...user, ...updates } });
+      const fallbackUser = { ...user, ...updates };
+      try {
+        if (typeof window !== 'undefined' && user?.id) {
+          localStorage.setItem(`vibe_user_profile_${user.id}`, JSON.stringify(fallbackUser));
+        }
+      } catch {}
+      set({ user: fallbackUser });
       return true;
     }
   },
